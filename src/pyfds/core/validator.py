@@ -7,7 +7,7 @@ are syntactically and semantically correct before execution.
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pyfds.core.namelist import Mesh, Time
@@ -54,8 +54,8 @@ class Validator:
 
     def __init__(self) -> None:
         """Initialize the validator."""
-        self.warnings: List[ValidationWarning] = []
-        self.errors: List[str] = []
+        self.warnings: list[ValidationWarning] = []
+        self.errors: list[str] = []
 
     def validate_simulation(self, simulation: "Simulation") -> bool:
         """
@@ -223,11 +223,11 @@ class Validator:
                     )
                 )
 
-    def get_warnings(self) -> List[ValidationWarning]:
+    def get_warnings(self) -> list[ValidationWarning]:
         """Get all validation warnings."""
         return self.warnings
 
-    def get_errors(self) -> List[str]:
+    def get_errors(self) -> list[str]:
         """Get all validation errors."""
         return self.errors
 

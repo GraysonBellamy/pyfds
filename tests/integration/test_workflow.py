@@ -107,7 +107,7 @@ class TestBasicWorkflow:
             assert filepath.exists()
 
         # Verify HRR values in files
-        for hrr, filepath in zip(hrr_values, simulation_files):
+        for hrr, filepath in zip(hrr_values, simulation_files, strict=True):
             content = filepath.read_text()
             assert f"HRRPUA={float(hrr)}" in content
 

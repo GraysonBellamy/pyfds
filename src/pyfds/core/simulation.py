@@ -6,7 +6,6 @@ programmatically in Python.
 """
 
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
 
 from .namelist import Device, Head, Mesh, Obstruction, Surface, Time
 
@@ -49,14 +48,14 @@ class Simulation:
         List of DEVC namelist groups
     """
 
-    def __init__(self, chid: str, title: Optional[str] = None):
+    def __init__(self, chid: str, title: str | None = None):
         """Initialize a new FDS simulation."""
         self.head = Head(chid=chid, title=title)
-        self.time_params: Optional[Time] = None
-        self.meshes: List[Mesh] = []
-        self.surfaces: List[Surface] = []
-        self.obstructions: List[Obstruction] = []
-        self.devices: List[Device] = []
+        self.time_params: Time | None = None
+        self.meshes: list[Mesh] = []
+        self.surfaces: list[Surface] = []
+        self.obstructions: list[Obstruction] = []
+        self.devices: list[Device] = []
 
     @property
     def chid(self) -> str:
@@ -66,9 +65,9 @@ class Simulation:
     def time(
         self,
         t_end: float,
-        t_begin: Optional[float] = None,
-        dt: Optional[float] = None,
-        wall_clock_time: Optional[float] = None,
+        t_begin: float | None = None,
+        dt: float | None = None,
+        wall_clock_time: float | None = None,
     ) -> "Simulation":
         """
         Set time parameters for the simulation.
@@ -101,10 +100,10 @@ class Simulation:
 
     def mesh(
         self,
-        ijk: Tuple[int, int, int],
-        xb: Tuple[float, float, float, float, float, float],
-        id: Optional[str] = None,
-        mpi_process: Optional[int] = None,
+        ijk: tuple[int, int, int],
+        xb: tuple[float, float, float, float, float, float],
+        id: str | None = None,
+        mpi_process: int | None = None,
     ) -> "Simulation":
         """
         Add a computational mesh to the simulation.
@@ -158,12 +157,12 @@ class Simulation:
     def surface(
         self,
         id: str,
-        rgb: Optional[Tuple[int, int, int]] = None,
-        color: Optional[str] = None,
-        hrrpua: Optional[float] = None,
-        tmp_front: Optional[float] = None,
-        matl_id: Optional[str] = None,
-        thickness: Optional[float] = None,
+        rgb: tuple[int, int, int] | None = None,
+        color: str | None = None,
+        hrrpua: float | None = None,
+        tmp_front: float | None = None,
+        matl_id: str | None = None,
+        thickness: float | None = None,
     ) -> "Simulation":
         """
         Add a surface definition to the simulation.
@@ -226,12 +225,12 @@ class Simulation:
 
     def obstruction(
         self,
-        xb: Tuple[float, float, float, float, float, float],
-        surf_id: Optional[str] = None,
-        surf_id_top: Optional[str] = None,
-        surf_id_bottom: Optional[str] = None,
-        surf_id_sides: Optional[str] = None,
-        color: Optional[str] = None,
+        xb: tuple[float, float, float, float, float, float],
+        surf_id: str | None = None,
+        surf_id_top: str | None = None,
+        surf_id_bottom: str | None = None,
+        surf_id_sides: str | None = None,
+        color: str | None = None,
     ) -> "Simulation":
         """
         Add an obstruction to the simulation.
@@ -293,8 +292,8 @@ class Simulation:
         self,
         id: str,
         quantity: str,
-        xyz: Optional[Tuple[float, float, float]] = None,
-        xb: Optional[Tuple[float, float, float, float, float, float]] = None,
+        xyz: tuple[float, float, float] | None = None,
+        xb: tuple[float, float, float, float, float, float] | None = None,
     ) -> "Simulation":
         """
         Add a measurement device to the simulation.
@@ -410,7 +409,7 @@ class Simulation:
 
         return "\n".join(lines)
 
-    def write(self, filename: Union[str, Path]) -> Path:
+    def write(self, filename: str | Path) -> Path:
         """
         Write the FDS input file to disk.
 
@@ -446,7 +445,7 @@ class Simulation:
 
         return filepath
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """
         Validate the simulation configuration.
 

@@ -6,7 +6,7 @@ with proper validation and formatting.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -59,7 +59,7 @@ class NamelistBase(BaseModel, ABC):
             return ""
         return str(value)
 
-    def _build_namelist(self, group_name: str, params: Dict[str, Any]) -> str:
+    def _build_namelist(self, group_name: str, params: dict[str, Any]) -> str:
         """
         Build an FDS namelist string from parameters.
 
@@ -111,7 +111,7 @@ class Head(NamelistBase):
     """
 
     chid: str = Field(..., description="Case identifier")
-    title: Optional[str] = Field(None, description="Simulation title")
+    title: str | None = Field(None, description="Simulation title")
 
     @field_validator("chid")
     @classmethod
@@ -127,7 +127,7 @@ class Head(NamelistBase):
 
     def to_fds(self) -> str:
         """Generate FDS HEAD namelist."""
-        params: Dict[str, Any] = {"chid": self.chid}
+        params: dict[str, Any] = {"chid": self.chid}
         if self.title:
             params["title"] = self.title
         return self._build_namelist("HEAD", params)
@@ -156,13 +156,13 @@ class Time(NamelistBase):
     """
 
     t_end: float = Field(..., gt=0, description="End time (s)")
-    t_begin: Optional[float] = Field(None, ge=0, description="Begin time (s)")
-    dt: Optional[float] = Field(None, gt=0, description="Time step (s)")
-    wall_clock_time: Optional[float] = Field(None, gt=0, description="Wall clock limit (s)")
+    t_begin: float | None = Field(None, ge=0, description="Begin time (s)")
+    dt: float | None = Field(None, gt=0, description="Time step (s)")
+    wall_clock_time: float | None = Field(None, gt=0, description="Wall clock limit (s)")
 
     def to_fds(self) -> str:
         """Generate FDS TIME namelist."""
-        params: Dict[str, Any] = {"t_end": self.t_end}
+        params: dict[str, Any] = {"t_end": self.t_end}
         if self.t_begin is not None:
             params["t_begin"] = self.t_begin
         if self.dt is not None:
@@ -198,16 +198,16 @@ class Mesh(NamelistBase):
     Grid cells should ideally be cubic or near-cubic for best accuracy.
     """
 
-    ijk: Tuple[int, int, int] = Field(..., description="Grid cell counts (i,j,k)")
-    xb: Tuple[float, float, float, float, float, float] = Field(
+    ijk: tuple[int, int, int] = Field(..., description="Grid cell counts (i,j,k)")
+    xb: tuple[float, float, float, float, float, float] = Field(
         ..., description="Domain bounds (xmin,xmax,ymin,ymax,zmin,zmax)"
     )
-    id: Optional[str] = Field(None, description="Mesh identifier")
-    mpi_process: Optional[int] = Field(None, ge=0, description="MPI process number")
+    id: str | None = Field(None, description="Mesh identifier")
+    mpi_process: int | None = Field(None, ge=0, description="MPI process number")
 
     @field_validator("ijk")
     @classmethod
-    def validate_ijk(cls, v: Tuple[int, int, int]) -> Tuple[int, int, int]:
+    def validate_ijk(cls, v: tuple[int, int, int]) -> tuple[int, int, int]:
         """Validate grid dimensions are positive."""
         if len(v) != 3:
             raise ValueError("IJK must have exactly 3 values")
@@ -217,7 +217,7 @@ class Mesh(NamelistBase):
 
     @field_validator("xb")
     @classmethod
-    def validate_xb(cls, v: Tuple[float, ...]) -> Tuple[float, ...]:
+    def validate_xb(cls, v: tuple[float, ...]) -> tuple[float, ...]:
         """Validate domain bounds are valid."""
         if len(v) != 6:
             raise ValueError("XB must have exactly 6 values")
@@ -227,14 +227,14 @@ class Mesh(NamelistBase):
 
     def to_fds(self) -> str:
         """Generate FDS MESH namelist."""
-        params: Dict[str, Any] = {"ijk": self.ijk, "xb": self.xb}
+        params: dict[str, Any] = {"ijk": self.ijk, "xb": self.xb}
         if self.id:
             params["id"] = self.id
         if self.mpi_process is not None:
             params["mpi_process"] = self.mpi_process
         return self._build_namelist("MESH", params)
 
-    def get_cell_size(self) -> Tuple[float, float, float]:
+    def get_cell_size(self) -> tuple[float, float, float]:
         """
         Calculate the cell size in each direction.
 
@@ -278,18 +278,16 @@ class Surface(NamelistBase):
     """
 
     id: str = Field(..., description="Surface identifier")
-    rgb: Optional[Tuple[int, int, int]] = Field(None, description="RGB color")
-    color: Optional[str] = Field(None, description="Named color")
-    hrrpua: Optional[float] = Field(
-        None, ge=0, description="Heat release rate per unit area (kW/m²)"
-    )
-    tmp_front: Optional[float] = Field(None, description="Front surface temperature (°C)")
-    matl_id: Optional[str] = Field(None, description="Material identifier")
-    thickness: Optional[float] = Field(None, gt=0, description="Material thickness (m)")
+    rgb: tuple[int, int, int] | None = Field(None, description="RGB color")
+    color: str | None = Field(None, description="Named color")
+    hrrpua: float | None = Field(None, ge=0, description="Heat release rate per unit area (kW/m²)")
+    tmp_front: float | None = Field(None, description="Front surface temperature (°C)")
+    matl_id: str | None = Field(None, description="Material identifier")
+    thickness: float | None = Field(None, gt=0, description="Material thickness (m)")
 
     @field_validator("rgb")
     @classmethod
-    def validate_rgb(cls, v: Optional[Tuple[int, int, int]]) -> Optional[Tuple[int, int, int]]:
+    def validate_rgb(cls, v: tuple[int, int, int] | None) -> tuple[int, int, int] | None:
         """Validate RGB values are in range 0-255."""
         if v is not None:
             if len(v) != 3:
@@ -300,7 +298,7 @@ class Surface(NamelistBase):
 
     def to_fds(self) -> str:
         """Generate FDS SURF namelist."""
-        params: Dict[str, Any] = {"id": self.id}
+        params: dict[str, Any] = {"id": self.id}
         if self.rgb:
             params["rgb"] = self.rgb
         if self.color:
@@ -338,18 +336,18 @@ class Obstruction(NamelistBase):
     &OBST XB=4,6,4,6,0,0.5, SURF_ID='FIRE' /
     """
 
-    xb: Tuple[float, float, float, float, float, float] = Field(
+    xb: tuple[float, float, float, float, float, float] = Field(
         ..., description="Obstruction bounds"
     )
-    surf_id: Optional[str] = Field(None, description="Surface ID for all faces")
-    surf_id_top: Optional[str] = Field(None, description="Top surface ID")
-    surf_id_bottom: Optional[str] = Field(None, description="Bottom surface ID")
-    surf_id_sides: Optional[str] = Field(None, description="Side surfaces ID")
-    color: Optional[str] = Field(None, description="Named color")
+    surf_id: str | None = Field(None, description="Surface ID for all faces")
+    surf_id_top: str | None = Field(None, description="Top surface ID")
+    surf_id_bottom: str | None = Field(None, description="Bottom surface ID")
+    surf_id_sides: str | None = Field(None, description="Side surfaces ID")
+    color: str | None = Field(None, description="Named color")
 
     @field_validator("xb")
     @classmethod
-    def validate_xb(cls, v: Tuple[float, ...]) -> Tuple[float, ...]:
+    def validate_xb(cls, v: tuple[float, ...]) -> tuple[float, ...]:
         """Validate obstruction bounds."""
         if len(v) != 6:
             raise ValueError("XB must have exactly 6 values")
@@ -360,7 +358,7 @@ class Obstruction(NamelistBase):
 
     def to_fds(self) -> str:
         """Generate FDS OBST namelist."""
-        params: Dict[str, Any] = {"xb": self.xb}
+        params: dict[str, Any] = {"xb": self.xb}
         if self.surf_id:
             params["surf_id"] = self.surf_id
         if self.surf_id_top:
@@ -398,14 +396,14 @@ class Device(NamelistBase):
 
     id: str = Field(..., description="Device identifier")
     quantity: str = Field(..., description="Quantity to measure")
-    xyz: Optional[Tuple[float, float, float]] = Field(None, description="Device location")
-    xb: Optional[Tuple[float, float, float, float, float, float]] = Field(
+    xyz: tuple[float, float, float] | None = Field(None, description="Device location")
+    xb: tuple[float, float, float, float, float, float] | None = Field(
         None, description="Device bounds"
     )
 
     def to_fds(self) -> str:
         """Generate FDS DEVC namelist."""
-        params: Dict[str, Any] = {"id": self.id, "quantity": self.quantity}
+        params: dict[str, Any] = {"id": self.id, "quantity": self.quantity}
         if self.xyz:
             params["xyz"] = self.xyz
         if self.xb:
