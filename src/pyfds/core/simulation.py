@@ -6,8 +6,13 @@ programmatically in Python.
 """
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .namelist import Device, Head, Mesh, Obstruction, Surface, Time
+
+if TYPE_CHECKING:
+    from ..analysis.results import Results
+    from ..execution.runner import Job
 
 
 class Simulation:
@@ -497,3 +502,113 @@ class Simulation:
                 )
 
         return warnings
+
+    def run(
+        self,
+        n_threads: int = 1,
+        n_mpi: int = 1,
+        mpiexec_path: str = "mpiexec",
+        output_dir: Path | str | None = None,
+        fds_executable: Path | None = None,
+        monitor: bool = True,
+        wait: bool = True,
+        timeout: float | None = None,
+        validate: bool = True,
+        strict: bool = False,
+    ) -> "Results | Job":
+        """
+        Write FDS file and execute simulation.
+
+        This is a convenience method that combines write() and execution
+        in a single call. The FDS file is written to a temporary location
+        or specified output directory, then executed.
+
+        Parameters
+        ----------
+        n_threads : int
+            Number of OpenMP threads (default: 1)
+        n_mpi : int
+            Number of MPI processes (default: 1)
+        mpiexec_path : str
+            Path to mpiexec command (default: 'mpiexec')
+        output_dir : Path or str, optional
+            Output directory (default: current directory)
+        fds_executable : Path, optional
+            Path to FDS executable (auto-detected if not provided)
+        monitor : bool
+            Enable progress monitoring (default: True)
+        wait : bool
+            Wait for completion (default: True)
+        timeout : float, optional
+            Timeout in seconds (only used if wait=True)
+        validate : bool
+            Validate simulation before running (default: True)
+        strict : bool
+            Raise exception on validation warnings (default: False)
+
+        Returns
+        -------
+        Results or Job
+            Results object if wait=True, Job object if wait=False
+
+        Raises
+        ------
+        ValueError
+            If validation fails and strict=True
+        FDSExecutionError
+            If FDS execution fails
+        FDSNotFoundError
+            If FDS executable cannot be found
+
+        Examples
+        --------
+        >>> sim = Simulation('test')
+        >>> sim.time(t_end=100.0)
+        >>> sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        >>> results = sim.run(n_threads=4)
+        >>> print(f"Peak HRR: {results.hrr['HRR'].max()}")
+
+        >>> # Non-blocking execution
+        >>> job = sim.run(wait=False, monitor=True)
+        >>> while job.is_running():
+        ...     print(f"Progress: {job.progress}%")
+        ...     time.sleep(5)
+        >>> results = job.get_results()
+        """
+        # Import here to avoid circular import
+        from ..execution import FDSRunner
+
+        # Validate if requested
+        if validate:
+            warnings = self.validate()
+            if warnings:
+                if strict:
+                    raise ValueError(
+                        "Simulation validation failed:\n" + "\n".join(f"  - {w}" for w in warnings)
+                    )
+                # Print warnings but continue
+                print("Validation warnings:")
+                for warning in warnings:
+                    print(f"  - {warning}")
+
+        # Determine output directory
+        output_dir = Path.cwd() if output_dir is None else Path(output_dir)
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write FDS file
+        fds_file = output_dir / f"{self.chid}.fds"
+        self.write(fds_file)
+
+        # Create runner and execute
+        runner = FDSRunner(fds_executable=fds_executable)
+        return runner.run(
+            fds_file=fds_file,
+            n_threads=n_threads,
+            n_mpi=n_mpi,
+            mpiexec_path=mpiexec_path,
+            output_dir=output_dir,
+            monitor=monitor,
+            wait=wait,
+            timeout=timeout,
+        )
