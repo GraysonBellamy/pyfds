@@ -283,15 +283,16 @@ class Results:
                 hrr_df = hrr_df.with_columns(pl.col("Time").cast(pl.Float64, strict=False))
 
             # After type conversion to Float64, these are safe to convert to float
+            # Note: type ignores needed for CI mypy; may show as unused locally
             peak = hrr_df["HRR"].max()
-            summary["peak_hrr"] = float(peak) if peak is not None else 0.0
+            summary["peak_hrr"] = float(peak) if peak is not None else 0.0  # type: ignore[arg-type,unused-ignore]
 
             hrr_sum = hrr_df["HRR"].sum()
             time_delta = hrr_df["Time"][1] - hrr_df["Time"][0]
             summary["total_energy"] = float(hrr_sum * time_delta) if hrr_sum is not None else 0.0
 
             duration = hrr_df["Time"].max()
-            summary["duration"] = float(duration) if duration is not None else 0.0
+            summary["duration"] = float(duration) if duration is not None else 0.0  # type: ignore[arg-type,unused-ignore]
 
         # Device statistics
         if self.devc_file.exists():
