@@ -1,6 +1,6 @@
 # PyFDS - Python Interface to FDS
 
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A comprehensive Python library for creating, executing, and analyzing NIST Fire Dynamics Simulator (FDS) simulations programmatically.
@@ -364,7 +364,7 @@ pyfds/
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.11+
 - NumPy >= 1.20.0
 - Polars >= 0.19.0
 - Pydantic >= 2.0.0

@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..utils import get_logger
 from .exceptions import FDSExecutionError, FDSTimeoutError
 from .monitor import ProgressInfo, ProgressMonitor, parse_out_file_for_errors
 from .process import (
@@ -17,6 +18,8 @@ from .process import (
 
 if TYPE_CHECKING:
     from ..analysis.results import Results
+
+logger = get_logger(__name__)
 
 
 class Job:
@@ -246,15 +249,19 @@ class FDSRunner:
     def __init__(self, fds_executable: Path | None = None):
         if fds_executable is None:
             self.fds_executable = find_fds_executable()
+            logger.debug(f"Auto-detected FDS executable: {self.fds_executable}")
         else:
             self.fds_executable = Path(fds_executable)
+            logger.debug(f"Using specified FDS executable: {self.fds_executable}")
 
         # Validate FDS executable
         is_valid, version = validate_fds_executable(self.fds_executable)
         if not is_valid:
+            logger.error(f"Invalid FDS executable: {self.fds_executable}")
             raise ValueError(f"Invalid FDS executable: {version}")
 
         self.fds_version = version
+        logger.info(f"Initialized FDS runner with version: {version}")
 
     def run(
         self,
@@ -312,6 +319,7 @@ class FDSRunner:
         """
         fds_file = Path(fds_file)
         if not fds_file.exists():
+            logger.error(f"FDS file not found: {fds_file}")
             raise FileNotFoundError(f"FDS file not found: {fds_file}")
 
         # Determine output directory
@@ -324,6 +332,11 @@ class FDSRunner:
         # Extract CHID from file
         chid = fds_file.stem
 
+        logger.info(f"Starting FDS simulation: {chid}")
+        logger.debug(f"  Input file: {fds_file}")
+        logger.debug(f"  Output directory: {output_dir}")
+        logger.debug(f"  Threads: {n_threads}, MPI processes: {n_mpi}")
+
         # Build command
         cmd = build_fds_command(
             fds_file=fds_file,
@@ -332,6 +345,7 @@ class FDSRunner:
             n_mpi=n_mpi,
             mpiexec_path=mpiexec_path,
         )
+        logger.debug(f"  Command: {' '.join(str(c) for c in cmd)}")
 
         # Get environment
         env = get_environment_for_execution(n_threads=n_threads)
@@ -344,6 +358,7 @@ class FDSRunner:
             cwd=str(output_dir),
             env=env,
         )
+        logger.info(f"FDS process started with PID: {process.pid}")
 
         # Set up monitoring
         progress_monitor = None
@@ -351,6 +366,7 @@ class FDSRunner:
             out_file = output_dir / f"{chid}.out"
             progress_monitor = ProgressMonitor(out_file)
             progress_monitor.start()
+            logger.debug("Progress monitoring enabled")
 
         # Create job object
         job = Job(
@@ -363,5 +379,10 @@ class FDSRunner:
 
         # Wait for completion or return job
         if wait:
-            return job.wait(timeout=timeout)
+            logger.debug("Waiting for simulation to complete...")
+            result = job.wait(timeout=timeout)
+            logger.info(f"Simulation completed successfully: {chid}")
+            return result
+
+        logger.info("Simulation running in background")
         return job

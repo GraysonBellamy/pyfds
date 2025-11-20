@@ -8,11 +8,14 @@ programmatically in Python.
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..utils import get_logger, validate_chid
 from .namelist import Device, Head, Mesh, Obstruction, Surface, Time
 
 if TYPE_CHECKING:
     from ..analysis.results import Results
     from ..execution.runner import Job
+
+logger = get_logger(__name__)
 
 
 class Simulation:
@@ -55,6 +58,10 @@ class Simulation:
 
     def __init__(self, chid: str, title: str | None = None):
         """Initialize a new FDS simulation."""
+        # Validate CHID
+        chid = validate_chid(chid)
+        logger.debug(f"Creating simulation with CHID: {chid}")
+
         self.head = Head(chid=chid, title=title)
         self.time_params: Time | None = None
         self.meshes: list[Mesh] = []
@@ -448,6 +455,7 @@ class Simulation:
         content = self.to_fds()
         filepath.write_text(content)
 
+        logger.info(f"Wrote FDS input file: {filepath}")
         return filepath
 
     def validate(self) -> list[str]:
@@ -582,14 +590,13 @@ class Simulation:
         if validate:
             warnings = self.validate()
             if warnings:
+                logger.warning(f"Simulation validation found {len(warnings)} warning(s)")
+                for warning in warnings:
+                    logger.warning(f"  - {warning}")
                 if strict:
                     raise ValueError(
                         "Simulation validation failed:\n" + "\n".join(f"  - {w}" for w in warnings)
                     )
-                # Print warnings but continue
-                print("Validation warnings:")
-                for warning in warnings:
-                    print(f"  - {warning}")
 
         # Determine output directory
         output_dir = Path.cwd() if output_dir is None else Path(output_dir)
@@ -599,6 +606,10 @@ class Simulation:
         # Write FDS file
         fds_file = output_dir / f"{self.chid}.fds"
         self.write(fds_file)
+
+        logger.info(f"Running simulation: {self.chid}")
+        logger.debug(f"  Threads: {n_threads}, MPI processes: {n_mpi}")
+        logger.debug(f"  Output directory: {output_dir}")
 
         # Create runner and execute
         runner = FDSRunner(fds_executable=fds_executable)

@@ -6,7 +6,11 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from threading import Event, Thread
+from threading import Event, Lock, Thread
+
+from ..utils import get_logger, safe_read_text
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -74,7 +78,9 @@ class ProgressMonitor:
         self._stop_event = Event()
         self._thread: Thread | None = None
         self._progress: ProgressInfo | None = None
+        self._progress_lock = Lock()  # Thread-safe access to _progress
         self._callbacks: list[Callable[[ProgressInfo], None]] = []
+        logger.debug(f"Created progress monitor for: {out_file}")
 
     def add_callback(self, callback: Callable[[ProgressInfo], None]) -> None:
         """
@@ -104,14 +110,15 @@ class ProgressMonitor:
 
     def get_progress(self) -> ProgressInfo | None:
         """
-        Get current progress information.
+        Get current progress information (thread-safe).
 
         Returns
         -------
         ProgressInfo, optional
             Current progress, or None if not available yet
         """
-        return self._progress
+        with self._progress_lock:
+            return self._progress
 
     def is_complete(self) -> bool:
         """Check if simulation is complete."""
@@ -135,19 +142,28 @@ class ProgressMonitor:
     def _parse_out_file(self) -> None:
         """Parse the .out file for progress information."""
         try:
-            content = self.out_file.read_text()
+            # Use safe_read_text with file size limit to prevent memory issues
+            content = safe_read_text(self.out_file)
             progress = self._extract_progress(content)
             if progress is not None:
-                self._progress = progress
-                # Notify callbacks
+                # Thread-safe update of progress
+                with self._progress_lock:
+                    self._progress = progress
+                    logger.debug(
+                        f"Progress: {progress.percent_complete:.1f}% "
+                        f"(T={progress.current_time:.1f}s)"
+                    )
+
+                # Notify callbacks (outside lock to avoid deadlock)
                 from contextlib import suppress
 
                 for callback in self._callbacks:
                     with suppress(Exception):
                         # Don't let callback errors stop monitoring
                         callback(progress)
-        except Exception:
-            # File might be locked or incomplete
+        except Exception as e:
+            # File might be locked, incomplete, or too large
+            logger.debug(f"Failed to parse progress: {e}")
             pass
 
     def _extract_progress(self, content: str) -> ProgressInfo | None:
@@ -236,7 +252,8 @@ def parse_out_file_for_errors(out_file: Path) -> list[str]:
         return errors
 
     try:
-        content = out_file.read_text()
+        # Use safe_read_text with file size limit
+        content = safe_read_text(out_file)
 
         # Look for ERROR messages
         error_pattern = re.compile(r"ERROR:\s*(.+?)(?:\n|$)", re.MULTILINE)
@@ -248,7 +265,8 @@ def parse_out_file_for_errors(out_file: Path) -> list[str]:
         for match in stop_pattern.finditer(content):
             errors.append(f"STOP: {match.group(1).strip()}")
 
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to parse errors from {out_file}: {e}")
         pass
 
     return errors

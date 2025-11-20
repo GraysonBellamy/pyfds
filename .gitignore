@@ -163,3 +163,4 @@ cython_debug/
 examples/parametric_study/
 examples/*.fds
 !examples/room_fire.fds
+docs/FDS_User_Guide.pdf
