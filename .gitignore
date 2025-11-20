@@ -136,7 +136,7 @@ dmypy.json
 cython_debug/
 
 # uv
-uv.lock
+# Note: uv.lock is committed for reproducible builds
 
 # IDE
 .vscode/
