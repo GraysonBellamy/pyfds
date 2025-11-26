@@ -1,6 +1,6 @@
 """Builder for creating VENT namelists with common configurations."""
 
-from ..core.namelist import Vent
+from ..core.namelists import Vent
 from .base import Builder
 
 

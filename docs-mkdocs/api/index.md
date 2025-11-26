@@ -126,7 +126,7 @@ All classes have full type hints for IDE support:
 
 ```python
 from pyfds import Simulation
-from pyfds.core.namelist import Mesh, Surface
+from pyfds.core.namelists import Mesh, Surface
 
 def create_simulation(name: str) -> Simulation:
     """Create a simulation with type safety."""

@@ -5,10 +5,10 @@ If you use PyFDS in your research, please cite it appropriately.
 ## BibTeX Entry
 
 ```bibtex
-@software{pyfds2024,
+@software{pyfds,
   title = {PyFDS: Python Interface to Fire Dynamics Simulator},
   author = {Bellamy, Grayson},
-  year = {2024},
+  year = {},
   url = {https://github.com/GraysonBellamy/pyfds},
   version = {0.1.0}
 }
@@ -16,21 +16,21 @@ If you use PyFDS in your research, please cite it appropriately.
 
 ## APA Style
 
-Bellamy, G. (2024). *PyFDS: Python Interface to Fire Dynamics Simulator* (Version 0.1.0) [Computer software]. https://github.com/GraysonBellamy/pyfds
+Bellamy, G. (). *PyFDS: Python Interface to Fire Dynamics Simulator* (Version 0.1.0) [Computer software]. https://github.com/GraysonBellamy/pyfds
 
 ## IEEE Style
 
-G. Bellamy, "PyFDS: Python Interface to Fire Dynamics Simulator," 2024. [Online]. Available: https://github.com/GraysonBellamy/pyfds
+G. Bellamy, "PyFDS: Python Interface to Fire Dynamics Simulator," . [Online]. Available: https://github.com/GraysonBellamy/pyfds
 
 ## MLA Style
 
-Bellamy, Grayson. *PyFDS: Python Interface to Fire Dynamics Simulator*. Version 0.1.0, 2024, https://github.com/GraysonBellamy/pyfds.
+Bellamy, Grayson. *PyFDS: Python Interface to Fire Dynamics Simulator*. Version 0.1.0, , https://github.com/GraysonBellamy/pyfds.
 
 ## Text Citation
 
 When referencing PyFDS in text:
 
-> "The simulations were created and executed using PyFDS (Bellamy, 2024), a Python interface to the Fire Dynamics Simulator."
+> "The simulations were created and executed using PyFDS (Bellamy, ), a Python interface to the Fire Dynamics Simulator."
 
 ## Citing FDS
 
@@ -54,13 +54,13 @@ PyFDS is an interface to FDS. When using PyFDS, you should also cite FDS itself:
 
 ### FDS Text Citation
 
-> "Fire simulations were performed using the Fire Dynamics Simulator (FDS) version 6.9.0 (McGrattan et al., 2023), accessed through the PyFDS Python interface (Bellamy, 2024)."
+> "Fire simulations were performed using the Fire Dynamics Simulator (FDS) version 6.9.0 (McGrattan et al., 2023), accessed through the PyFDS Python interface (Bellamy, )."
 
 ## Example Acknowledgment
 
 Include PyFDS in your acknowledgments section:
 
-> "This research utilized PyFDS (Bellamy, 2024), an open-source Python interface for the Fire Dynamics Simulator (McGrattan et al., 2023)."
+> "This research utilized PyFDS (Bellamy, ), an open-source Python interface for the Fire Dynamics Simulator (McGrattan et al., 2023)."
 
 ## DOI (Coming Soon)
 

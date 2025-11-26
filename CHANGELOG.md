@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Indentation issues in validator.py
 - Test file imports for ValidationError
 
-## [0.1.0] - 2024-11-19
+## [0.1.0] - 2025-11-19
 
 ### Added
 - Initial release of PyFDS

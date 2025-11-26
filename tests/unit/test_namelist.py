@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from pyfds.core.namelist import (
+from pyfds.core.namelists import (
     ControlFunction,
     Ctrl,
     Device,

@@ -255,7 +255,7 @@ Full type hints enable IDE support:
 
 ```python
 from pyfds.builders import MaterialBuilder
-from pyfds.core.namelist import Material
+from pyfds.core.namelists import Material
 
 builder: MaterialBuilder = MaterialBuilder('WOOD')
 material: Material = builder.density(500).build()

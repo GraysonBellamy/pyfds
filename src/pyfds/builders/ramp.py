@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from ..core.namelist import Ramp
+from ..core.namelists import Ramp
 from .base import Builder
 
 

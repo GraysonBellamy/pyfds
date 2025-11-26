@@ -481,7 +481,7 @@ params = {
         'hrr': list(hrr_values),
         'door_width': list(door_widths)
     },
-    'date': '2024-11-26',
+    'date': '-11-26',
     'notes': 'Investigating fire-ventilation interaction'
 }
 

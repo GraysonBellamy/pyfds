@@ -1,6 +1,6 @@
 """Builder for creating REAC namelists with predefined fuel database."""
 
-from ..core.namelist import Reaction
+from ..core.namelists import Reaction
 from .base import Builder
 
 # Predefined fuel database with common fuels

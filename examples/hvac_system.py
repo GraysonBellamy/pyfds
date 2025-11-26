@@ -8,7 +8,7 @@ This example creates a simple room with an HVAC system including:
 - Temperature monitoring at various locations
 """
 
-from pyfds.core.namelist import Vent
+from pyfds.core.namelists import Vent
 from pyfds.core.simulation import Simulation
 
 # Create simulation

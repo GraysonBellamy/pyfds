@@ -57,7 +57,7 @@ vim CHANGELOG.md
 Add release notes:
 
 ```markdown
-## [0.2.0] - 2024-11-26
+## [0.2.0] - -11-26
 
 ### Added
 - VENT namelist support
@@ -257,7 +257,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Feature in development
 
-## [0.2.0] - 2024-11-26
+## [0.2.0] - -11-26
 
 ### Added
 - New features
@@ -277,7 +277,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Security fixes
 
-## [0.1.0] - 2024-10-15
+## [0.1.0] - -10-15
 
 Initial release
 ```

@@ -1,6 +1,6 @@
 """Builder for creating MATL namelists with thermal and pyrolysis properties."""
 
-from ..core.namelist import Material
+from ..core.namelists import Material
 from .base import Builder
 
 

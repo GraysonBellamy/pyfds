@@ -4,8 +4,9 @@ Integration tests for complete PyFDS workflows.
 
 import pytest
 
-from pyfds.core import Simulation, Validator
-from pyfds.core.namelist import TurbulenceModel, Vent
+from pyfds import Simulation
+from pyfds.core import Validator
+from pyfds.core.namelists import TurbulenceModel, Vent
 from pyfds.core.validator import ValidationError
 
 

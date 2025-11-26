@@ -7,7 +7,7 @@ This example creates a simple fire simulation with:
 - Sprinkler activation control
 """
 
-from pyfds.core.namelist import (
+from pyfds.core.namelists import (
     ControlFunction,
     Ctrl,
     Init,

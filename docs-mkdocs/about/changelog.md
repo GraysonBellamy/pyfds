@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MkDocs Material documentation site
 - Comprehensive user guides and API reference
 
-## [0.1.0] - 2024-11-26
+## [0.1.0] - -11-26
 
 ### Added - Phase 3: VENT and MISC Namelists
 - **VENT namelist** with comprehensive boundary condition support
@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Validation edge cases for VENT geometries
 - MISC parameter type checking
 
-## [0.0.3] - 2024-11-19
+## [0.0.3] - -11-19
 
 ### Added - Phase 3: Complex Namelists
 - **RAMP namelist** for time-varying and temperature-dependent properties
@@ -60,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved type hints across all modules
 - Updated documentation with complex feature examples
 
-## [0.0.2] - 2024-11-19
+## [0.0.2] - -11-19
 
 ### Added - Phase 2: Execution and Analysis
 - **Execution Engine**
@@ -90,7 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced error handling and exceptions
 - Improved logging throughout
 
-## [0.0.1] - 2024-11-19
+## [0.0.1] - -11-19
 
 ### Added - Phase 1: Foundation
 - **Core Classes**
@@ -138,10 +138,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Phase | Status |
 |---------|------|-------|--------|
-| 0.1.0 | 2024-11-26 | Phase 3 Extended | ✅ Complete |
-| 0.0.3 | 2024-11-19 | Phase 3 | ✅ Complete |
-| 0.0.2 | 2024-11-19 | Phase 2 | ✅ Complete |
-| 0.0.1 | 2024-11-19 | Phase 1 | ✅ Complete |
+| 0.1.0 | -11-26 | Phase 3 Extended | ✅ Complete |
+| 0.0.3 | -11-19 | Phase 3 | ✅ Complete |
+| 0.0.2 | -11-19 | Phase 2 | ✅ Complete |
+| 0.0.1 | -11-19 | Phase 1 | ✅ Complete |
 
 ## Migration Guides
 

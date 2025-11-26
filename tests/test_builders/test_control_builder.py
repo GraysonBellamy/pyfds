@@ -2,8 +2,8 @@
 
 import pytest
 
-from pyfds.builders import ControlBuilder
-from pyfds.core.namelist import ControlFunction
+from pyfds.builders.control import ControlBuilder
+from pyfds.core.namelists import ControlFunction
 
 
 class TestControlBuilder:

@@ -324,10 +324,10 @@ PyFDS is released under the [MIT License](about/license.md).
 If you use PyFDS in your research, please cite:
 
 ```bibtex
-@software{pyfds2024,
+@software{pyfds2025,
   title = {PyFDS: Python Interface to Fire Dynamics Simulator},
   author = {Bellamy, Grayson},
-  year = {2024},
+  year = {2025},
   url = {https://github.com/GraysonBellamy/pyfds}
 }
 ```

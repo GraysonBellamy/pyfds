@@ -1,6 +1,6 @@
 """Builder for creating CTRL namelists with control logic."""
 
-from ..core.namelist import ControlFunction, Ctrl
+from ..core.namelists import ControlFunction, Ctrl
 from .base import Builder
 
 

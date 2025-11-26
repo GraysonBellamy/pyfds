@@ -181,7 +181,7 @@ class ProgressMonitor:
             Extracted progress info, or None if not enough data
         """
         # Look for time step information
-        # FDS prints lines like: "Time Step    1234  November 01, 2024  12:34:56"
+        # FDS prints lines like: "Time Step    1234  November 01,   12:34:56"
         # And: "T= 123.45 s, dt= 0.05 s"
 
         current_time = None

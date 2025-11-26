@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pyfds.core.namelist import Mesh, Time
+    from pyfds.core.namelists import Mesh, Time
     from pyfds.core.simulation import Simulation
 
 

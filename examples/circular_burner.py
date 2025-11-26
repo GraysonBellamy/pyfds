@@ -8,8 +8,8 @@ This example shows:
 - Area calculation for different vent shapes
 """
 
-from pyfds.core.namelist import Vent
-from pyfds.core.simulation import Simulation
+from pyfds import Simulation
+from pyfds.core.namelists import Vent
 
 # Create simulation
 sim = Simulation(chid="circular_burner", title="Circular and Annular Burner Demo")

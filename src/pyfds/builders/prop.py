@@ -1,6 +1,6 @@
 """Builder for creating PROP namelists for device properties."""
 
-from ..core.namelist import Prop
+from ..core.namelists import Prop
 from .base import Builder
 
 

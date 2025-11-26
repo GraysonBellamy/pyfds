@@ -43,7 +43,7 @@ s,kW,kW
     out_file = output_dir / "test.out"
     out_content = """
 FDS Version 6.9.0
-Compilation Date: 2024-01-01
+Compilation Date: -01-01
 
 Job TITLE        : Test Simulation
 Job ID string    : test
@@ -52,7 +52,7 @@ Job ID string    : test
 &TIME T_END=10.0 /
 T_END=10.0
 
-Time Step    1  January 01, 2024  12:00:00
+Time Step    1  January 01,   12:00:00
 T= 1.0 s, dt= 0.1 s
 
 FDS completed successfully.

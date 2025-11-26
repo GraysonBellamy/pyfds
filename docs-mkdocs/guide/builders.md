@@ -716,7 +716,7 @@ Enable IDE autocomplete by using type hints:
 
 ```python
 from pyfds.builders import MaterialBuilder
-from pyfds.core.namelist import Material
+from pyfds.core.namelists import Material
 
 material: Material = (
     MaterialBuilder('TEST')

@@ -100,7 +100,7 @@ Large-scale outdoor fire spread.
 
 ```python
 from pyfds import Simulation
-from pyfds.core.namelist import TurbulenceModel
+from pyfds.core.namelists import TurbulenceModel
 
 sim = Simulation(chid='wildfire', title='Wildfire Spread')
 sim.time(t_end=1800.0)

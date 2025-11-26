@@ -28,11 +28,13 @@ graph TB
 pyfds/
 ├── src/pyfds/           # Source code
 │   ├── core/            # Core simulation classes
-│   ├── namelists/       # FDS namelist implementations
+│   │   ├── namelists/   # FDS namelist implementations (modular)
+│   │   ├── simulation.py
+│   │   └── validator.py
 │   ├── execution/       # Running and monitoring
 │   ├── analysis/        # Results processing
+│   ├── builders/        # High-level builders
 │   ├── io/              # File I/O
-│   ├── validation/      # Validation rules
 │   └── utils/           # Utilities
 ├── tests/               # Test suite
 ├── docs-mkdocs/         # Documentation
@@ -81,21 +83,21 @@ class Simulation:
 
 ### Namelist Hierarchy
 
-**Location**: `src/pyfds/namelists/`
+**Location**: `src/pyfds/core/namelists/`
 
-All namelists inherit from base class:
+All namelists inherit from base class in separate, focused modules:
 
 ```python
-# Base class
-class Namelist(BaseModel):
+# Base class (base.py)
+class NamelistBase(BaseModel):
     """Base class for all FDS namelists."""
 
     def to_fds(self) -> str:
         """Convert to FDS namelist format."""
         raise NotImplementedError
 
-# Concrete implementation
-class Mesh(Namelist):
+# Concrete implementation (mesh.py)
+class Mesh(NamelistBase):
     """MESH namelist."""
 
     ijk: tuple[int, int, int]
@@ -106,11 +108,29 @@ class Mesh(Namelist):
         return f"&MESH IJK={self.ijk[0]},{self.ijk[1]},{self.ijk[2]}, XB={','.join(map(str, self.xb))} /"
 ```
 
+**Namelist Modules**:
+
+- `base.py` - NamelistBase abstract class
+- `head.py` - HEAD namelist (simulation metadata)
+- `time.py` - TIME namelist (time control)
+- `mesh.py` - MESH namelist (computational domain)
+- `surf.py` - SURF namelist (surface properties)
+- `obst.py` - OBST namelist (obstructions)
+- `devc.py` - DEVC namelist (devices)
+- `vent.py` - VENT namelist (vents and boundaries)
+- `ramp.py` - RAMP namelist (time-dependent functions)
+- `matl.py` - MATL namelist (materials)
+- `reac.py` - REAC namelist (reactions)
+- `prop.py` - PROP namelist (device properties)
+- `ctrl.py` - CTRL namelist (control logic)
+- `init.py` - INIT namelist (initial conditions)
+- `misc.py` - MISC namelist (miscellaneous parameters)
+
 **Design Pattern**: Template method pattern with Pydantic validation
 
 ### Validation System
 
-**Location**: `src/pyfds/validation/`
+**Location**: `src/pyfds/core/validator.py`
 
 Validates simulations before writing:
 

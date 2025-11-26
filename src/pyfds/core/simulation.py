@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ..utils import get_logger, validate_chid
-from .namelist import (
+from .namelists import (
     Ctrl,
     Device,
     Head,

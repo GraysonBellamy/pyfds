@@ -9,8 +9,8 @@ This example demonstrates:
 - Material heat transfer
 """
 
-from pyfds.core.namelist import Material, Vent
-from pyfds.core.simulation import Simulation
+from pyfds import Simulation
+from pyfds.core.namelists import Material, Vent
 
 # Create simulation
 sim = Simulation(chid="heat_transfer", title="Solid Phase Heat Conduction")
