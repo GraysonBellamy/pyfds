@@ -1,0 +1,276 @@
+site_name: PyFDS Documentation
+site_description: Python Interface to NIST Fire Dynamics Simulator
+site_author: Grayson Bellamy
+site_url: https://graysonbellamy.github.io/pyfds
+repo_url: https://github.com/GraysonBellamy/pyfds
+repo_name: GraysonBellamy/pyfds
+edit_uri: edit/main/docs-mkdocs/
+
+# Documentation directory
+docs_dir: docs-mkdocs
+
+# Copyright
+copyright: Copyright &copy; 2024 Grayson Bellamy
+
+# Theme configuration
+theme:
+  name: material
+  language: en
+  palette:
+    # Light mode
+    - scheme: default
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/fire
+
+  features:
+    # Navigation
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    # Search
+    - search.suggest
+    - search.highlight
+    - search.share
+    # Content
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    # Table of contents
+    - toc.follow
+    - toc.integrate
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: numpy
+            docstring_section_style: spacy
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            separate_signature: true
+            merge_init_into_class: true
+            show_if_no_docstring: false
+            inherited_members: false
+            members_order: source
+            group_by_category: true
+            show_category_heading: true
+            show_bases: true
+            show_submodules: false
+  - autorefs
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+
+# Markdown extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: "!!python/name:material.extensions.emoji.twemoji"
+      emoji_generator: "!!python/name:material.extensions.emoji.to_svg"
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: "!!python/name:pymdownx.superfences.fence_code_format"
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Additional CSS
+extra_css:
+  - stylesheets/extra.css
+
+# Additional JavaScript
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Extra configuration
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/GraysonBellamy/pyfds
+      name: PyFDS on GitHub
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/pyfds/
+      name: PyFDS on PyPI
+  analytics:
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve by
+            <a href="https://github.com/GraysonBellamy/pyfds/issues/new" target="_blank" rel="noopener">opening an issue</a>.
+
+# Navigation structure
+nav:
+  - Home: index.md
+
+  - Getting Started:
+    - getting-started/index.md
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Key Concepts: getting-started/concepts.md
+
+  - User Guide:
+    - guide/index.md
+    - Building Simulations: guide/building-simulations.md
+    - Computational Domain: guide/domain.md
+    - Geometry: guide/geometry.md
+    - Boundary Conditions: guide/boundaries.md
+    - Materials & Surfaces: guide/materials-surfaces.md
+    - Fire Sources: guide/fire-sources.md
+    - Devices & Measurement: guide/devices.md
+    - Time-Varying Properties: guide/ramps.md
+    - Control Logic: guide/controls.md
+    - Initial Conditions: guide/initial-conditions.md
+    - Combustion: guide/combustion.md
+    - Global Settings: guide/global-settings.md
+
+  - Execution & Analysis:
+    - execution/index.md
+    - Running Simulations: execution/running.md
+    - Job Management: execution/jobs.md
+    - Results Analysis: execution/analysis.md
+    - Visualization: execution/visualization.md
+
+  - Examples:
+    - examples/index.md
+    - Basic Examples: examples/basic.md
+    - Advanced Examples: examples/advanced.md
+    - Special Applications: examples/special.md
+    - Parametric Studies: examples/parametric.md
+    - Complete Workflows: examples/workflows.md
+
+  - API Reference:
+    - api/index.md
+    - Core:
+      - Simulation: api/core/simulation.md
+      - Validator: api/core/validator.md
+    - Namelists:
+      - api/namelists/index.md
+      - Base Classes: api/namelists/base.md
+      - Metadata: api/namelists/metadata.md
+      - Domain: api/namelists/domain.md
+      - Geometry: api/namelists/geometry.md
+      - Materials: api/namelists/materials.md
+      - Devices: api/namelists/devices.md
+      - Complex: api/namelists/complex.md
+    - Execution:
+      - Runner: api/execution/runner.md
+      - Job: api/execution/job.md
+      - Monitor: api/execution/monitor.md
+      - Exceptions: api/execution/exceptions.md
+    - Analysis:
+      - Results: api/analysis/results.md
+    - I/O:
+      - Parsers: api/io/parsers.md
+    - Utilities:
+      - Logging: api/utils/logging.md
+      - Validation: api/utils/validation.md
+
+  - Developer Guide:
+    - development/index.md
+    - Contributing: development/contributing.md
+    - Architecture: development/architecture.md
+    - Testing: development/testing.md
+    - Release Process: development/releases.md
+
+  - Reference:
+    - reference/index.md
+    - FDS Background: reference/fds-background.md
+    - Namelist Reference: reference/namelist-reference.md
+    - Validation Rules: reference/validation.md
+    - Troubleshooting: reference/troubleshooting.md
+    - FAQ: reference/faq.md
+    - Glossary: reference/glossary.md
+
+  - About:
+    - about/index.md
+    - Changelog: about/changelog.md
+    - License: about/license.md
+    - Citation: about/citation.md
+    - Acknowledgments: about/acknowledgments.md
+
+# Validation
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn

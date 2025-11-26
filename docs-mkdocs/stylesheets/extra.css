@@ -1,0 +1,132 @@
+/* Custom CSS for PyFDS Documentation */
+
+/* Fire-themed color accents */
+:root {
+  --md-primary-fg-color: #FF5722;
+  --md-accent-fg-color: #FF9800;
+}
+
+/* Grid cards styling */
+.md-typeset .grid.cards > ol,
+.md-typeset .grid.cards > ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.md-typeset .grid.cards > ol > li,
+.md-typeset .grid.cards > ul > li {
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.2rem;
+  padding: 1rem;
+  transition: border 0.3s, box-shadow 0.3s;
+}
+
+.md-typeset .grid.cards > ol > li:hover,
+.md-typeset .grid.cards > ul > li:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* Two-column grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+/* Code block enhancements */
+.md-typeset code {
+  background-color: var(--md-code-bg-color);
+  border-radius: 0.2rem;
+  padding: 0.1rem 0.3rem;
+}
+
+/* Admonition custom styling */
+.md-typeset .admonition.tip {
+  border-left-color: #00c853;
+}
+
+.md-typeset .admonition.warning {
+  border-left-color: #ff9100;
+}
+
+.md-typeset .admonition.example {
+  border-left-color: #2196f3;
+}
+
+/* Table styling improvements */
+.md-typeset table:not([class]) {
+  border-radius: 0.2rem;
+  overflow: hidden;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-default-fg-color--lightest);
+  font-weight: 600;
+}
+
+/* Button styling */
+.md-button {
+  border-radius: 0.2rem;
+  transition: all 0.3s;
+}
+
+.md-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.2);
+}
+
+/* Code annotation improvements */
+.md-typeset .md-annotation__index {
+  background-color: var(--md-accent-fg-color);
+}
+
+/* Navigation breadcrumbs */
+.md-nav__link--active {
+  font-weight: 600;
+}
+
+/* Search result highlighting */
+.md-search-result__article--document {
+  border-left: 0.2rem solid var(--md-accent-fg-color);
+}
+
+/* Improve code block copy button */
+.md-clipboard {
+  color: var(--md-default-fg-color--light);
+}
+
+.md-clipboard:hover {
+  color: var(--md-accent-fg-color);
+}
+
+/* Fire emoji styling for headers */
+h1:has(+ p:first-of-type > img[alt*="fire"]),
+h2:has(+ p:first-of-type > img[alt*="fire"]) {
+  color: var(--md-primary-fg-color);
+}
+
+/* Tabbed content improvements */
+.tabbed-set {
+  border-radius: 0.2rem;
+  margin: 1rem 0;
+}
+
+/* Footer improvements */
+.md-footer-meta {
+  background-color: var(--md-footer-bg-color--dark);
+}
+
+/* Tooltip styling */
+.md-tooltip {
+  background-color: var(--md-default-fg-color);
+  border-radius: 0.2rem;
+}
+
+/* Mermaid diagram improvements */
+.mermaid {
+  text-align: center;
+  margin: 2rem 0;
+}

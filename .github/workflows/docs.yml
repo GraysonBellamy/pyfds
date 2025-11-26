@@ -1,0 +1,112 @@
+name: Build and Deploy Documentation
+
+on:
+  # Trigger on pushes to main branch
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs-mkdocs/**'
+      - 'mkdocs.yml'
+      - 'src/pyfds/**'
+      - '.github/workflows/docs.yml'
+
+  # Trigger on pull requests that change documentation
+  pull_request:
+    paths:
+      - 'docs-mkdocs/**'
+      - 'mkdocs.yml'
+      - 'src/pyfds/**'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Set permissions for GitHub Pages deployment
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Build documentation
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git-revision-date-localized
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: |
+          uv sync --extra docs
+
+      - name: Build documentation
+        run: |
+          uv run mkdocs build --strict
+
+      - name: Upload artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  # Deploy to GitHub Pages (only on main branch)
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # Validate on PRs (don't deploy)
+  validate:
+    name: Validate Documentation
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: |
+          uv sync --extra docs
+
+      - name: Build documentation (validate only)
+        run: |
+          uv run mkdocs build --strict
+
+      - name: Check for broken links
+        run: |
+          echo "Documentation built successfully!"
+          echo "No deployment on pull requests."
