@@ -87,20 +87,20 @@ The API Reference provides detailed technical documentation auto-generated from 
 
 | Namelist | Class | Purpose |
 |----------|-------|---------|
-| HEAD | [`Head`](namelists/metadata.md#head) | Simulation metadata |
-| TIME | [`Time`](namelists/metadata.md#time) | Time parameters |
-| MESH | [`Mesh`](namelists/domain.md#mesh) | Computational domain |
-| SURF | [`Surface`](namelists/materials.md#surface) | Surface properties |
-| OBST | [`Obstruction`](namelists/geometry.md#obstruction) | Solid obstructions |
-| VENT | [`Vent`](namelists/geometry.md#vent) | Boundaries and vents |
-| DEVC | [`Device`](namelists/devices.md#device) | Measurement devices |
-| MATL | [`Material`](namelists/materials.md#material) | Material definitions |
-| RAMP | [`Ramp`](namelists/complex.md#ramp) | Time-varying properties |
-| REAC | [`Reaction`](namelists/complex.md#reaction) | Combustion reactions |
-| PROP | [`Prop`](namelists/devices.md#prop) | Device properties |
-| CTRL | [`Ctrl`](namelists/complex.md#ctrl) | Control logic |
-| INIT | [`Init`](namelists/complex.md#init) | Initial conditions |
-| MISC | [`Misc`](namelists/metadata.md#misc) | Global settings |
+| HEAD | [`Head`](namelists/metadata.md) | Simulation metadata |
+| TIME | [`Time`](namelists/metadata.md) | Time parameters |
+| MESH | [`Mesh`](namelists/domain.md) | Computational domain |
+| SURF | [`Surface`](namelists/materials.md) | Surface properties |
+| OBST | [`Obstruction`](namelists/geometry.md) | Solid obstructions |
+| VENT | [`Vent`](namelists/geometry.md) | Boundaries and vents |
+| DEVC | [`Device`](namelists/devices.md) | Measurement devices |
+| MATL | [`Material`](namelists/materials.md) | Material definitions |
+| RAMP | [`Ramp`](namelists/complex.md) | Time-varying properties |
+| REAC | [`Reaction`](namelists/complex.md) | Combustion reactions |
+| PROP | [`Prop`](namelists/devices.md) | Device properties |
+| CTRL | [`Ctrl`](namelists/complex.md) | Control logic |
+| INIT | [`Init`](namelists/complex.md) | Initial conditions |
+| MISC | [`Misc`](namelists/metadata.md) | Global settings |
 
 ## Usage Examples
 
@@ -224,15 +224,15 @@ Find what you need based on what you want to do:
 | Task | See |
 |------|-----|
 | Create a simulation | [`Simulation`](core/simulation.md) |
-| Add a mesh | [`Simulation.mesh()`](core/simulation.md#mesh) |
-| Create fire | [`Simulation.surface()`](core/simulation.md#surface) |
-| Add geometry | [`Simulation.obstruction()`](core/simulation.md#obstruction) |
-| Add vent | [`Simulation.vent()`](core/simulation.md#vent) |
-| Add device | [`Simulation.device()`](core/simulation.md#device) |
+| Add a mesh | [`Simulation.mesh()`](core/simulation.md) |
+| Create fire | [`Simulation.surface()`](core/simulation.md) |
+| Add geometry | [`Simulation.obstruction()`](core/simulation.md) |
+| Add vent | [`Simulation.vent()`](core/simulation.md) |
+| Add device | [`Simulation.device()`](core/simulation.md) |
 | Validate | [`Validator`](core/validator.md) |
-| Run simulation | [`Simulation.run()`](core/simulation.md#run) |
+| Run simulation | [`Simulation.run()`](core/simulation.md) |
 | Load results | [`Results`](analysis/results.md) |
-| Plot data | [`Results.plot_hrr()`](analysis/results.md#plot_hrr) |
+| Plot data | [`Results.plot_hrr()`](analysis/results.md) |
 
 ## Source Code
 

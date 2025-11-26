@@ -69,7 +69,7 @@ sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
 sim.write('room_fire.fds')
 ```
 
-[:octicons-arrow-right-24: View full example](basic.md#basic-room-fire)
+[:octicons-arrow-right-24: View full example](basic.md)
 
 ### HVAC System
 Room with supply and exhaust ventilation.
@@ -93,7 +93,7 @@ sim.vent(xb=(4, 4.5, 4, 4.5, 3, 3), surf_id='HVAC', volume_flow=-0.4)
 sim.write('hvac_room.fds')
 ```
 
-[:octicons-arrow-right-24: View full example](advanced.md#hvac-system)
+[:octicons-arrow-right-24: View full example](advanced.md)
 
 ### Wildfire Simulation
 Large-scale outdoor fire spread.
@@ -123,7 +123,7 @@ sim.vent(mb='YMAX', surf_id='OPEN')
 sim.write('wildfire.fds')
 ```
 
-[:octicons-arrow-right-24: View full example](special.md#wildfire-simulation)
+[:octicons-arrow-right-24: View full example](special.md)
 
 ## Example Index
 
