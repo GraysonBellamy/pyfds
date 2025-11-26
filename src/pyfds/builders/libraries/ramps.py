@@ -1,6 +1,6 @@
 """Common ramp function patterns library."""
 
-from ...core.namelist import Ramp
+from ...core.namelists import Ramp
 from ..ramp import RampBuilder
 
 

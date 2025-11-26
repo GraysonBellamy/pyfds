@@ -1,6 +1,6 @@
 """Common building and structural materials library."""
 
-from ...core.namelist import Material
+from ...core.namelists import Material
 from ..material import MaterialBuilder
 
 
