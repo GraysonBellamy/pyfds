@@ -5,6 +5,7 @@ Integration tests for complete PyFDS workflows.
 import pytest
 
 from pyfds.core import Simulation, Validator
+from pyfds.core.namelist import TurbulenceModel, Vent
 from pyfds.core.validator import ValidationError
 
 
@@ -206,3 +207,160 @@ class TestComplexScenario:
         warnings = sim.validate()
         # Should complete without critical errors
         assert isinstance(warnings, list)
+
+
+class TestVentMiscIntegration:
+    """Test VENT and MISC integration with simulations."""
+
+    def test_room_with_door_and_ambient(self, tmp_path):
+        """Test simulation with door opening and custom ambient conditions."""
+        sim = Simulation("room_with_door", title="Room with Door and Ambient")
+
+        # Set ambient conditions
+        sim.set_misc(tmpa=25.0, humidity=60.0)
+
+        # Add mesh
+        sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+        sim.time(t_end=60.0)
+
+        # Add surfaces
+        sim.surface(id="FIRE", hrrpua=1000.0, color="RED")
+
+        # Add burner
+        sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id="FIRE")
+
+        # Add door opening
+        door = Vent(xb=(5, 5, 2, 3, 0, 2), surf_id="OPEN")
+        sim.add_vent(door)
+
+        # Write and verify
+        output_file = tmp_path / "room_with_door.fds"
+        sim.write(output_file)
+        content = output_file.read_text()
+
+        # Verify MISC and VENT are present
+        assert "&MISC" in content
+        assert "&VENT" in content
+        assert "TMPA=25" in content
+        assert "SURF_ID='OPEN'" in content
+
+    def test_hvac_system(self, tmp_path):
+        """Test HVAC system with supply and exhaust vents."""
+        sim = Simulation("hvac_test")
+        sim.set_misc()  # Use defaults
+        sim.mesh(ijk=(40, 40, 20), xb=(0, 10, 0, 10, 0, 3))
+        sim.time(t_end=300.0)
+
+        # Add HVAC vents using convenience method
+        sim.vent(xb=(2, 2.5, 2, 2.5, 3, 3), surf_id="HVAC", volume_flow=0.5)
+        sim.vent(xb=(7.5, 8, 7.5, 8, 3, 3), surf_id="HVAC", volume_flow=-0.4)
+
+        output_file = tmp_path / "hvac_test.fds"
+        sim.write(output_file)
+        content = output_file.read_text()
+
+        # Verify HVAC vents
+        assert content.count("&VENT") == 2
+        assert "SURF_ID='HVAC'" in content
+        assert "VOLUME_FLOW=0.5" in content
+        assert "VOLUME_FLOW=-0.4" in content
+
+    def test_wildfire_simulation(self, tmp_path):
+        """Test wildfire simulation with special settings."""
+        sim = Simulation("wildfire")
+
+        # Wildfire mode with custom turbulence
+        sim.set_misc(
+            level_set_mode=1, tmpa=35.0, humidity=15.0, turbulence_model=TurbulenceModel.VREMAN
+        )
+
+        sim.mesh(ijk=(100, 100, 30), xb=(0, 100, 0, 100, 0, 30))
+        sim.time(t_end=600.0)
+
+        # Add boundary vents for wind
+        sim.vent(mb="XMIN", surf_id="OPEN")
+        sim.vent(mb="XMAX", surf_id="OPEN")
+
+        output_file = tmp_path / "wildfire.fds"
+        sim.write(output_file)
+        content = output_file.read_text()
+
+        # Verify wildfire settings
+        assert "LEVEL_SET_MODE=1" in content
+        assert "TMPA=35" in content
+        assert "HUMIDITY=15" in content
+        assert "TURBULENCE_MODEL='VREMAN'" in content
+        assert "MB='XMIN'" in content
+        assert "MB='XMAX'" in content
+
+    def test_circular_vent(self, tmp_path):
+        """Test circular vent in simulation."""
+        sim = Simulation("circular_vent")
+        sim.mesh(ijk=(30, 30, 30), xb=(-3, 3, -3, 3, 0, 6))
+        sim.set_misc()
+        sim.time(t_end=120.0)
+
+        # Add circular burner
+        sim.surface(id="BURNER", hrrpua=500.0)
+        burner_vent = Vent(xb=(-2, 2, -2, 2, 0, 0), surf_id="BURNER", xyz=(0, 0, 0), radius=1.0)
+        sim.add_vent(burner_vent)
+
+        # Add open boundaries
+        sim.vent(mb="XMIN", surf_id="OPEN")
+        sim.vent(mb="XMAX", surf_id="OPEN")
+
+        output_file = tmp_path / "circular_vent.fds"
+        sim.write(output_file)
+        content = output_file.read_text()
+
+        assert "XYZ=0" in content
+        assert "RADIUS=1" in content
+        assert content.count("&VENT") == 3
+
+    def test_solid_phase_only_mode(self, tmp_path):
+        """Test solid phase only heat transfer simulation."""
+        sim = Simulation("heat_transfer")
+
+        # Solid phase only - no fluid flow
+        sim.set_misc(solid_phase_only=True, radiation=False)
+        sim.mesh(ijk=(20, 20, 20), xb=(0, 1, 0, 1, 0, 1))
+        sim.time(t_end=1000.0)
+
+        # Add material and surface
+        sim.surface(id="HOT", tmp_front=500.0)
+        sim.obstruction(xb=(0.4, 0.6, 0.4, 0.6, 0, 0), surf_id="HOT")
+
+        output_file = tmp_path / "heat_transfer.fds"
+        sim.write(output_file)
+        content = output_file.read_text()
+
+        assert "SOLID_PHASE_ONLY=.TRUE." in content
+        assert "RADIATION=.FALSE." in content
+
+    def test_namelist_order_with_vent_misc(self, tmp_path):
+        """Test that namelists appear in correct order."""
+        sim = Simulation("order_test")
+
+        sim.set_misc(tmpa=25.0)
+        sim.time(t_end=100.0)
+        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        sim.add_vent(Vent(mb="ZMAX", surf_id="OPEN"))
+        sim.surface(id="TEST", color="BLUE")
+        sim.obstruction(xb=(0.4, 0.6, 0.4, 0.6, 0, 0.2))
+
+        output_file = tmp_path / "order_test.fds"
+        sim.write(output_file)
+        content = output_file.read_text()
+
+        # Check order
+        head_pos = content.find("&HEAD")
+        time_pos = content.find("&TIME")
+        misc_pos = content.find("&MISC")
+        mesh_pos = content.find("&MESH")
+        surf_pos = content.find("&SURF")
+        obst_pos = content.find("&OBST")
+        vent_pos = content.find("&VENT")
+        tail_pos = content.find("&TAIL")
+
+        # Verify order
+        assert head_pos < time_pos < misc_pos < mesh_pos < surf_pos < obst_pos < vent_pos < tail_pos

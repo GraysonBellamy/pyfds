@@ -6,10 +6,25 @@ programmatically in Python.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..utils import get_logger, validate_chid
-from .namelist import Device, Head, Mesh, Obstruction, Surface, Time
+from .namelist import (
+    Ctrl,
+    Device,
+    Head,
+    Init,
+    Material,
+    Mesh,
+    Misc,
+    Obstruction,
+    Prop,
+    Ramp,
+    Reaction,
+    Surface,
+    Time,
+    Vent,
+)
 
 if TYPE_CHECKING:
     from ..analysis.results import Results
@@ -46,14 +61,30 @@ class Simulation:
         HEAD namelist group
     time_params : Time, optional
         TIME namelist group
+    misc_params : Misc, optional
+        MISC namelist group
     meshes : List[Mesh]
         List of MESH namelist groups
+    ramps : List[Ramp]
+        List of RAMP namelist groups
+    reactions : List[Reaction]
+        List of REAC namelist groups
+    materials : List[Material]
+        List of MATL namelist groups
     surfaces : List[Surface]
         List of SURF namelist groups
+    props : List[Prop]
+        List of PROP namelist groups
     obstructions : List[Obstruction]
         List of OBST namelist groups
+    vents : List[Vent]
+        List of VENT namelist groups
     devices : List[Device]
         List of DEVC namelist groups
+    ctrls : List[Ctrl]
+        List of CTRL namelist groups
+    inits : List[Init]
+        List of INIT namelist groups
     """
 
     def __init__(self, chid: str, title: str | None = None):
@@ -64,10 +95,18 @@ class Simulation:
 
         self.head = Head(chid=chid, title=title)
         self.time_params: Time | None = None
+        self.misc_params: Misc | None = None
         self.meshes: list[Mesh] = []
+        self.ramps: list[Ramp] = []
+        self.reactions: list[Reaction] = []
+        self.materials: list[Material] = []
         self.surfaces: list[Surface] = []
+        self.props: list[Prop] = []
         self.obstructions: list[Obstruction] = []
+        self.vents: list[Vent] = []
         self.devices: list[Device] = []
+        self.ctrls: list[Ctrl] = []
+        self.inits: list[Init] = []
 
     @property
     def chid(self) -> str:
@@ -361,6 +400,249 @@ class Simulation:
         self.devices.append(device)
         return self
 
+    def add_ramp(self, ramp: Ramp) -> "Simulation":
+        """
+        Add a Ramp object to the simulation.
+
+        Parameters
+        ----------
+        ramp : Ramp
+            Ramp object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> ramp = Ramp(id='HRR_RAMP', points=[(0, 0), (300, 1000)])
+        >>> sim.add_ramp(ramp)
+        """
+        self.ramps.append(ramp)
+        return self
+
+    def add_reaction(self, reaction: Reaction) -> "Simulation":
+        """
+        Add a Reaction object to the simulation.
+
+        Parameters
+        ----------
+        reaction : Reaction
+            Reaction object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = Reaction(fuel='PROPANE', soot_yield=0.01)
+        >>> sim.add_reaction(reac)
+        """
+        self.reactions.append(reaction)
+        return self
+
+    def add_material(self, material: Material) -> "Simulation":
+        """
+        Add a Material object to the simulation.
+
+        Parameters
+        ----------
+        material : Material
+            Material object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> mat = Material(id='WOOD', density=500, conductivity=0.13, specific_heat=2.5)
+        >>> sim.add_material(mat)
+        """
+        self.materials.append(material)
+        return self
+
+    def add_prop(self, prop: Prop) -> "Simulation":
+        """
+        Add a Prop (device property) object to the simulation.
+
+        Parameters
+        ----------
+        prop : Prop
+            Prop object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> prop = Prop(id='SPRINKLER', activation_temperature=68, rti=50)
+        >>> sim.add_prop(prop)
+        """
+        self.props.append(prop)
+        return self
+
+    def add_ctrl(self, ctrl: Ctrl) -> "Simulation":
+        """
+        Add a Ctrl (control logic) object to the simulation.
+
+        Parameters
+        ----------
+        ctrl : Ctrl
+            Ctrl object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> ctrl = Ctrl(id='ALARM', function_type=ControlFunction.ANY, input_id=['SD_1', 'SD_2'])
+        >>> sim.add_ctrl(ctrl)
+        """
+        self.ctrls.append(ctrl)
+        return self
+
+    def add_init(self, init: Init) -> "Simulation":
+        """
+        Add an Init (initial condition) object to the simulation.
+
+        Parameters
+        ----------
+        init : Init
+            Init object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> init = Init(xb=(0, 10, 0, 10, 0, 0.1), temperature=500)
+        >>> sim.add_init(init)
+        """
+        self.inits.append(init)
+        return self
+
+    def set_misc(self, misc: Misc | None = None, **kwargs: Any) -> "Simulation":
+        """
+        Set MISC parameters for the simulation.
+
+        Can be called with a Misc object or with keyword arguments to create one.
+
+        Parameters
+        ----------
+        misc : Misc, optional
+            Misc object to set (if None, kwargs are used to create one)
+        **kwargs
+            Keyword arguments to pass to Misc constructor
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Using a Misc object
+        >>> misc = Misc(tmpa=25.0, humidity=70.0)
+        >>> sim.set_misc(misc)
+
+        >>> # Using keyword arguments
+        >>> sim.set_misc(tmpa=25.0, humidity=70.0, solid_phase_only=True)
+
+        Notes
+        -----
+        Only one MISC namelist is allowed per simulation. Calling this method
+        multiple times will overwrite the previous settings.
+        """
+        if misc is None:
+            misc = Misc(**kwargs)
+        self.misc_params = misc
+        return self
+
+    def add_vent(self, vent: Vent) -> "Simulation":
+        """
+        Add a Vent object to the simulation.
+
+        Parameters
+        ----------
+        vent : Vent
+            Vent object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Opening to ambient
+        >>> door = Vent(xb=(5, 5, 2, 4, 0, 3), surf_id='OPEN')
+        >>> sim.add_vent(door)
+
+        >>> # HVAC supply vent
+        >>> supply = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id='HVAC', volume_flow=0.5)
+        >>> sim.add_vent(supply)
+
+        >>> # Circular burner
+        >>> burner = Vent(
+        ...     xb=(-1, 1, -1, 1, 0, 0),
+        ...     surf_id='FIRE',
+        ...     xyz=(0, 0, 0),
+        ...     radius=0.5
+        ... )
+        >>> sim.add_vent(burner)
+        """
+        self.vents.append(vent)
+        return self
+
+    def vent(
+        self,
+        xb: tuple[float, float, float, float, float, float] | None = None,
+        mb: str | None = None,
+        surf_id: str = "INERT",
+        **kwargs: Any,
+    ) -> "Simulation":
+        """
+        Add a vent to the simulation (convenience method).
+
+        Parameters
+        ----------
+        xb : tuple[float, float, float, float, float, float], optional
+            Bounding box coordinates (xmin, xmax, ymin, ymax, zmin, zmax)
+        mb : str, optional
+            Mesh boundary location ('XMIN', 'XMAX', etc.)
+        surf_id : str, optional
+            Surface properties ID, default: 'INERT'
+        **kwargs
+            Additional vent parameters (xyz, radius, volume_flow, etc.)
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Opening to ambient
+        >>> sim.vent(xb=(5, 5, 2, 4, 0, 3), surf_id='OPEN')
+
+        >>> # HVAC supply vent
+        >>> sim.vent(xb=(5, 6, 5, 6, 3, 3), surf_id='HVAC', volume_flow=0.5)
+        """
+        vent_obj = Vent(xb=xb, mb=mb, surf_id=surf_id, **kwargs)
+        self.vents.append(vent_obj)
+        return self
+
     def to_fds(self) -> str:
         """
         Generate the complete FDS input file content.
@@ -392,11 +674,34 @@ class Simulation:
         if self.time_params:
             lines.append(self.time_params.to_fds())
 
+        # MISC namelist (should appear near top)
+        if self.misc_params:
+            lines.append("! --- Miscellaneous Parameters ---")
+            lines.append(self.misc_params.to_fds())
+
         # MESH namelists
         if self.meshes:
             lines.append("! --- Meshes ---")
             for mesh in self.meshes:
                 lines.append(mesh.to_fds())
+
+        # RAMP namelists (must come before MATL that reference them)
+        if self.ramps:
+            lines.append("! --- Ramps ---")
+            for ramp in self.ramps:
+                lines.append(ramp.to_fds())
+
+        # REAC namelist
+        if self.reactions:
+            lines.append("! --- Reactions ---")
+            for reaction in self.reactions:
+                lines.append(reaction.to_fds())
+
+        # MATL namelists
+        if self.materials:
+            lines.append("! --- Materials ---")
+            for material in self.materials:
+                lines.append(material.to_fds())
 
         # SURF namelists
         if self.surfaces:
@@ -404,17 +709,41 @@ class Simulation:
             for surface in self.surfaces:
                 lines.append(surface.to_fds())
 
+        # PROP namelists
+        if self.props:
+            lines.append("! --- Device Properties ---")
+            for prop in self.props:
+                lines.append(prop.to_fds())
+
         # OBST namelists
         if self.obstructions:
             lines.append("! --- Obstructions ---")
             for obst in self.obstructions:
                 lines.append(obst.to_fds())
 
+        # VENT namelists (after OBST and SURF)
+        if self.vents:
+            lines.append("! --- Vents ---")
+            for vent in self.vents:
+                lines.append(vent.to_fds())
+
+        # CTRL namelists
+        if self.ctrls:
+            lines.append("! --- Controls ---")
+            for ctrl in self.ctrls:
+                lines.append(ctrl.to_fds())
+
         # DEVC namelists
         if self.devices:
             lines.append("! --- Devices ---")
             for device in self.devices:
                 lines.append(device.to_fds())
+
+        # INIT namelists
+        if self.inits:
+            lines.append("! --- Initial Conditions ---")
+            for init in self.inits:
+                lines.append(init.to_fds())
 
         # TAIL namelist
         lines.append("\n&TAIL /")
