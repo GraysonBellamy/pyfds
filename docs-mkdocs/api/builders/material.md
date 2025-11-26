@@ -1,0 +1,339 @@
+# MaterialBuilder
+
+::: pyfds.builders.material.MaterialBuilder
+    options:
+      show_source: true
+      heading_level: 2
+
+## Overview
+
+`MaterialBuilder` creates material definitions (`&MATL` namelists) with thermal properties and pyrolysis reactions.
+
+## Key Features
+
+- **Simple Materials**: Constant thermal properties
+- **Temperature-Dependent**: Properties via RAMP references
+- **Multi-Reaction Pyrolysis**: Complex material decomposition
+- **Predefined Materials**: Common building materials
+
+## Quick Examples
+
+### Simple Material
+
+```python
+from pyfds.builders import MaterialBuilder
+
+# Material with constant properties
+wood = (
+    MaterialBuilder('PINE')
+    .density(500)                    # kg/m³
+    .thermal_conductivity(0.13)      # W/(m·K)
+    .specific_heat(2.5)              # kJ/(kg·K)
+    .emissivity(0.9)                 # 0-1
+    .build()
+)
+```
+
+### Temperature-Dependent Properties
+
+```python
+# Create ramp first
+k_ramp = RampBuilder('STEEL_K').temperature_table({
+    20: 45.8, 100: 43.3, 200: 40.7, 400: 36.4
+}).build()
+sim.add_ramp(k_ramp)
+
+# Use ramp in material
+steel = (
+    MaterialBuilder('STEEL')
+    .density(7850)
+    .thermal_conductivity_ramp('STEEL_K')  # Reference ramp
+    .specific_heat(0.46)
+    .emissivity(0.7)
+    .build()
+)
+```
+
+### Pyrolysis Material (Single Reaction)
+
+```python
+# Simple decomposition
+foam = (
+    MaterialBuilder('FOAM')
+    .density(40)
+    .thermal_conductivity(0.04)
+    .specific_heat(1.5)
+    .add_pyrolysis_reaction(
+        a=1e10,                      # Pre-exponential factor (1/s)
+        e=80000,                     # Activation energy (J/mol)
+        heat_of_reaction=1000,       # Heat of reaction (kJ/kg)
+        product_species='FUEL_VAPOR' # Product species ID
+    )
+    .build()
+)
+```
+
+### Multi-Reaction Pyrolysis
+
+```python
+# Complex decomposition with multiple pathways
+polymer = (
+    MaterialBuilder('POLYURETHANE')
+    .density(40)
+    .thermal_conductivity(0.04)
+    .specific_heat(1.5)
+    # First reaction: produces fuel vapor
+    .add_pyrolysis_reaction(
+        a=1e10,
+        e=80000,
+        heat_of_reaction=1000,
+        product_species='FUEL_VAPOR'
+    )
+    # Second reaction: produces char residue
+    .add_pyrolysis_reaction(
+        a=5e8,
+        e=120000,
+        heat_of_reaction=1500,
+        residue_material='CHAR'
+    )
+    .build()
+)
+```
+
+### Predefined Materials
+
+```python
+# Use predefined common materials
+concrete = MaterialBuilder.concrete()
+gypsum = MaterialBuilder.gypsum()
+steel = MaterialBuilder.steel()
+aluminum = MaterialBuilder.aluminum()
+brick = MaterialBuilder.brick()
+wood = MaterialBuilder.wood()
+
+sim.add_material(concrete)
+sim.add_material(steel)
+```
+
+## Available Predefined Materials
+
+| Material | ρ (kg/m³) | k (W/(m·K)) | c (kJ/(kg·K)) | ε |
+|----------|-----------|-------------|---------------|---|
+| Concrete | 2400 | 1.6 | 0.88 | 0.9 |
+| Gypsum | 930 | 0.48 | 1.09 | 0.9 |
+| Steel | 7850 | 45.8 | 0.46 | 0.7 |
+| Aluminum | 2700 | 237 | 0.90 | 0.2 |
+| Brick | 1920 | 0.69 | 0.84 | 0.9 |
+| Wood | 500 | 0.13 | 2.5 | 0.9 |
+| Fiberglass | 12 | 0.04 | 0.84 | 0.9 |
+| Ceramic | 2600 | 1.4 | 0.88 | 0.9 |
+| Glass | 2500 | 0.8 | 0.84 | 0.9 |
+| Copper | 8900 | 387 | 0.38 | 0.05 |
+
+## Usage in Simulations
+
+### Simple Material in Surface
+
+```python
+from pyfds import Simulation
+
+sim = Simulation('wall_heating')
+
+# Add material
+wood = MaterialBuilder('WOOD').density(500).thermal_conductivity(0.13).build()
+sim.add_material(wood)
+
+# Use in surface
+sim.surface(id='WOOD_WALL', matl_id='WOOD', thickness=0.012)
+
+# Apply to geometry
+sim.obstruction(xb=(0, 0, 0, 5, 0, 3), surf_id='WOOD_WALL')
+```
+
+### Layered Materials
+
+```python
+# Create materials for layered assembly
+gypsum = MaterialBuilder.gypsum()
+insulation = MaterialBuilder.fiberglass_insulation()
+
+sim.add_material(gypsum)
+sim.add_material(insulation)
+
+# Layered surface
+sim.surface(
+    id='WALL',
+    matl_id=['GYPSUM', 'INSULATION', 'GYPSUM'],
+    thickness=[0.012, 0.10, 0.012]  # Gypsum-insulation-gypsum sandwich
+)
+```
+
+### Pyrolysis with Combustion
+
+```python
+# Pyrolyzing material
+polymer = (
+    MaterialBuilder('POLYMER')
+    .density(40)
+    .thermal_conductivity(0.04)
+    .specific_heat(1.5)
+    .add_pyrolysis_reaction(
+        a=1e10,
+        e=80000,
+        heat_of_reaction=1000,
+        product_species='FUEL_VAPOR'
+    )
+    .build()
+)
+sim.add_material(polymer)
+
+# Combustion reaction for fuel vapor
+reac = ReactionBuilder().fuel('PROPANE').build()
+sim.add_reaction(reac)
+
+# Surface with pyrolysis
+sim.surface(id='FOAM', matl_id='POLYMER', thickness=0.05)
+```
+
+## Pyrolysis Kinetics
+
+### Arrhenius Equation
+
+Pyrolysis rate is governed by the Arrhenius equation:
+
+$$
+k = A e^{-E_a / RT}
+$$
+
+where:
+- $A$ = pre-exponential factor (1/s)
+- $E_a$ = activation energy (J/mol)
+- $R$ = gas constant (8.314 J/(mol·K))
+- $T$ = temperature (K)
+
+### Parameters
+
+When adding pyrolysis reactions:
+
+- **`a`**: Pre-exponential factor (1/s) - typically 10⁸ to 10¹² for polymers
+- **`e`**: Activation energy (J/mol) - typically 80,000 to 200,000 for polymers
+- **`heat_of_reaction`**: Heat absorbed (+) or released (-) during reaction (kJ/kg)
+- **`product_species`**: Gas species produced (links to `&SPEC`)
+- **`residue_material`**: Solid residue produced (links to another `&MATL`)
+
+### Typical Values
+
+| Material | A (1/s) | E (J/mol) | ΔH (kJ/kg) |
+|----------|---------|-----------|------------|
+| Wood | 1×10¹⁰ | 80,000 | 1000 |
+| Polyurethane | 1×10¹⁰ | 80,000 | 1000 |
+| PMMA | 5×10⁸ | 120,000 | 1500 |
+| Polystyrene | 3×10⁹ | 100,000 | 1200 |
+
+## Property Methods
+
+### Constant Properties
+
+```python
+material = (
+    MaterialBuilder('TEST')
+    .density(1000)                      # Required
+    .thermal_conductivity(1.0)          # W/(m·K)
+    .specific_heat(1.0)                 # kJ/(kg·K)
+    .emissivity(0.9)                    # 0-1, default: 0.9
+    .absorption_coefficient(50000)      # 1/m, default: 50000
+    .reference_temperature(20)          # °C
+    .build()
+)
+```
+
+### Temperature-Dependent Properties
+
+```python
+material = (
+    MaterialBuilder('TEST')
+    .density(1000)
+    .thermal_conductivity_ramp('K_RAMP')    # Reference to &RAMP
+    .specific_heat_ramp('CP_RAMP')          # Reference to &RAMP
+    .build()
+)
+```
+
+### Overriding
+
+Setting a ramp overrides a constant value:
+
+```python
+material = (
+    MaterialBuilder('TEST')
+    .density(1000)
+    .thermal_conductivity(1.0)         # Set constant
+    .thermal_conductivity_ramp('K')    # Override with ramp
+    .build()
+)
+# Result: conductivity=None, conductivity_ramp='K'
+```
+
+## Validation
+
+The builder validates:
+
+- **Density is required** - All materials must have density
+- **Either constant or ramp** - Can't have both for same property
+- **Pyrolysis reactions** - Valid parameters for each reaction
+
+## Predefined Library
+
+```python
+from pyfds.builders.libraries import CommonMaterials
+
+# All predefined materials
+concrete = CommonMaterials.concrete()
+gypsum = CommonMaterials.gypsum()
+steel = CommonMaterials.steel()
+aluminum = CommonMaterials.aluminum()
+brick = CommonMaterials.brick()
+wood = CommonMaterials.wood()
+fiberglass = CommonMaterials.fiberglass_insulation()
+ceramic = CommonMaterials.ceramic()
+glass = CommonMaterials.glass()
+copper = CommonMaterials.copper()
+```
+
+## Best Practices
+
+### Use Predefined When Available
+
+```python
+# Good
+concrete = MaterialBuilder.concrete()
+
+# Avoid
+concrete = MaterialBuilder('CONCRETE').density(2400).thermal_conductivity(1.6)...
+```
+
+### Layer Materials Appropriately
+
+```python
+# Good: Thin surface materials
+sim.surface(id='WALL', matl_id='GYPSUM', thickness=0.012)
+
+# Avoid: Very thick single layer (use multiple cells instead)
+sim.surface(id='WALL', matl_id='GYPSUM', thickness=1.0)  # Too thick
+```
+
+### Validate Pyrolysis Parameters
+
+```python
+# Good: Reasonable Arrhenius parameters
+.add_pyrolysis_reaction(a=1e10, e=80000, heat_of_reaction=1000, ...)
+
+# Avoid: Unrealistic values
+.add_pyrolysis_reaction(a=1e50, e=10, heat_of_reaction=1e6, ...)
+```
+
+## See Also
+
+- [User Guide - Materials & Surfaces](../../guide/materials-surfaces.md)
+- [User Guide - Builders](../../guide/builders.md)
+- [RampBuilder](ramp.md) - For temperature-dependent properties

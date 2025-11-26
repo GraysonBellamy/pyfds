@@ -196,6 +196,7 @@ nav:
   - User Guide:
     - guide/index.md
     - Building Simulations: guide/building-simulations.md
+    - Builder Pattern API: guide/builders.md
     - Computational Domain: guide/domain.md
     - Geometry: guide/geometry.md
     - Boundary Conditions: guide/boundaries.md
@@ -228,6 +229,14 @@ nav:
     - Core:
       - Simulation: api/core/simulation.md
       - Validator: api/core/validator.md
+    - Builders:
+      - api/builders/index.md
+      - RampBuilder: api/builders/ramp.md
+      - MaterialBuilder: api/builders/material.md
+      - ReactionBuilder: api/builders/reaction.md
+      - ControlBuilder: api/builders/control.md
+      - PropBuilder: api/builders/prop.md
+      - VentBuilder: api/builders/vent.md
     - Namelists:
       - api/namelists/index.md
       - Base Classes: api/namelists/base.md

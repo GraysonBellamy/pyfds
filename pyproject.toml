@@ -141,6 +141,7 @@ strict_equality = true
 show_error_codes = true
 show_column_numbers = true
 exclude = ["tests/", "examples/"]
+plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = [
