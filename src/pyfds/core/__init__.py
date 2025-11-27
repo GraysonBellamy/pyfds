@@ -27,9 +27,19 @@ from pyfds.core.namelists import (
     VentType,
 )
 from pyfds.core.simulation import Simulation
-from pyfds.core.validator import ValidationError, ValidationWarning, Validator, validate_fds_file
+from pyfds.core.validator import (
+    BasicValidationStrategy,
+    ComprehensiveValidationStrategy,
+    ValidationError,
+    ValidationStrategy,
+    ValidationWarning,
+    Validator,
+    validate_fds_file,
+)
 
 __all__ = [
+    "BasicValidationStrategy",
+    "ComprehensiveValidationStrategy",
     "ControlFunction",
     "Ctrl",
     "Device",
@@ -48,6 +58,7 @@ __all__ = [
     "Time",
     "TurbulenceModel",
     "ValidationError",
+    "ValidationStrategy",
     "ValidationWarning",
     "Validator",
     "Vent",

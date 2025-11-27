@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import (
     ControlFunction,
     Ctrl,
@@ -239,7 +240,7 @@ class TestDevice:
         dev = Device(id="TEMP1", quantity="TEMPERATURE", xyz=(1.0, 1.0, 2.0))
         assert dev.id == "TEMP1"
         assert dev.quantity == "TEMPERATURE"
-        assert dev.xyz == (1.0, 1.0, 2.0)
+        assert dev.xyz == Point3D(1.0, 1.0, 2.0)
 
     def test_basic_creation_xb(self):
         """Test basic Device creation with XB."""

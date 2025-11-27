@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 
 # Create output directory
 output_dir = Path("./demo_output")
@@ -42,9 +43,9 @@ def blocking_execution_demo():
     sim.obstruction(xb=(0.8, 1.2, 0.8, 1.2, 0, 0.1), surf_id="FIRE")
 
     # Add temperature devices
-    sim.device(id="TEMP_1", quantity="TEMPERATURE", xyz=(1.0, 1.0, 0.5))
-    sim.device(id="TEMP_2", quantity="TEMPERATURE", xyz=(1.0, 1.0, 1.0))
-    sim.device(id="TEMP_3", quantity="TEMPERATURE", xyz=(1.0, 1.0, 1.5))
+    sim.device(id="TEMP_1", quantity="TEMPERATURE", xyz=Point3D(1.0, 1.0, 0.5))
+    sim.device(id="TEMP_2", quantity="TEMPERATURE", xyz=Point3D(1.0, 1.0, 1.0))
+    sim.device(id="TEMP_3", quantity="TEMPERATURE", xyz=Point3D(1.0, 1.0, 1.5))
 
     print("\n📝 Simulation setup complete")
     print(f"   CHID: {sim.chid}")
@@ -103,7 +104,7 @@ def non_blocking_execution_demo():
     sim.mesh(ijk=(15, 15, 15), xb=(0, 3, 0, 3, 0, 3))
     sim.surface(id="FIRE", hrrpua=1000.0, color="ORANGE")
     sim.obstruction(xb=(1.2, 1.8, 1.2, 1.8, 0, 0.2), surf_id="FIRE")
-    sim.device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=(1.5, 1.5, 1.5))
+    sim.device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=Point3D(1.5, 1.5, 1.5))
 
     print("\n🚀 Starting simulation in background...")
 

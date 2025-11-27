@@ -7,7 +7,7 @@ are syntactically and semantically correct before execution.
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from pyfds.core.namelists import Mesh, Time
@@ -276,3 +276,116 @@ def validate_fds_file(filepath: Path) -> bool:
         )
 
     return True
+
+
+class ValidationStrategy(Protocol):
+    """
+    Strategy interface for simulation validation.
+
+    This protocol defines the contract for all validation strategies.
+    """
+
+    def validate(self, simulation: "Simulation") -> list[str]:
+        """
+        Validate the simulation and return warnings.
+
+        Parameters
+        ----------
+        simulation : Simulation
+            The simulation to validate
+
+        Returns
+        -------
+        list[str]
+            List of validation warnings (empty if no issues)
+        """
+        ...
+
+
+class BasicValidationStrategy:
+    """
+    Basic validation strategy.
+
+    Performs minimal validation checks focusing on required components
+    and delegating to manager validators.
+    """
+
+    def validate(self, simulation: "Simulation") -> list[str]:
+        """
+        Perform basic validation of the simulation.
+
+        Parameters
+        ----------
+        simulation : Simulation
+            The simulation to validate
+
+        Returns
+        -------
+        list[str]
+            List of validation warnings
+        """
+        warnings = []
+
+        # Validate required components
+        if not simulation.time_params:
+            warnings.append("No time parameters defined - TIME namelist required")
+
+        # Delegate to manager validators
+        warnings.extend(simulation.geometry.validate())
+        warnings.extend(simulation.material_mgr.validate())
+        warnings.extend(simulation.physics.validate())
+        warnings.extend(simulation.instrumentation.validate())
+        warnings.extend(simulation.controls.validate())
+        warnings.extend(simulation.ramps.validate())
+
+        # Cross-manager validation: Check surface ID references
+        referenced_surf_ids = set()
+        for obst in simulation.geometry.obstructions:
+            if obst.surf_id:
+                referenced_surf_ids.add(obst.surf_id)
+            if obst.surf_id_top:
+                referenced_surf_ids.add(obst.surf_id_top)
+            if obst.surf_id_bottom:
+                referenced_surf_ids.add(obst.surf_id_bottom)
+            if obst.surf_id_sides:
+                referenced_surf_ids.add(obst.surf_id_sides)
+
+        for vent in simulation.geometry.vents:
+            if vent.surf_id:
+                referenced_surf_ids.add(vent.surf_id)
+
+        warnings.extend(simulation.material_mgr.validate_surface_references(referenced_surf_ids))
+
+        return warnings
+
+
+class ComprehensiveValidationStrategy:
+    """
+    Comprehensive validation strategy.
+
+    Uses the full Validator class for thorough validation including
+    parameter ranges, mesh quality, and semantic checks.
+    """
+
+    def validate(self, simulation: "Simulation") -> list[str]:
+        """
+        Perform comprehensive validation of the simulation.
+
+        Parameters
+        ----------
+        simulation : Simulation
+            The simulation to validate
+
+        Returns
+        -------
+        list[str]
+            List of validation warnings and errors
+        """
+        validator = Validator()
+        try:
+            validator.validate_simulation(simulation)
+            # Convert ValidationWarning objects to strings
+            return [str(w) for w in validator.warnings]
+        except ValidationError as e:
+            # Return errors as warnings for compatibility with existing API
+            return [str(e)]

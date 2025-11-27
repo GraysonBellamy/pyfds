@@ -44,7 +44,10 @@ sim.surface(id='FIRE', hrrpua=1000.0)
 sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id_top='FIRE')
 
 # Add sensor
-sim.device(id='TEMP1', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
+from pyfds.core.geometry import Point3D
+sim.device(id='TEMP1', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 2.4))
+# Or using tuple (backward compatible)
+# sim.device(id='TEMP1', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
 
 # Run simulation
 results = sim.run()

@@ -6,8 +6,9 @@ Measurement devices and sensors.
 
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists.base import NamelistBase
 
 
@@ -21,30 +22,38 @@ class Device(NamelistBase):
         Unique device identifier
     quantity : str
         FDS quantity to measure (e.g., 'TEMPERATURE', 'VELOCITY')
-    xyz : Tuple[float, float, float], optional
+    xyz : Point3D, optional
         Device location (x, y, z) in meters
     xb : Tuple[float, float, float, float, float, float], optional
         Device bounds for spatial averaging
 
     Examples
     --------
-    >>> temp_sensor = Device(id='TEMP1', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.0))
+    >>> from pyfds.core.geometry import Point3D
+    >>> temp_sensor = Device(id='TEMP1', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 2.0))
     >>> print(temp_sensor.to_fds())
     &DEVC ID='TEMP1', QUANTITY='TEMPERATURE', XYZ=2.5,2.5,2.0 /
     """
 
     id: str = Field(..., description="Device identifier")
     quantity: str = Field(..., description="Quantity to measure")
-    xyz: tuple[float, float, float] | None = Field(None, description="Device location")
+    xyz: Point3D | None = Field(None, description="Device location")
     xb: tuple[float, float, float, float, float, float] | None = Field(
         None, description="Device bounds"
     )
+
+    @field_validator("xyz", mode="before")
+    @classmethod
+    def validate_xyz(cls, v: Any) -> Any:
+        if isinstance(v, tuple):
+            return Point3D.from_tuple(v)
+        return v
 
     def to_fds(self) -> str:
         """Generate FDS DEVC namelist."""
         params: dict[str, Any] = {"id": self.id, "quantity": self.quantity}
         if self.xyz:
-            params["xyz"] = self.xyz
+            params["xyz"] = self.xyz.as_tuple()
         if self.xb:
             params["xb"] = self.xb
         return self._build_namelist("DEVC", params)

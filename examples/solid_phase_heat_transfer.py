@@ -10,6 +10,7 @@ This example demonstrates:
 """
 
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import Material, Vent
 
 # Create simulation
@@ -74,15 +75,15 @@ sim.vent(xb=(0, 1, 0, 1, 1, 1), surf_id="INERT", id="WALL_ZMAX")
 # ===== Monitoring devices =====
 # Temperature at various heights in the concrete block
 for i, z in enumerate([0.05, 0.1, 0.2, 0.3, 0.35], start=1):
-    sim.device(id=f"TEMP_CONCRETE_{i}", quantity="WALL TEMPERATURE", xyz=(0.5, 0.5, z))
+    sim.device(id=f"TEMP_CONCRETE_{i}", quantity="WALL TEMPERATURE", xyz=Point3D(0.5, 0.5, z))
 
 # Temperature at steel plate
-sim.device(id="TEMP_STEEL", quantity="WALL TEMPERATURE", xyz=(0.5, 0.5, 0.4))
+sim.device(id="TEMP_STEEL", quantity="WALL TEMPERATURE", xyz=Point3D(0.5, 0.5, 0.4))
 
 # Heat flux measurements
-sim.device(id="HEAT_FLUX_BOTTOM", quantity="WALL HEAT FLUX", xyz=(0.5, 0.5, 0.05))
+sim.device(id="HEAT_FLUX_BOTTOM", quantity="WALL HEAT FLUX", xyz=Point3D(0.5, 0.5, 0.05))
 
-sim.device(id="HEAT_FLUX_TOP", quantity="WALL HEAT FLUX", xyz=(0.5, 0.5, 0.35))
+sim.device(id="HEAT_FLUX_TOP", quantity="WALL HEAT FLUX", xyz=Point3D(0.5, 0.5, 0.35))
 
 # Generate FDS file
 output_file = sim.write("heat_transfer.fds")

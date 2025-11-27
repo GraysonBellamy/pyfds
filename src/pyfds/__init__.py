@@ -7,6 +7,8 @@ FDS fire simulations programmatically.
 
 from .analysis import Results
 from .core import (
+    BasicValidationStrategy,
+    ComprehensiveValidationStrategy,
     Device,
     Head,
     Mesh,
@@ -15,6 +17,7 @@ from .core import (
     Surface,
     Time,
     ValidationError,
+    ValidationStrategy,
     ValidationWarning,
     Validator,
 )
@@ -33,8 +36,9 @@ __version__ = "0.1.0"
 
 __all__ = [
     # Analysis and I/O
+    "BasicValidationStrategy",
     "CSVParser",
-    # Core simulation classes
+    "ComprehensiveValidationStrategy",
     "Device",
     # Execution classes
     "FDSExecutionError",
@@ -52,6 +56,7 @@ __all__ = [
     "Surface",
     "Time",
     "ValidationError",
+    "ValidationStrategy",
     "ValidationWarning",
     "Validator",
 ]

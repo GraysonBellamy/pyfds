@@ -7,6 +7,7 @@ This example creates a simple fire simulation with:
 - Sprinkler activation control
 """
 
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import (
     ControlFunction,
     Ctrl,
@@ -72,8 +73,8 @@ sim.obstruction(xb=(0, 0.1, 0, 5, 0, 2.5), surf_id="STEEL_WALL")
 sim.obstruction(xb=(4.9, 5, 0, 5, 0, 2.5), surf_id="STEEL_WALL")
 
 # ===== DEVC: Temperature sensors =====
-sim.device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=(2.5, 2.5, 2.0))
-sim.device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=(2.5, 2.5, 2.45))
+sim.device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=Point3D(2.5, 2.5, 2.0))
+sim.device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=Point3D(2.5, 2.5, 2.45))
 
 # ===== CTRL: Sprinkler control (activate above 60°C) =====
 # Note: In a real simulation, you'd link this to a sprinkler device

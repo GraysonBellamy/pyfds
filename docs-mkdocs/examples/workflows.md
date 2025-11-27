@@ -39,6 +39,7 @@ print(f"Created project: {project}")
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 
 # simulation_setup.py
 def create_room_fire():
@@ -66,11 +67,11 @@ def create_room_fire():
 
     # Devices
     for z, label in [(0.5, 'LOW'), (1.5, 'MID'), (2.4, 'HIGH')]:
-        sim.device(id=f'TEMP_{label}', quantity='TEMPERATURE', xyz=(3, 2.5, z))
+        sim.device(id=f'TEMP_{label}', quantity='TEMPERATURE', xyz=Point3D(3, 2.5, z))
 
-    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=(3, 2.5, 1.25))
-    sim.device(id='VIS', quantity='VISIBILITY', xyz=(3, 2.5, 1.5))
-    sim.device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=(0.2, 2.5, 1.5), ior=1)
+    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=Point3D(3, 2.5, 1.25))
+    sim.device(id='VIS', quantity='VISIBILITY', xyz=Point3D(3, 2.5, 1.5))
+    sim.device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=Point3D(0.2, 2.5, 1.5), ior=1)
 
     return sim
 
@@ -341,8 +342,8 @@ def create_parametric_case(case_id, hrr, door_width):
     sim.vent(xb=(6, 6, y_center-door_width/2, y_center+door_width/2, 0, 2.1), surf_id='OPEN')
 
     # Measurements
-    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=(3, 2.5, 2.4))
-    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=(3, 2.5, 1.25))
+    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D(3, 2.5, 2.4))
+    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=Point3D(3, 2.5, 1.25))
 
     return sim
 

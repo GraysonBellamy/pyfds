@@ -8,6 +8,7 @@ programmatically in Python.
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from pyfds.core.geometry import Point3D
 from pyfds.core.managers import (
     ControlManager,
     GeometryManager,
@@ -36,6 +37,7 @@ from .namelists import (
     Time,
     Vent,
 )
+from .validator import BasicValidationStrategy, ValidationStrategy
 
 if TYPE_CHECKING:
     from ..analysis.results import Results
@@ -57,6 +59,9 @@ class Simulation:
         Case identifier (filename prefix for all output files)
     title : str, optional
         Descriptive title for the simulation
+    validation_strategy : ValidationStrategy, optional
+        Strategy for validating the simulation configuration.
+        Defaults to BasicValidationStrategy.
 
     Examples
     --------
@@ -83,7 +88,12 @@ class Simulation:
         Manager for controls and initial conditions
     """
 
-    def __init__(self, chid: str, title: str | None = None):
+    def __init__(
+        self,
+        chid: str,
+        title: str | None = None,
+        validation_strategy: ValidationStrategy | None = None,
+    ):
         """Initialize a new FDS simulation."""
         # Validate CHID
         chid = validate_chid(chid)
@@ -92,6 +102,9 @@ class Simulation:
         # Core simulation metadata
         self.head = Head(chid=chid, title=title)
         self.time_params: Time | None = None
+
+        # Set validation strategy
+        self._validation_strategy = validation_strategy or BasicValidationStrategy()
 
         # Initialize managers
         self._geometry = GeometryManager()
@@ -405,7 +418,7 @@ class Simulation:
         self,
         id: str,
         quantity: str,
-        xyz: tuple[float, float, float] | None = None,
+        xyz: Point3D | tuple[float, float, float] | None = None,
         xb: tuple[float, float, float, float, float, float] | None = None,
     ) -> "Simulation":
         """
@@ -420,7 +433,7 @@ class Simulation:
             Unique device identifier
         quantity : str
             FDS quantity to measure (e.g., 'TEMPERATURE', 'VELOCITY')
-        xyz : Tuple[float, float, float], optional
+        xyz : Point3D or tuple[float, float, float], optional
             Device location (x, y, z) in meters
         xb : Tuple[float, float, float, float, float, float], optional
             Device bounds for spatial averaging
@@ -432,8 +445,11 @@ class Simulation:
 
         Examples
         --------
+        >>> from pyfds.core.geometry import Point3D
         >>> sim = Simulation('test')
-        >>> sim.device(id='TEMP1', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.0))
+        >>> sim.device(id='TEMP1', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 2.0))
+        >>> # Or using tuple (converted automatically)
+        >>> sim.device(id='TEMP2', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.0))
 
         See Also
         --------
@@ -447,6 +463,10 @@ class Simulation:
             raise ValueError("Either xyz or xb must be specified")
         if xyz is not None and xb is not None:
             raise ValueError("Cannot specify both xyz and xb")
+
+        # Convert tuple to Point3D if necessary
+        if isinstance(xyz, tuple):
+            xyz = Point3D.from_tuple(xyz)
 
         dev_obj = Device(id=id, quantity=quantity, xyz=xyz, xb=xb)
         self._instrumentation.add_device(dev_obj)
@@ -1221,7 +1241,7 @@ class Simulation:
 
     def validate(self) -> list[str]:
         """
-        Validate the simulation configuration.
+        Validate the simulation configuration using the configured validation strategy.
 
         Returns
         -------
@@ -1236,39 +1256,7 @@ class Simulation:
         ...     for w in warnings:
         ...         print(f"Warning: {w}")
         """
-        warnings = []
-
-        # Validate required components
-        if not self.time_params:
-            warnings.append("No time parameters defined - TIME namelist required")
-
-        # Delegate to manager validators
-        warnings.extend(self._geometry.validate())
-        warnings.extend(self._material_mgr.validate())
-        warnings.extend(self._physics.validate())
-        warnings.extend(self._instrumentation.validate())
-        warnings.extend(self._controls.validate())
-        warnings.extend(self._ramps.validate())
-
-        # Cross-manager validation: Check surface ID references
-        referenced_surf_ids = set()
-        for obst in self._geometry.obstructions:
-            if obst.surf_id:
-                referenced_surf_ids.add(obst.surf_id)
-            if obst.surf_id_top:
-                referenced_surf_ids.add(obst.surf_id_top)
-            if obst.surf_id_bottom:
-                referenced_surf_ids.add(obst.surf_id_bottom)
-            if obst.surf_id_sides:
-                referenced_surf_ids.add(obst.surf_id_sides)
-
-        for vent in self._geometry.vents:
-            if vent.surf_id:
-                referenced_surf_ids.add(vent.surf_id)
-
-        warnings.extend(self._material_mgr.validate_surface_references(referenced_surf_ids))
-
-        return warnings
+        return self._validation_strategy.validate(self)
 
     def run(
         self,

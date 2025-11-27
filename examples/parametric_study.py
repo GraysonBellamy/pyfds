@@ -9,6 +9,7 @@ parameters to study the effect of heat release rate on fire behavior.
 from pathlib import Path
 
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 
 # Create output directory
 output_dir = Path("parametric_study")
@@ -39,7 +40,7 @@ for hrr in hrr_values:
     # Temperature measurement devices at different heights
     heights = [0.5, 1.0, 1.4]
     for i, z in enumerate(heights, start=1):
-        sim.device(id=f"TEMP_{i}", quantity="TEMPERATURE", xyz=(1.5, 1.5, z))
+        sim.device(id=f"TEMP_{i}", quantity="TEMPERATURE", xyz=Point3D(1.5, 1.5, z))
 
     # Write simulation file
     output_file = output_dir / f"fire_hrr_{hrr}.fds"

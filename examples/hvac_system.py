@@ -8,6 +8,7 @@ This example creates a simple room with an HVAC system including:
 - Temperature monitoring at various locations
 """
 
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import Vent
 from pyfds.core.simulation import Simulation
 
@@ -75,16 +76,16 @@ sim.obstruction(xb=(5, 6, 5, 6, 0, 0.5), surf_id="HEAT_SOURCE")
 # ===== Monitoring devices =====
 # Temperature at various heights near center of room
 for i, z in enumerate([0.5, 1.0, 1.5, 2.0, 2.5], start=1):
-    sim.device(id=f"TEMP_CENTER_{i}", quantity="TEMPERATURE", xyz=(5, 5, z))
+    sim.device(id=f"TEMP_CENTER_{i}", quantity="TEMPERATURE", xyz=Point3D(5, 5, z))
 
 # Temperature near supply vent
-sim.device(id="TEMP_SUPPLY", quantity="TEMPERATURE", xyz=(2.25, 2.25, 2.8))
+sim.device(id="TEMP_SUPPLY", quantity="TEMPERATURE", xyz=Point3D(2.25, 2.25, 2.8))
 
 # Temperature near exhaust vent
-sim.device(id="TEMP_EXHAUST", quantity="TEMPERATURE", xyz=(7.75, 7.75, 2.8))
+sim.device(id="TEMP_EXHAUST", quantity="TEMPERATURE", xyz=Point3D(7.75, 7.75, 2.8))
 
 # Velocity near door
-sim.device(id="VEL_DOOR", quantity="VELOCITY", xyz=(4, 5, 1.25))
+sim.device(id="VEL_DOOR", quantity="VELOCITY", xyz=Point3D(4, 5, 1.25))
 
 # Generate FDS file
 output_file = sim.write("hvac_system.fds")

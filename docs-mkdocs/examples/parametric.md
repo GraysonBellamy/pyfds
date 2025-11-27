@@ -27,6 +27,7 @@ Verify numerical accuracy by refining mesh resolution.
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 import numpy as np
 
 def create_grid_study(chid_base, mesh_multiplier):
@@ -46,8 +47,8 @@ def create_grid_study(chid_base, mesh_multiplier):
     sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 
     # Measurement devices
-    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
-    sim.device(id='TEMP_MID', quantity='TEMPERATURE', xyz=(2.5, 2.5, 1.25))
+    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 2.4))
+    sim.device(id='TEMP_MID', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 1.25))
 
     return sim
 

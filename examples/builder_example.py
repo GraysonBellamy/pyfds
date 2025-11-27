@@ -15,6 +15,7 @@ from pyfds.builders import (
     VentBuilder,
 )
 from pyfds.builders.libraries import CommonMaterials
+from pyfds.core.geometry import Point3D
 
 
 def main():
@@ -119,7 +120,9 @@ def main():
     sim.add_vent(exhaust)
 
     # Circular burner
-    burner = VentBuilder.circular_burner(center=(5, 5, 0), radius=0.5, surf_id="FIRE", id="BURNER")
+    burner = VentBuilder.circular_burner(
+        center=Point3D(5, 5, 0), radius=0.5, surf_id="FIRE", id="BURNER"
+    )
     sim.add_vent(burner)
 
     # ========================================================================
@@ -181,8 +184,8 @@ def main():
     print("Adding measurement devices...")
 
     # Temperature measurements
-    sim.device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=(5, 5, 2.5))
-    sim.device(id="TEMP_CORNER", quantity="TEMPERATURE", xyz=(1, 1, 2.5))
+    sim.device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=Point3D(5, 5, 2.5))
+    sim.device(id="TEMP_CORNER", quantity="TEMPERATURE", xyz=Point3D(1, 1, 2.5))
 
     # HRR measurement
     sim.device(id="HRR", quantity="HRR", xb=(0, 10, 0, 10, 0, 5))
@@ -222,7 +225,7 @@ def main():
     print(f"Vents: {len(sim.geometry.vents)}")
     print(f"Devices: {len(sim.instrumentation.devices)}")
     print(f"Controls: {len(sim.controls.ctrls)}")
-    print(f"Props: {len(sim.props)}")
+    print(f"Props: {len(sim.instrumentation.props)}")
     print("=" * 70)
 
     # Show available fuels

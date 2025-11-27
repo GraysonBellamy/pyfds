@@ -7,6 +7,7 @@ using PyFDS. It follows the example from Section 7.2.1 of the implementation pla
 """
 
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 
 # Create simulation
 sim = Simulation(chid="room_fire", title="Room Fire Test")
@@ -31,7 +32,12 @@ sim.surface(
 sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id="BURNER")
 
 # Add measurement device at ceiling
-sim.device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=(2.5, 2.5, 2.4))
+# Using Point3D for better type safety and operations
+ceiling_sensor = Point3D(2.5, 2.5, 2.4)
+sim.device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=ceiling_sensor)
+
+# You can also use tuples (backward compatible):
+# sim.device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=(2.5, 2.5, 2.4))
 
 # Validate the simulation
 warnings = sim.validate()

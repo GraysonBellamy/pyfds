@@ -1,5 +1,6 @@
 """Builder for creating VENT namelists with common configurations."""
 
+from ..core.geometry import Point3D
 from ..core.namelists import Vent
 from .base import Builder
 
@@ -140,7 +141,7 @@ class VentBuilder(Builder[Vent]):
     @classmethod
     def circular_burner(
         cls,
-        center: tuple[float, float, float],
+        center: Point3D | tuple[float, float, float],
         radius: float,
         surf_id: str,
         id: str | None = None,
@@ -150,7 +151,7 @@ class VentBuilder(Builder[Vent]):
 
         Parameters
         ----------
-        center : tuple[float, float, float]
+        center : Point3D or tuple[float, float, float]
             Center point (x, y, z) in meters
         radius : float
             Burner radius in meters
@@ -173,7 +174,10 @@ class VentBuilder(Builder[Vent]):
         ...     id='BURNER'
         ... )
         """
-        x, y, z = center
+        if isinstance(center, tuple):
+            center = Point3D.from_tuple(center)
+
+        x, y, z = center.x, center.y, center.z
         # Create bounding box around circle
         xb = (x - radius, x + radius, y - radius, y + radius, z, z)
 
@@ -182,7 +186,7 @@ class VentBuilder(Builder[Vent]):
     @classmethod
     def annular_burner(
         cls,
-        center: tuple[float, float, float],
+        center: Point3D | tuple[float, float, float],
         radius: float,
         radius_inner: float,
         surf_id: str,
@@ -193,7 +197,7 @@ class VentBuilder(Builder[Vent]):
 
         Parameters
         ----------
-        center : tuple[float, float, float]
+        center : Point3D or tuple[float, float, float]
             Center point (x, y, z) in meters
         radius : float
             Outer radius in meters
@@ -218,7 +222,10 @@ class VentBuilder(Builder[Vent]):
         ...     surf_id='FIRE'
         ... )
         """
-        x, y, z = center
+        if isinstance(center, tuple):
+            center = Point3D.from_tuple(center)
+
+        x, y, z = center.x, center.y, center.z
         # Create bounding box around outer circle
         xb = (x - radius, x + radius, y - radius, y + radius, z, z)
 

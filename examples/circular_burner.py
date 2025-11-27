@@ -9,6 +9,7 @@ This example shows:
 """
 
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import Vent
 
 # Create simulation
@@ -31,7 +32,7 @@ sim.surface(id="BURNER", hrrpua=500.0, color="RED")
 burner = Vent(
     xb=(-2, 2, -2, 2, 0, 0),  # Bounding box
     surf_id="BURNER",
-    xyz=(0, 0, 0),  # Center point
+    xyz=Point3D(0, 0, 0),  # Center point
     radius=1.0,  # 1m radius
     id="CIRCULAR_BURNER",
 )
@@ -49,7 +50,7 @@ sim.mesh(ijk=(60, 60, 60), xb=(-3, 3, -3, 3, 7, 13), id="MESH_02")
 annular_burner = Vent(
     xb=(-2, 2, -2, 2, 7, 7),  # Bounding box
     surf_id="BURNER",
-    xyz=(0, 0, 7),  # Center point
+    xyz=Point3D(0, 0, 7),  # Center point
     radius=1.5,  # Outer radius 1.5m
     radius_inner=0.5,  # Inner radius 0.5m
     id="ANNULAR_BURNER",
@@ -68,15 +69,15 @@ for boundary in ["XMIN", "XMAX", "YMIN", "YMAX"]:
 # ===== Monitoring devices =====
 # Temperature above circular burner
 for i, z in enumerate([1, 2, 3, 4, 5], start=1):
-    sim.device(id=f"TEMP_CIRC_{i}", quantity="TEMPERATURE", xyz=(0, 0, z))
+    sim.device(id=f"TEMP_CIRC_{i}", quantity="TEMPERATURE", xyz=Point3D(0, 0, z))
 
 # Temperature above annular burner
 for i, z in enumerate([8, 9, 10, 11, 12], start=1):
-    sim.device(id=f"TEMP_ANN_{i}", quantity="TEMPERATURE", xyz=(0, 0, z))
+    sim.device(id=f"TEMP_ANN_{i}", quantity="TEMPERATURE", xyz=Point3D(0, 0, z))
 
 # Velocity measurements
-sim.device(id="VEL_CENTER", quantity="VELOCITY", xyz=(0, 0, 3))
-sim.device(id="VEL_ANNULAR", quantity="VELOCITY", xyz=(0, 0, 10))
+sim.device(id="VEL_CENTER", quantity="VELOCITY", xyz=Point3D(0, 0, 3))
+sim.device(id="VEL_ANNULAR", quantity="VELOCITY", xyz=Point3D(0, 0, 10))
 
 # Generate FDS file
 output_file = sim.write("circular_burner.fds")
@@ -85,7 +86,7 @@ print(f"✓ Circular burner: radius={burner.radius}m, area={burner_area:.3f}m²"
 print(
     f"✓ Annular burner: outer={annular_burner.radius}m, inner={annular_burner.radius_inner}m, area={annular_area:.3f}m²"
 )
-print(f"✓ Total vents: {len(sim.vents)}")
+print(f"✓ Total vents: {len(sim.geometry.vents)}")
 print(
-    f"✓ Vent types: {sum(1 for v in sim.vents if v.get_shape().value == 'CIRCULAR')} circular, {sum(1 for v in sim.vents if v.get_shape().value == 'ANNULAR')} annular"
+    f"✓ Vent types: {sum(1 for v in sim.geometry.vents if v.get_shape().value == 'CIRCULAR')} circular, {sum(1 for v in sim.geometry.vents if v.get_shape().value == 'ANNULAR')} annular"
 )

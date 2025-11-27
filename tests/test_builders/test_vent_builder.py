@@ -3,6 +3,7 @@
 import pytest
 
 from pyfds.builders import VentBuilder
+from pyfds.core.geometry import Point3D
 
 
 class TestVentBuilder:
@@ -51,7 +52,7 @@ class TestVentBuilder:
         )
 
         assert vent.id == "BURNER"
-        assert vent.xyz == (0, 0, 0)
+        assert vent.xyz == Point3D(0, 0, 0)
         assert vent.radius == 0.5
         assert vent.surf_id == "FIRE"
         # Check bounding box is correct
@@ -67,7 +68,7 @@ class TestVentBuilder:
             id="RING_BURNER",
         )
 
-        assert vent.xyz == (0, 0, 0)
+        assert vent.xyz == Point3D(0, 0, 0)
         assert vent.radius == 0.5
         assert vent.radius_inner == 0.3
         assert vent.surf_id == "FIRE"

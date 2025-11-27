@@ -8,8 +8,9 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists.base import NamelistBase
 
 
@@ -52,7 +53,7 @@ class Vent(NamelistBase):
 
     Geometric Parameters
     -------------------
-    xyz : tuple[float, float, float], optional
+    xyz : Point3D, optional
         Center point for circular vents
     radius : float, optional
         Radius for circular vents [m]
@@ -128,7 +129,7 @@ class Vent(NamelistBase):
     id: str | None = Field(None, description="Vent identifier")
 
     # Circular geometry
-    xyz: tuple[float, float, float] | None = Field(None, description="Center point")
+    xyz: Point3D | None = Field(None, description="Center point")
     radius: float | None = Field(None, gt=0, description="Radius [m]")
     radius_inner: float | None = Field(None, gt=0, description="Inner radius [m]")
 
@@ -154,6 +155,13 @@ class Vent(NamelistBase):
     color: str | None = Field(None, description="Named color")
     rgb: tuple[int, int, int] | None = Field(None, description="RGB color")
     transparency: float = Field(1.0, ge=0, le=1, description="Transparency [0-1]")
+
+    @field_validator("xyz", mode="before")
+    @classmethod
+    def validate_xyz(cls, v: Any) -> Any:
+        if isinstance(v, tuple):
+            return Point3D.from_tuple(v)
+        return v
 
     @model_validator(mode="after")
     def validate_vent(self) -> "Vent":
@@ -275,7 +283,7 @@ class Vent(NamelistBase):
         params["surf_id"] = self.surf_id
 
         if self.xyz:
-            params["xyz"] = self.xyz
+            params["xyz"] = self.xyz.as_tuple()
         if self.radius is not None:
             params["radius"] = self.radius
         if self.radius_inner is not None:

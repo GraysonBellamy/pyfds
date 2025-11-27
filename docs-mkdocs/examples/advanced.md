@@ -18,6 +18,7 @@ Simulate fire spreading between connected rooms.
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 
 sim = Simulation(chid='multi_room_fire')
 sim.time(t_end=900.0)
@@ -70,24 +71,24 @@ sim.vent(xb=(12, 12, 2, 3, 0, 2.1), surf_id='OPEN')
 sim.device(
     id='TEMP_ROOM1',
     quantity='TEMPERATURE',
-    xyz=(3, 2.5, 2.0)
+    xyz=Point3D(3, 2.5, 2.0)
 )
 sim.device(
     id='TEMP_ROOM2',
     quantity='TEMPERATURE',
-    xyz=(9, 2.5, 2.0)
+    xyz=Point3D(9, 2.5, 2.0)
 )
 
 # Smoke layer height
 sim.device(
     id='LAYER_ROOM1',
     quantity='LAYER HEIGHT',
-    xyz=(3, 2.5, 1.25)
+    xyz=Point3D(3, 2.5, 1.25)
 )
 sim.device(
     id='LAYER_ROOM2',
     quantity='LAYER HEIGHT',
-    xyz=(9, 2.5, 1.25)
+    xyz=Point3D(9, 2.5, 1.25)
 )
 
 sim.write('multi_room_fire.fds')

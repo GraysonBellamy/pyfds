@@ -8,6 +8,7 @@ A 5m × 5m room with a 1m² fire source.
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 
 # Create simulation
 sim = Simulation(chid='room_fire', title='Simple Room Fire')
@@ -23,8 +24,8 @@ sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
 sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
 
 # Measurements
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
-sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=(2.5, 2.5, 0.1))
+sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 2.4))
+sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 0.1))
 
 # Write FDS file
 sim.write('room_fire.fds')
@@ -34,7 +35,7 @@ sim.write('room_fire.fds')
 - Basic simulation setup
 - Simple mesh definition
 - Fire surface creation
-- Temperature measurement
+- Temperature measurement with Point3D coordinates
 
 **Expected Results:**
 - Peak ceiling temperature: ~300-400°C

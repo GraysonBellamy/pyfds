@@ -6,8 +6,9 @@ Initial conditions for temperature, density, and species.
 
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists.base import NamelistBase
 
 
@@ -22,7 +23,7 @@ class Init(NamelistBase):
     ----------
     xb : tuple[float, float, float, float, float, float], optional
         Region bounds (xmin, xmax, ymin, ymax, zmin, zmax)
-    xyz : tuple[float, float, float], optional
+    xyz : Point3D, optional
         Point location (x, y, z)
     temperature : float, optional
         Initial temperature [°C]
@@ -49,12 +50,19 @@ class Init(NamelistBase):
     xb: tuple[float, float, float, float, float, float] | None = Field(
         None, description="Region bounds"
     )
-    xyz: tuple[float, float, float] | None = Field(None, description="Point location")
+    xyz: Point3D | None = Field(None, description="Point location")
     temperature: float | None = Field(None, description="Temperature [°C]")
     density: float | None = Field(None, gt=0, description="Density [kg/m³]")
     mass_fraction: list[float] | None = Field(None, description="Mass fractions")
     volume_fraction: list[float] | None = Field(None, description="Volume fractions")
     spec_id: list[str] | None = Field(None, description="Species IDs")
+
+    @field_validator("xyz", mode="before")
+    @classmethod
+    def validate_xyz(cls, v: Any) -> Any:
+        if isinstance(v, tuple):
+            return Point3D.from_tuple(v)
+        return v
 
     @model_validator(mode="after")
     def validate_init(self) -> "Init":
@@ -81,7 +89,7 @@ class Init(NamelistBase):
         if self.xb:
             params["xb"] = self.xb
         if self.xyz:
-            params["xyz"] = self.xyz
+            params["xyz"] = self.xyz.as_tuple()
         if self.temperature is not None:
             params["temperature"] = self.temperature
         if self.density is not None:

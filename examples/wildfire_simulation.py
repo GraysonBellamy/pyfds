@@ -10,6 +10,7 @@ This example demonstrates:
 """
 
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import TurbulenceModel
 
 # Create simulation
@@ -58,13 +59,13 @@ sim.vent(mb="ZMAX", surf_id="OPEN", id="TOP_OPEN")
 # Temperature grid at 2m height
 for x in [25, 50, 75]:
     for y in [25, 50, 75]:
-        sim.device(id=f"TEMP_X{x}_Y{y}", quantity="TEMPERATURE", xyz=(x, y, 2))
+        sim.device(id=f"TEMP_X{x}_Y{y}", quantity="TEMPERATURE", xyz=Point3D(x, y, 2))
 
 # Heat release rate
-sim.device(id="HRR", quantity="HRR", xyz=(50, 50, 2))
+sim.device(id="HRR", quantity="HRR", xyz=Point3D(50, 50, 2))
 
 # Wind velocity
-sim.device(id="WIND_VEL", quantity="VELOCITY", xyz=(50, 50, 5))
+sim.device(id="WIND_VEL", quantity="VELOCITY", xyz=Point3D(50, 50, 5))
 
 # Generate FDS file
 output_file = sim.write("wildfire.fds")
