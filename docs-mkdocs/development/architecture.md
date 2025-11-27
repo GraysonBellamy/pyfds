@@ -28,9 +28,17 @@ graph TB
 pyfds/
 ├── src/pyfds/           # Source code
 │   ├── core/            # Core simulation classes
-│   │   ├── namelists/   # FDS namelist implementations (modular)
-│   │   ├── simulation.py
-│   │   └── validator.py
+│   │   ├── managers/    # Specialized manager classes
+│   │   │   ├── geometry.py     # GeometryManager (meshes, obstructions, vents)
+│   │   │   ├── material.py     # MaterialManager (materials, surfaces)
+│   │   │   ├── ramp.py         # RampManager (time-varying functions)
+│   │   │   ├── physics.py      # PhysicsManager (reactions, misc)
+│   │   │   ├── instrumentation.py  # InstrumentationManager (devices, props)
+│   │   │   ├── control.py      # ControlManager (controls, initial conditions)
+│   │   │   └── output.py       # OutputManager (FDS file generation)
+│   │   ├── namelists/   # FDS namelist implementations
+│   │   ├── simulation.py    # Simulation orchestrator
+│   │   └── validator.py     # Validation logic
 │   ├── execution/       # Running and monitoring
 │   ├── analysis/        # Results processing
 │   ├── builders/        # High-level builders
@@ -46,39 +54,61 @@ pyfds/
 
 ### Simulation Class
 
-Central orchestration class for building FDS files.
+Central orchestration class for building FDS files using specialized managers.
 
 **Location**: `src/pyfds/core/simulation.py`
 
 **Responsibilities**:
 
-- Store simulation configuration
+- Coordinate specialized managers for different simulation aspects
 - Provide fluent API for namelist creation
-- Validate configuration
-- Write FDS files
+- Delegate to managers for storage and validation
+- Write FDS files via OutputManager
 - Coordinate execution
 
-**Design Pattern**: Builder pattern with method chaining
+**Design Pattern**: Facade pattern with manager delegation + Builder pattern for fluent API
 
 ```python
 class Simulation:
     """Main class for building FDS simulations."""
 
-    def __init__(self, chid: str):
-        self.chid = chid
-        self._namelists: list[Namelist] = []
+    def __init__(self, chid: str, title: str | None = None):
+        self.head = Head(chid=chid, title=title)
+
+        # Initialize specialized managers
+        self._geometry = GeometryManager()        # Meshes, obstructions, vents
+        self._material_mgr = MaterialManager()    # Materials, surfaces
+        self._ramps = RampManager()               # Time-varying functions
+        self._physics = PhysicsManager()          # Reactions, misc params
+        self._instrumentation = InstrumentationManager()  # Devices, props
+        self._controls = ControlManager()         # Controls, initial conditions
 
     def mesh(self, **kwargs) -> "Simulation":
-        """Add MESH namelist."""
+        """Add MESH namelist (delegates to GeometryManager)."""
         mesh = Mesh(**kwargs)
-        self._namelists.append(mesh)
+        self._geometry.add_mesh(mesh)
         return self  # Enable chaining
 
+    # Access managers directly for advanced usage
+    @property
+    def geometry(self) -> GeometryManager:
+        """Access geometry manager."""
+        return self._geometry
+
+    @property
+    def ramps(self) -> RampManager:
+        """Access ramp manager."""
+        return self._ramps
+
     def write(self, path: str) -> None:
-        """Write to FDS file."""
+        """Write to FDS file via OutputManager."""
         self.validate()
-        writer = FDSWriter()
-        writer.write(self, path)
+        output = OutputManager(
+            self._geometry, self._material_mgr, self._physics,
+            self._instrumentation, self._controls, self._ramps,
+            self.head, self.time_params
+        )
+        output.write(path, output.to_fds())
 ```
 
 ### Namelist Hierarchy
@@ -127,6 +157,95 @@ class Mesh(NamelistBase):
 - `misc.py` - MISC namelist (miscellaneous parameters)
 
 **Design Pattern**: Template method pattern with Pydantic validation
+
+### Manager Architecture
+
+**Location**: `src/pyfds/core/managers/`
+
+Simulation logic is organized into specialized managers following the **Single Responsibility Principle**:
+
+```python
+# Base manager class
+class BaseManager:
+    """Base class for all managers."""
+
+    def validate(self) -> list[str]:
+        """Validate manager state."""
+        raise NotImplementedError
+
+# Specialized managers
+class GeometryManager(BaseManager):
+    """Manages meshes, obstructions, and vents."""
+
+    def __init__(self):
+        self._meshes: list[Mesh] = []
+        self._obstructions: list[Obstruction] = []
+        self._vents: list[Vent] = []
+
+    @property
+    def meshes(self) -> list[Mesh]:
+        return self._meshes
+
+    def add_mesh(self, mesh: Mesh) -> None:
+        self._meshes.append(mesh)
+
+    def validate(self) -> list[str]:
+        """Check mesh aspect ratios, etc."""
+        warnings = []
+        for mesh in self._meshes:
+            # Validation logic
+            ...
+        return warnings
+
+class MaterialManager(BaseManager):
+    """Manages materials and surfaces."""
+    # Materials, surfaces
+
+class RampManager(BaseManager):
+    """Manages time-varying and property-varying ramps."""
+    # RAMPs are cross-cutting: used by materials, surfaces, vents, controls
+
+class PhysicsManager(BaseManager):
+    """Manages reactions and misc parameters."""
+
+class InstrumentationManager(BaseManager):
+    """Manages devices and props."""
+
+class ControlManager(BaseManager):
+    """Manages controls and initial conditions."""
+
+class OutputManager(BaseManager):
+    """Generates FDS input files from all managers."""
+
+    def to_fds(self) -> str:
+        """Generate complete FDS file content."""
+        # Combines all manager data in proper FDS order
+```
+
+**Manager Benefits**:
+
+- **Separation of Concerns**: Each manager handles one domain
+- **Easier Testing**: Test managers in isolation
+- **Better Validation**: Manager-specific validation logic
+- **Cleaner API**: Access via `sim.geometry.meshes` or `sim.ramps.ramps`
+- **Scalability**: Easy to add new managers for new FDS features
+
+**API Patterns**:
+
+```python
+# Convenience methods (delegated to managers)
+sim.mesh(...)        # Delegates to geometry manager
+sim.add_ramp(...)    # Delegates to ramp manager
+
+# Direct manager access (advanced usage)
+sim.geometry.meshes           # List of all meshes
+sim.ramps.ramps              # List of all ramps
+sim.material_mgr.surfaces    # List of all surfaces
+
+# Manager validation
+warnings = sim.geometry.validate()  # Geometry-specific checks
+warnings = sim.ramps.validate()     # Check for duplicate RAMP IDs
+```
 
 ### Validation System
 
@@ -233,7 +352,7 @@ class MeshResolutionRule:
 
     def check(self, sim: Simulation) -> list[str]:
         errors = []
-        for mesh in sim.meshes:
+        for mesh in sim.geometry.meshes:
             if self._is_too_coarse(mesh):
                 errors.append(f"Mesh {mesh.id} too coarse")
         return errors

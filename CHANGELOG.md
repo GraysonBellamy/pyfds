@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Manager-based architecture** following Single Responsibility Principle
+  - GeometryManager for meshes, obstructions, and vents
+  - MaterialManager for materials and surfaces
+  - RampManager for time-varying functions (NEW dedicated manager)
+  - PhysicsManager for reactions and misc parameters
+  - InstrumentationManager for devices and props
+  - ControlManager for controls and initial conditions
+  - OutputManager for FDS file generation
+- Dedicated RampManager separating RAMPs from MaterialManager
+- Manager-specific validation methods
+- Comprehensive manager test suite (42+ tests)
+- Manager architecture documentation
+- Migration guide for manager API
 - Pre-commit hooks configuration for automated code quality checks
 - MyPy strict type checking configuration
 - Ruff linting and formatting configuration
@@ -16,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved type annotations throughout codebase
 
 ### Changed
+- **BREAKING**: Refactored Simulation class to use manager delegation
+  - `sim.meshes` → `sim.geometry.meshes`
+  - `sim.surfaces` → `sim.material_mgr.surfaces`
+  - `sim.devices` → `sim.instrumentation.devices`
+  - `sim.obstructions` → `sim.geometry.obstructions`
+  - `sim.vents` → `sim.geometry.vents`
+  - `sim.ramps` → `sim.ramps.ramps` (moved to RampManager)
+  - Convenience methods (mesh(), surface(), etc.) still work unchanged
+- Moved RAMPs from MaterialManager to dedicated RampManager
+- Updated all examples to use new manager API
+- Updated all tests to use new manager API
+- Updated all documentation to reflect manager architecture
 - Replaced Black and Pylint with Ruff for faster linting and formatting
 - Updated code style to use combined `if` statements where appropriate
 - Improved code formatting and consistency across all modules

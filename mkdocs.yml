@@ -263,6 +263,7 @@ nav:
     - development/index.md
     - Contributing: development/contributing.md
     - Architecture: development/architecture.md
+    - Manager System: development/managers.md
     - Testing: development/testing.md
     - Release Process: development/releases.md
 

@@ -17,10 +17,11 @@ PyFDS transforms the traditional FDS workflow by providing a Pythonic API for:
 ## Features
 
 - **Intuitive API** - Create FDS simulations with clean, readable Python code
+- **Manager-Based Architecture** - Organized into specialized managers (Geometry, Material, Physics, etc.)
 - **Automatic Validation** - Catch errors before running simulations
 - **Type Safety** - Full type hints for IDE support and error prevention
 - **Method Chaining** - Fluid interface for building simulations
-- **Comprehensive Testing** - 62 tests with >90% coverage
+- **Comprehensive Testing** - 42+ tests with high coverage
 - **Well Documented** - Extensive docstrings and examples
 
 ## Installation
@@ -235,17 +236,42 @@ if warnings:
 ### Core Classes
 
 #### Simulation
-Main class for building FDS simulations.
+Main orchestrator class for building FDS simulations using specialized managers.
 
-**Methods:**
+**Manager Properties:**
+- `geometry` - GeometryManager (meshes, obstructions, vents)
+- `material_mgr` - MaterialManager (materials, surfaces)
+- `ramps` - RampManager (time-varying functions)
+- `physics` - PhysicsManager (reactions, misc parameters)
+- `instrumentation` - InstrumentationManager (devices, props)
+- `controls` - ControlManager (controls, initial conditions)
+
+**Convenience Methods:**
 - `time(t_end, t_begin=None, dt=None)` - Set time parameters
 - `mesh(ijk, xb, id=None)` - Add computational mesh
 - `surface(id, **kwargs)` - Define surface properties
 - `obstruction(xb, surf_id=None, **kwargs)` - Add obstruction
 - `device(id, quantity, xyz=None, xb=None)` - Add measurement device
+- `add_ramp(ramp)` - Add time-varying function
 - `validate()` - Validate simulation configuration
 - `write(filename)` - Write FDS input file
 - `to_fds()` - Generate FDS file content
+
+**Manager Access Examples:**
+```python
+# Access components via managers
+num_meshes = len(sim.geometry.meshes)
+num_surfaces = len(sim.material_mgr.surfaces)
+num_ramps = len(sim.ramps.ramps)
+num_devices = len(sim.instrumentation.devices)
+
+# Iterate over components
+for mesh in sim.geometry.meshes:
+    print(f"Mesh: {mesh.ijk}")
+
+for ramp in sim.ramps.ramps:
+    print(f"Ramp {ramp.id}: {len(ramp.points)} points")
+```
 
 #### Namelist Classes
 

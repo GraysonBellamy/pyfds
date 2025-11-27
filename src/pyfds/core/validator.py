@@ -86,12 +86,13 @@ class Validator:
         if simulation.time_params:
             self._validate_time(simulation.time_params)
 
-        for mesh in simulation.meshes:
+        # Validate meshes
+        for mesh in simulation.geometry.meshes:
             self._validate_mesh(mesh)
 
         # Cross-reference validation
         self._validate_surface_references(simulation)
-        self._validate_device_ids(simulation)
+        self._check_duplicate_ids(simulation)
 
         # Mesh quality checks
         self._check_mesh_quality(simulation)
@@ -105,7 +106,7 @@ class Validator:
 
     def _check_required_components(self, simulation: "Simulation") -> None:
         """Check for required simulation components."""
-        if not simulation.meshes:
+        if not simulation.geometry.meshes:
             self.errors.append("At least one MESH is required")
 
         if not simulation.time_params:
@@ -166,12 +167,12 @@ class Validator:
     def _validate_surface_references(self, simulation: "Simulation") -> None:
         """Validate that all surface references exist."""
         # Collect all surface IDs (including built-in surfaces)
-        surface_ids = {s.id for s in simulation.surfaces}
+        surface_ids = {s.id for s in simulation.material_mgr.surfaces}
         builtin_surfaces = {"INERT", "OPEN", "MIRROR", "PERIODIC"}
         all_valid_ids = surface_ids | builtin_surfaces
 
         # Check obstruction surface references
-        for i, obst in enumerate(simulation.obstructions):
+        for i, obst in enumerate(simulation.geometry.obstructions):
             for surf_id in [
                 obst.surf_id,
                 obst.surf_id_top,
@@ -181,17 +182,16 @@ class Validator:
                 if surf_id and surf_id not in all_valid_ids:
                     self.errors.append(f"Obstruction {i} references undefined surface '{surf_id}'")
 
-    def _validate_device_ids(self, simulation: "Simulation") -> None:
-        """Validate device IDs are unique."""
-        device_ids = [d.id for d in simulation.devices]
-        duplicates = {id for id in device_ids if device_ids.count(id) > 1}
-
-        if duplicates:
-            self.errors.append(f"Duplicate device IDs found: {', '.join(duplicates)}")
+    def _check_duplicate_ids(self, simulation: "Simulation") -> None:
+        """Check for duplicate IDs in devices, meshes, etc."""
+        device_ids = [d.id for d in simulation.instrumentation.devices]
+        # Report duplicate device IDs if any exist
+        if len(device_ids) != len(set(device_ids)):
+            self.errors.append("Duplicate device IDs found in instrumentation")
 
     def _check_mesh_quality(self, simulation: "Simulation") -> None:
         """Check mesh quality and provide recommendations."""
-        for i, mesh in enumerate(simulation.meshes):
+        for i, mesh in enumerate(simulation.geometry.meshes):
             dx, dy, dz = mesh.get_cell_size()
 
             # Check aspect ratio

@@ -144,7 +144,7 @@ def test_mesh_bounds_validation():
 
     # Valid bounds
     sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
-    assert len(sim.meshes) == 1
+    assert len(sim.geometry.meshes) == 1
 
 def test_reference_validation():
     """Test ID reference validation."""
@@ -224,8 +224,8 @@ def test_read_fds_file(tmp_path):
     sim = reader.read(str(fds_file))
 
     assert sim.chid == 'test'
-    assert len(sim.meshes) == 1
-    assert sim.meshes[0].ijk == (50, 50, 25)
+    assert len(sim.geometry.meshes) == 1
+    assert sim.geometry.meshes[0].ijk == (50, 50, 25)
 
 def test_parse_device_output(tmp_path):
     """Test parsing device CSV output."""
@@ -325,7 +325,7 @@ def test_complex_geometry():
                 surf_id='DESK'
             )
 
-    assert len(sim.obstructions) > 10
+    assert len(sim.geometry.obstructions) > 10
     assert sim.is_valid()
 ```
 

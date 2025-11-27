@@ -352,7 +352,7 @@ class CustomValidator(Validator):
         errors = []
 
         # Check for specific condition
-        if not sim.devices:
+        if not sim.instrumentation.devices:
             errors.append("No devices defined - add measurement points")
 
         return errors
@@ -371,7 +371,7 @@ from pyfds.validation import ValidationRule
 rule = ValidationRule(
     name="mesh_count",
     level="warning",
-    check=lambda sim: len(sim.meshes) > 10,
+    check=lambda sim: len(sim.geometry.meshes) > 10,
     message="More than 10 meshes may impact performance"
 )
 

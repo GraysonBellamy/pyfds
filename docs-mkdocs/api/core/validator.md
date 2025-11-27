@@ -131,7 +131,7 @@ class CustomValidator(Validator):
         errors = []
 
         # Example: require at least one device
-        if not sim.devices:
+        if not sim.instrumentation.devices:
             errors.append("No devices defined")
 
         return errors
@@ -151,7 +151,7 @@ from pyfds.validation import ValidationRule
 rule = ValidationRule(
     name="max_meshes",
     level="warning",
-    check=lambda sim: len(sim.meshes) <= 10,
+    check=lambda sim: len(sim.geometry.meshes) <= 10,
     message="More than 10 meshes may impact performance"
 )
 

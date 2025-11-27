@@ -38,8 +38,8 @@ class TestSimulation:
         result = sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
 
         assert result is sim  # Check method chaining
-        assert len(sim.meshes) == 1
-        assert sim.meshes[0].ijk == (10, 10, 10)
+        assert len(sim.geometry.meshes) == 1
+        assert sim.geometry.meshes[0].ijk == (10, 10, 10)
 
     def test_multiple_meshes(self):
         """Test adding multiple meshes."""
@@ -47,7 +47,7 @@ class TestSimulation:
         sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
         sim.mesh(ijk=(10, 10, 10), xb=(1, 2, 0, 1, 0, 1))
 
-        assert len(sim.meshes) == 2
+        assert len(sim.geometry.meshes) == 2
 
     def test_surface_method(self):
         """Test surface() method."""
@@ -55,8 +55,8 @@ class TestSimulation:
         result = sim.surface(id="FIRE", hrrpua=1000.0, color="RED")
 
         assert result is sim
-        assert len(sim.surfaces) == 1
-        assert sim.surfaces[0].id == "FIRE"
+        assert len(sim.material_mgr.surfaces) == 1
+        assert sim.material_mgr.surfaces[0].id == "FIRE"
 
     def test_obstruction_method(self):
         """Test obstruction() method."""
@@ -64,8 +64,8 @@ class TestSimulation:
         result = sim.obstruction(xb=(0, 1, 0, 1, 0, 0.1), surf_id="FIRE")
 
         assert result is sim
-        assert len(sim.obstructions) == 1
-        assert sim.obstructions[0].surf_id == "FIRE"
+        assert len(sim.geometry.obstructions) == 1
+        assert sim.geometry.obstructions[0].surf_id == "FIRE"
 
     def test_device_method_xyz(self):
         """Test device() method with XYZ."""
@@ -73,8 +73,8 @@ class TestSimulation:
         result = sim.device(id="TEMP1", quantity="TEMPERATURE", xyz=(1.0, 1.0, 2.0))
 
         assert result is sim
-        assert len(sim.devices) == 1
-        assert sim.devices[0].id == "TEMP1"
+        assert len(sim.instrumentation.devices) == 1
+        assert sim.instrumentation.devices[0].id == "TEMP1"
 
     def test_device_method_xb(self):
         """Test device() method with XB."""
@@ -82,8 +82,8 @@ class TestSimulation:
         result = sim.device(id="TEMP1", quantity="TEMPERATURE", xb=(0, 1, 0, 1, 0, 1))
 
         assert result is sim
-        assert len(sim.devices) == 1
-        assert sim.devices[0].xb == (0, 1, 0, 1, 0, 1)
+        assert len(sim.instrumentation.devices) == 1
+        assert sim.instrumentation.devices[0].xb == (0, 1, 0, 1, 0, 1)
 
     def test_device_method_validation(self):
         """Test device() method requires either XYZ or XB."""
@@ -224,7 +224,7 @@ class TestSimulation:
         )
 
         assert sim.chid == "test"
-        assert len(sim.meshes) == 1
-        assert len(sim.surfaces) == 1
-        assert len(sim.obstructions) == 1
-        assert len(sim.devices) == 1
+        assert len(sim.geometry.meshes) == 1
+        assert len(sim.material_mgr.surfaces) == 1
+        assert len(sim.geometry.obstructions) == 1
+        assert len(sim.instrumentation.devices) == 1

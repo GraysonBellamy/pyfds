@@ -183,7 +183,7 @@ print(os.path.exists('simulation_hrr.csv'))
 **Solution**: Ensure simulation completed and devices defined
 ```python
 # Check devices were added
-print(f"Number of devices: {len(sim.devices)}")
+print(f"Number of devices: {len(sim.instrumentation.devices)}")
 ```
 
 ## Development Issues

@@ -48,8 +48,8 @@ def blocking_execution_demo():
 
     print("\n📝 Simulation setup complete")
     print(f"   CHID: {sim.chid}")
-    print(f"   Meshes: {len(sim.meshes)}")
-    print(f"   Devices: {len(sim.devices)}")
+    print(f"   Meshes: {len(sim.geometry.meshes)}")
+    print(f"   Devices: {len(sim.instrumentation.devices)}")
 
     # Run simulation (blocks until complete)
     print("\n🚀 Starting simulation (this will block until complete)...")
