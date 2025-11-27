@@ -7,7 +7,7 @@ are syntactically and semantically correct before execution.
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from pyfds.core.namelists import Mesh, Time
@@ -92,6 +92,8 @@ class Validator:
 
         # Cross-reference validation
         self._validate_surface_references(simulation)
+        self._validate_material_references(simulation)
+        self._validate_reaction_yield_conservation(simulation)
         self._check_duplicate_ids(simulation)
 
         # Mesh quality checks
@@ -222,6 +224,85 @@ class Validator:
                         severity="info",
                     )
                 )
+
+    def _validate_material_references(self, simulation: "Simulation") -> None:
+        """Validate all material ID references."""
+        material_ids = {m.id for m in simulation.material_mgr.materials}
+        # TODO: Add species manager to track defined species
+        # For now, skip species validation as species are not centrally managed
+        species_ids: set[str] = set()  # Empty set until species manager is implemented
+
+        for matl in simulation.material_mgr.materials:
+            # Check SPEC_ID references
+            if matl.spec_id:
+                spec_ids = self._flatten_to_list(matl.spec_id)
+                for spec_id in spec_ids:
+                    if spec_id and spec_id not in species_ids:
+                        # Skip validation for now - species not centrally managed
+                        pass
+                        # self.errors.append(f"Material '{matl.id}': SPEC_ID '{spec_id}' not defined")
+
+            # Check residue MATL_ID references
+            if matl.matl_id_products:
+                matl_ids = self._flatten_to_list(matl.matl_id_products)
+                for matl_id in matl_ids:
+                    if matl_id and matl_id not in material_ids:
+                        self.errors.append(
+                            f"Material '{matl.id}': Residue MATL_ID '{matl_id}' not defined"
+                        )
+
+    def _validate_reaction_yield_conservation(self, simulation: "Simulation") -> None:
+        """Validate that reaction yields are physically reasonable."""
+        for matl in simulation.material_mgr.materials:
+            if matl.n_reactions and matl.n_reactions > 0:
+                for j in range(matl.n_reactions):
+                    total_yield = 0.0
+                    # Sum species yields
+                    if matl.nu_spec:
+                        total_yield += sum(self._get_reaction_yields(matl.nu_spec, j))
+                    # Sum material yields
+                    if matl.nu_matl:
+                        total_yield += sum(self._get_reaction_yields(matl.nu_matl, j))
+
+                    if total_yield > 1.01:
+                        self.errors.append(
+                            f"Material '{matl.id}' reaction {j + 1}: "
+                            f"Total yield {total_yield:.2f} > 1.0"
+                        )
+                    elif total_yield < 0.99:
+                        self.warnings.append(
+                            ValidationWarning(
+                                f"Material '{matl.id}' reaction {j + 1}: "
+                                f"Total yield {total_yield:.2f} < 1.0 (mass loss)",
+                                severity="warning",
+                            )
+                        )
+
+    def _flatten_to_list(self, nested_list: Any) -> list:
+        """Flatten nested lists to a single list."""
+        if not isinstance(nested_list, list):
+            return [nested_list] if nested_list else []
+
+        flat = []
+        for item in nested_list:
+            if isinstance(item, list):
+                flat.extend(self._flatten_to_list(item))
+            else:
+                flat.append(item)
+        return flat
+
+    def _get_reaction_yields(self, yield_data: Any, reaction_idx: int) -> list[float]:
+        """Extract yields for a specific reaction from 2D or 1D data."""
+        if not yield_data:
+            return []
+
+        if isinstance(yield_data, list) and reaction_idx < len(yield_data):
+            reaction_yields = yield_data[reaction_idx]
+            if isinstance(reaction_yields, list):
+                return [float(y) for y in reaction_yields if y is not None]
+            if isinstance(reaction_yields, (int, float)):
+                return [float(reaction_yields)]
+        return []
 
     def get_warnings(self) -> list[ValidationWarning]:
         """Get all validation warnings."""

@@ -73,6 +73,9 @@ class NamelistBase(BaseModel, ABC):
             FDS-formatted string representation
         """
         if isinstance(value, str):
+            # Don't add quotes if already quoted
+            if value.startswith("'") and value.endswith("'"):
+                return value
             return f"'{value}'"
         if isinstance(value, bool):
             return ".TRUE." if value else ".FALSE."

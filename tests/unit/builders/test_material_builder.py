@@ -69,7 +69,8 @@ class TestMaterialBuilder:
         assert mat.a == [1e10]
         assert mat.e == [80000]
         assert mat.heat_of_reaction == [1000]
-        assert mat.nu_spec == ["FUEL_VAPOR"]
+        assert mat.spec_id == ["FUEL_VAPOR"]
+        assert mat.nu_spec == [1.0]
 
     def test_pyrolysis_multi_reaction(self):
         """Test material with multiple pyrolysis reactions."""
@@ -88,8 +89,10 @@ class TestMaterialBuilder:
         assert mat.n_reactions == 2
         assert len(mat.a) == 2
         assert len(mat.e) == 2
-        assert mat.nu_spec == ["VAPOR_1", ""]  # None values replaced with empty strings
-        assert mat.nu_matl == ["", "CHAR"]  # None values replaced with empty strings
+        assert mat.spec_id == ["VAPOR_1", ""]  # None values replaced with empty strings
+        assert mat.nu_spec == [1.0, 0.0]  # Default yields for species, 0.0 for no species
+        assert mat.matl_id_products == ["", "CHAR"]  # None values replaced with empty strings
+        assert mat.nu_matl == [0.0, 1.0]  # Default yields for residue materials, 0.0 for no residue
 
     def test_missing_density_error(self):
         """Test error when density not specified."""

@@ -209,6 +209,10 @@ nav:
     - Control Logic: guide/controls.md
     - Initial Conditions: guide/initial-conditions.md
     - Combustion: guide/combustion.md
+    - Pyrolysis Modeling: guide/pyrolysis.md
+    - Liquid Fuels: guide/liquid_fuels.md
+    - Burn-Away Modeling: guide/burn_away.md
+    - Advanced Chemistry: guide/combustion_chemistry.md
     - Global Settings: guide/global-settings.md
 
   - Execution & Analysis:

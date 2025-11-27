@@ -26,6 +26,12 @@ class Obstruction(NamelistBase):
         Surface IDs for individual faces (e.g., {'top': 'FIRE', 'sides': 'WALL'})
     color : str, optional
         Named color
+    bulk_density : float, optional
+        Combustible mass per unit volume [kg/m³]
+    surf_id_interior : str, optional
+        Surface ID for newly exposed surfaces during burn-away
+    burn_away : bool, optional
+        Allow obstruction to burn away (default: False)
 
     Examples
     --------
@@ -41,6 +47,13 @@ class Obstruction(NamelistBase):
     surf_id_bottom: str | None = Field(None, description="Bottom surface ID")
     surf_id_sides: str | None = Field(None, description="Side surfaces ID")
     color: str | None = Field(None, description="Named color")
+    bulk_density: float | None = Field(
+        None, gt=0, description="Combustible mass per unit volume [kg/m³]"
+    )
+    surf_id_interior: str | None = Field(
+        None, description="Surface ID for newly exposed surfaces during burn-away"
+    )
+    burn_away: bool = Field(False, description="Allow obstruction to burn away")
 
     @field_validator("xb", mode="before")
     @classmethod
@@ -65,4 +78,10 @@ class Obstruction(NamelistBase):
             params["surf_id_sides"] = self.surf_id_sides
         if self.color:
             params["color"] = self.color
+        if self.bulk_density is not None:
+            params["bulk_density"] = self.bulk_density
+        if self.surf_id_interior:
+            params["surf_id_interior"] = self.surf_id_interior
+        if self.burn_away:
+            params["burn_away"] = self.burn_away
         return self._build_namelist("OBST", params)

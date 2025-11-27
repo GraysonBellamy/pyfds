@@ -40,6 +40,38 @@ class Reaction(NamelistBase):
         Fraction of energy radiated, default: 0.35
     auto_ignition_temperature : float, optional
         Auto-ignition temperature [°C]
+    id : str, optional
+        Reaction identifier
+    hcn_yield : float, optional
+        HCN yield [kg/kg fuel], default: 0.0
+    epumo2 : float, optional
+        Energy per unit mass of O2 consumed [kJ/kg]
+    hoc_complete : float, optional
+        Complete heat of combustion [kJ/kg]
+    n_simple_chemistry_reactions : int, optional
+        Number of simple chemistry reactions (1 or 2), default: 1
+    fuel_c_to_co_fraction : float, optional
+        Fraction of fuel carbon converted to CO, default: 0.0
+    fuel_n_to_hcn_fraction : float, optional
+        Fraction of fuel nitrogen converted to HCN, default: 0.0
+    fuel_h_to_h2_fraction : float, optional
+        Fraction of fuel hydrogen converted to H2, default: 0.0
+    check_atom_balance : bool, optional
+        Check atom balance in reaction, default: True
+    reac_atom_error : float, optional
+        Atom balance error tolerance, default: 1e-4
+    reac_mass_error : float, optional
+        Mass balance error tolerance, default: 1e-4
+    lower_oxygen_limit : float, optional
+        Lower oxygen index for extinction, default: 0.0
+    ait_exclusion_zone : tuple[float, ...], optional
+        XB bounds for auto-ignition exclusion zone
+    ait_exclusion_zone_temperature : float, optional
+        Temperature above which ignition is allowed [°C]
+    ait_exclusion_zone_devc_id : str, optional
+        Device to control exclusion zone
+    ait_exclusion_zone_ctrl_id : str, optional
+        Control logic for exclusion zone
 
     Examples
     --------
@@ -48,6 +80,14 @@ class Reaction(NamelistBase):
 
     >>> # Custom fuel composition
     >>> reac = Reaction(c=7, h=16, heat_of_combustion=44600, soot_yield=0.015)
+
+    >>> # Two-step chemistry with CO production
+    >>> reac = Reaction(
+    ...     fuel='WOOD',
+    ...     n_simple_chemistry_reactions=2,
+    ...     fuel_c_to_co_fraction=0.1,
+    ...     hcn_yield=0.001
+    ... )
 
     Notes
     -----
@@ -65,6 +105,60 @@ class Reaction(NamelistBase):
     co_yield: float = Field(0.0, ge=0, le=1, description="CO yield")
     radiative_fraction: float | None = Field(None, ge=0, le=1, description="Radiative fraction")
     auto_ignition_temperature: float | None = Field(None, description="Auto-ignition temp [°C]")
+
+    # Reaction identification (Phase 3)
+    id: str | None = Field(None, description="Reaction identifier")
+
+    # Product yields (Phase 3)
+    hcn_yield: float = Field(0.0, ge=0, le=1, description="HCN yield [kg/kg fuel]")
+
+    # Energy parameters (Phase 3)
+    epumo2: float | None = Field(
+        None, gt=0, description="Energy per unit mass of O2 consumed [kJ/kg]"
+    )
+    hoc_complete: float | None = Field(
+        None, gt=0, description="Complete heat of combustion [kJ/kg]"
+    )
+
+    # Two-step chemistry (Phase 3)
+    n_simple_chemistry_reactions: int = Field(
+        1, ge=1, le=2, description="Number of simple chemistry reactions (1 or 2)"
+    )
+
+    # Product fractions for incomplete combustion (Phase 3)
+    fuel_c_to_co_fraction: float = Field(
+        0.0, ge=0, le=1, description="Fraction of fuel carbon converted to CO"
+    )
+    fuel_n_to_hcn_fraction: float = Field(
+        0.0, ge=0, le=1, description="Fraction of fuel nitrogen converted to HCN"
+    )
+    fuel_h_to_h2_fraction: float = Field(
+        0.0, ge=0, le=1, description="Fraction of fuel hydrogen converted to H2"
+    )
+
+    # Validation options (Phase 3)
+    check_atom_balance: bool = Field(True, description="Check atom balance in reaction")
+    reac_atom_error: float = Field(1e-4, gt=0, description="Atom balance error tolerance")
+    reac_mass_error: float = Field(1e-4, gt=0, description="Mass balance error tolerance")
+
+    # Oxygen limit (Phase 3)
+    lower_oxygen_limit: float = Field(
+        0.0, ge=0, le=1, description="Lower oxygen index for extinction"
+    )
+
+    # Auto-ignition exclusion zones (Phase 3)
+    ait_exclusion_zone: tuple[float, ...] | None = Field(
+        None, description="XB bounds for auto-ignition exclusion zone"
+    )
+    ait_exclusion_zone_temperature: float | None = Field(
+        None, description="Temperature above which ignition is allowed [°C]"
+    )
+    ait_exclusion_zone_devc_id: str | None = Field(
+        None, description="Device to control exclusion zone"
+    )
+    ait_exclusion_zone_ctrl_id: str | None = Field(
+        None, description="Control logic for exclusion zone"
+    )
 
     # Extinction Parameters (Stage 1.3)
     extinction_model: str | None = Field(
@@ -104,14 +198,18 @@ class Reaction(NamelistBase):
     @model_validator(mode="after")
     def validate_reaction(self) -> "Reaction":
         """Validate reaction parameters."""
-        # Check yields sum
-        total_yield = self.soot_yield + self.co_yield
+        # Check yields sum (include new HCN yield)
+        total_yield = self.soot_yield + self.co_yield + self.hcn_yield
         if total_yield > 1.0:
             raise ValueError(f"Sum of product yields ({total_yield:.2f}) exceeds 1.0")
 
         # Validate species stoichiometry
         if len(self.spec_id_nu) != len(self.nu):
             raise ValueError("SPEC_ID_NU and NU must have same length")
+
+        # Validate auto-ignition exclusion zone
+        if self.ait_exclusion_zone is not None and len(self.ait_exclusion_zone) != 6:
+            raise ValueError("AIT_EXCLUSION_ZONE must have exactly 6 values (XB bounds)")
 
         return self
 
@@ -140,34 +238,52 @@ class Reaction(NamelistBase):
         if self.auto_ignition_temperature is not None:
             params["auto_ignition_temperature"] = self.auto_ignition_temperature
 
-        # Extinction Parameters
-        if self.extinction_model:
+        # Extinction and suppression parameters
+        if self.extinction_model is not None:
             params["extinction_model"] = self.extinction_model
         if self.critical_flame_temperature is not None:
             params["critical_flame_temperature"] = self.critical_flame_temperature
-
-        # Suppression Parameters
         if self.suppression:
             params["suppression"] = self.suppression
         if self.k_suppression is not None:
             params["k_suppression"] = self.k_suppression
-
-        # Heat of Combustion Mode
-        if not self.ideal:  # Only output if False (default is True)
+        if not self.ideal:
             params["ideal"] = self.ideal
 
-        # Species Tracking
-        if self.spec_id_nu:
-            params["spec_id_nu"] = self.spec_id_nu
-        if self.nu:
-            params["nu"] = self.nu
+        # New Phase 3 parameters
+        if self.id is not None:
+            params["id"] = self.id
+        if self.hcn_yield > 0:
+            params["hcn_yield"] = self.hcn_yield
+        if self.epumo2 is not None:
+            params["epumo2"] = self.epumo2
+        if self.hoc_complete is not None:
+            params["hoc_complete"] = self.hoc_complete
+        if self.n_simple_chemistry_reactions != 1:
+            params["n_simple_chemistry_reactions"] = self.n_simple_chemistry_reactions
+        if self.fuel_c_to_co_fraction > 0:
+            params["fuel_c_to_co_fraction"] = self.fuel_c_to_co_fraction
+        if self.fuel_n_to_hcn_fraction > 0:
+            params["fuel_n_to_hcn_fraction"] = self.fuel_n_to_hcn_fraction
+        if self.fuel_h_to_h2_fraction > 0:
+            params["fuel_h_to_h2_fraction"] = self.fuel_h_to_h2_fraction
+        if not self.check_atom_balance:
+            params["check_atom_balance"] = self.check_atom_balance
+        if self.reac_atom_error != 1e-4:
+            params["reac_atom_error"] = self.reac_atom_error
+        if self.reac_mass_error != 1e-4:
+            params["reac_mass_error"] = self.reac_mass_error
+        if self.lower_oxygen_limit > 0:
+            params["lower_oxygen_limit"] = self.lower_oxygen_limit
 
-        # Advanced Parameters
-        if self.fixed_mix_time is not None:
-            params["fixed_mix_time"] = self.fixed_mix_time
-        if self.tau_chem is not None:
-            params["tau_chem"] = self.tau_chem
-        if self.tau_flame is not None:
-            params["tau_flame"] = self.tau_flame
+        # Auto-ignition exclusion zone parameters
+        if self.ait_exclusion_zone is not None:
+            params["ait_exclusion_zone"] = list(self.ait_exclusion_zone)
+        if self.ait_exclusion_zone_temperature is not None:
+            params["ait_exclusion_zone_temperature"] = self.ait_exclusion_zone_temperature
+        if self.ait_exclusion_zone_devc_id is not None:
+            params["ait_exclusion_zone_devc_id"] = self.ait_exclusion_zone_devc_id
+        if self.ait_exclusion_zone_ctrl_id is not None:
+            params["ait_exclusion_zone_ctrl_id"] = self.ait_exclusion_zone_ctrl_id
 
         return self._build_namelist("REAC", params)

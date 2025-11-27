@@ -415,7 +415,7 @@ class MaterialBuilder(Builder[Material]):
         if self._spec_id is not None:
             params["spec_id"] = self._spec_id
         if self._yield_fraction is not None:
-            params["yield_fraction"] = self._yield_fraction
+            params["nu_spec"] = self._yield_fraction
         if self._heat_of_combustion is not None:
             params["heat_of_combustion"] = self._heat_of_combustion
         if self._reference_rate is not None:
@@ -430,16 +430,20 @@ class MaterialBuilder(Builder[Material]):
             params["n_s"] = [r["reaction_order"] for r in self._reactions]
 
             # Species and materials (filter out None values)
-            nu_spec = [r.get("product_species") for r in self._reactions]
-            nu_matl = [r.get("residue_material") for r in self._reactions]
+            spec_ids = [r.get("product_species") for r in self._reactions]
+            matl_ids = [r.get("residue_material") for r in self._reactions]
 
             # Only include if there are non-None values
-            if any(s is not None for s in nu_spec):
-                # Replace None with empty string for FDS compatibility
-                params["nu_spec"] = [s if s is not None else "" for s in nu_spec]
-            if any(m is not None for m in nu_matl):
-                # Replace None with empty string for FDS compatibility
-                params["nu_matl"] = [m if m is not None else "" for m in nu_matl]
+            if any(s is not None for s in spec_ids):
+                # Set species IDs
+                params["spec_id"] = [s if s is not None else "" for s in spec_ids]
+                # Set default yields of 1.0 for each species
+                params["nu_spec"] = [1.0 if s is not None else 0.0 for s in spec_ids]
+            if any(m is not None for m in matl_ids):
+                # Set residue material IDs
+                params["matl_id"] = [m if m is not None else "" for m in matl_ids]
+                # Set default yields of 1.0 for each residue material
+                params["nu_matl"] = [1.0 if m is not None else 0.0 for m in matl_ids]
 
         material = Material(**params)
         self._mark_built()

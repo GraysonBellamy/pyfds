@@ -169,8 +169,8 @@ class TestPyrolysisMaterialSystems:
         assert pmma.id == "PMMA"
         assert pmma.density == 1200
         assert pmma.spec_id == "MMA_VAPOR"
-        assert pmma.yield_fraction == 1.0
-        assert pmma.heat_of_combustion == 25000
+        assert pmma.nu_spec == 1.0
+        assert pmma.heat_of_combustion_array == 25000
 
         fds_output = pmma.to_fds()
         assert "PMMA" in fds_output
@@ -195,8 +195,10 @@ class TestPyrolysisMaterialSystems:
         assert wood.n_reactions == 2
         assert wood.a == [1e10, 5e8]
         assert wood.e == [100000, 120000]
-        assert wood.nu_spec == ["WOOD_VAPOR", ""]
-        assert wood.nu_matl == ["", "CHAR"]
+        assert wood.spec_id == ["WOOD_VAPOR", ""]
+        assert wood.nu_spec == [1.0, 0.0]
+        assert wood.matl_id_products == ["", "CHAR"]
+        assert wood.nu_matl == [0.0, 1.0]
 
         fds_output = wood.to_fds()
         assert "WOOD" in fds_output
@@ -427,7 +429,8 @@ class TestComplexFireSuppressionScenario:
         # Verify linkage between components
         assert fire_surf.part_id == smoke.id
         assert sprinkler_surf.part_id == water.id
-        assert wood_material.nu_spec == ["WOOD_VAPOR"]
+        assert wood_material.spec_id == ["WOOD_VAPOR"]
+        assert wood_material.nu_spec == [1.0]
 
         # Verify FDS output generation
         assert all(

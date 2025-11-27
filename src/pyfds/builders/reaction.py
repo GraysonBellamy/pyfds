@@ -84,6 +84,23 @@ class ReactionBuilder(Builder[Reaction]):
         self._fixed_mix_time: float | None = None
         self._tau_chem: float | None = None
         self._tau_flame: float | None = None
+        # Phase 3 parameters
+        self._id: str | None = None
+        self._hcn_yield: float = 0.0
+        self._epumo2: float | None = None
+        self._hoc_complete: float | None = None
+        self._n_simple_chemistry_reactions: int = 1
+        self._fuel_c_to_co_fraction: float = 0.0
+        self._fuel_n_to_hcn_fraction: float = 0.0
+        self._fuel_h_to_h2_fraction: float = 0.0
+        self._check_atom_balance: bool = True
+        self._reac_atom_error: float = 1e-4
+        self._reac_mass_error: float = 1e-4
+        self._lower_oxygen_limit: float = 0.0
+        self._ait_exclusion_zone: tuple[float, ...] | None = None
+        self._ait_exclusion_zone_temperature: float | None = None
+        self._ait_exclusion_zone_devc_id: str | None = None
+        self._ait_exclusion_zone_ctrl_id: str | None = None
 
     def fuel(self, name: str) -> "ReactionBuilder":
         """
@@ -409,6 +426,214 @@ class ReactionBuilder(Builder[Reaction]):
         self._ideal = False
         return self
 
+    # Phase 3 methods
+    def reaction_id(self, id: str) -> "ReactionBuilder":
+        """
+        Set reaction identifier.
+
+        Parameters
+        ----------
+        id : str
+            Reaction identifier
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+        """
+        self._id = id
+        return self
+
+    def hcn_yield(self, value: float) -> "ReactionBuilder":
+        """
+        Set HCN yield.
+
+        Parameters
+        ----------
+        value : float
+            HCN yield in kg HCN per kg fuel, range [0, 1]
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+        """
+        self._hcn_yield = value
+        return self
+
+    def energy_per_o2(self, epumo2: float) -> "ReactionBuilder":
+        """
+        Set energy per unit mass of O2 consumed.
+
+        Parameters
+        ----------
+        epumo2 : float
+            Energy per unit mass of O2 [kJ/kg]
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+        """
+        self._epumo2 = epumo2
+        return self
+
+    def complete_heat_of_combustion(self, hoc_complete: float) -> "ReactionBuilder":
+        """
+        Set complete heat of combustion.
+
+        Parameters
+        ----------
+        hoc_complete : float
+            Complete heat of combustion [kJ/kg]
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+        """
+        self._hoc_complete = hoc_complete
+        return self
+
+    def with_two_step_chemistry(
+        self, co_fraction: float = 0.1, hcn_fraction: float = 0.0, h2_fraction: float = 0.0
+    ) -> "ReactionBuilder":
+        """
+        Enable two-step chemistry model.
+
+        Parameters
+        ----------
+        co_fraction : float, optional
+            Fraction of fuel carbon converted to CO, default: 0.1
+        hcn_fraction : float, optional
+            Fraction of fuel nitrogen converted to HCN, default: 0.0
+        h2_fraction : float, optional
+            Fraction of fuel hydrogen converted to H2, default: 0.0
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = ReactionBuilder() \\
+        ...     .fuel('WOOD') \\
+        ...     .with_two_step_chemistry(co_fraction=0.15, hcn_fraction=0.001) \\
+        ...     .build()
+        """
+        self._n_simple_chemistry_reactions = 2
+        self._fuel_c_to_co_fraction = co_fraction
+        self._fuel_n_to_hcn_fraction = hcn_fraction
+        self._fuel_h_to_h2_fraction = h2_fraction
+        return self
+
+    def yields_all(
+        self, soot: float = 0.01, co: float = 0.0, hcn: float = 0.0
+    ) -> "ReactionBuilder":
+        """
+        Set all product yields.
+
+        Parameters
+        ----------
+        soot : float, optional
+            Soot yield, default: 0.01
+        co : float, optional
+            CO yield, default: 0.0
+        hcn : float, optional
+            HCN yield, default: 0.0
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = ReactionBuilder() \\
+        ...     .fuel('POLYURETHANE') \\
+        ...     .yields_all(soot=0.10, co=0.02, hcn=0.001) \\
+        ...     .build()
+        """
+        self._soot_yield = soot
+        self._co_yield = co
+        self._hcn_yield = hcn
+        return self
+
+    def with_extinction_limit(self, lower_o2: float) -> "ReactionBuilder":
+        """
+        Set lower oxygen limit for extinction.
+
+        Parameters
+        ----------
+        lower_o2 : float
+            Lower oxygen index for extinction, range [0, 1]
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+        """
+        self._lower_oxygen_limit = lower_o2
+        return self
+
+    def with_auto_ignition_exclusion(
+        self,
+        zone_bounds: tuple[float, ...],
+        temperature: float | None = None,
+        device_id: str | None = None,
+        control_id: str | None = None,
+    ) -> "ReactionBuilder":
+        """
+        Configure auto-ignition exclusion zone.
+
+        Parameters
+        ----------
+        zone_bounds : tuple[float, ...]
+            XB bounds for exclusion zone (6 values)
+        temperature : float, optional
+            Temperature above which ignition is allowed [°C]
+        device_id : str, optional
+            Device to control exclusion zone
+        control_id : str, optional
+            Control logic for exclusion zone
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = ReactionBuilder() \\
+        ...     .fuel('PROPANE') \\
+        ...     .with_auto_ignition_exclusion(
+        ...         zone_bounds=(0, 1, 0, 1, 0, 1),
+        ...         temperature=300.0
+        ...     ) \\
+        ...     .build()
+        """
+        self._ait_exclusion_zone = zone_bounds
+        if temperature is not None:
+            self._ait_exclusion_zone_temperature = temperature
+        if device_id is not None:
+            self._ait_exclusion_zone_devc_id = device_id
+        if control_id is not None:
+            self._ait_exclusion_zone_ctrl_id = control_id
+        return self
+
+    def disable_atom_balance_check(self) -> "ReactionBuilder":
+        """
+        Disable atom balance checking.
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+        """
+        self._check_atom_balance = False
+        return self
+
     def build(self) -> Reaction:
         """
         Build the Reaction object.
@@ -481,6 +706,40 @@ class ReactionBuilder(Builder[Reaction]):
             params["tau_chem"] = self._tau_chem
         if self._tau_flame is not None:
             params["tau_flame"] = self._tau_flame
+
+        # Phase 3 parameters
+        if self._id is not None:
+            params["id"] = self._id
+        if self._hcn_yield > 0:
+            params["hcn_yield"] = self._hcn_yield
+        if self._epumo2 is not None:
+            params["epumo2"] = self._epumo2
+        if self._hoc_complete is not None:
+            params["hoc_complete"] = self._hoc_complete
+        if self._n_simple_chemistry_reactions != 1:
+            params["n_simple_chemistry_reactions"] = self._n_simple_chemistry_reactions
+        if self._fuel_c_to_co_fraction > 0:
+            params["fuel_c_to_co_fraction"] = self._fuel_c_to_co_fraction
+        if self._fuel_n_to_hcn_fraction > 0:
+            params["fuel_n_to_hcn_fraction"] = self._fuel_n_to_hcn_fraction
+        if self._fuel_h_to_h2_fraction > 0:
+            params["fuel_h_to_h2_fraction"] = self._fuel_h_to_h2_fraction
+        if not self._check_atom_balance:
+            params["check_atom_balance"] = self._check_atom_balance
+        if self._reac_atom_error != 1e-4:
+            params["reac_atom_error"] = self._reac_atom_error
+        if self._reac_mass_error != 1e-4:
+            params["reac_mass_error"] = self._reac_mass_error
+        if self._lower_oxygen_limit > 0:
+            params["lower_oxygen_limit"] = self._lower_oxygen_limit
+        if self._ait_exclusion_zone is not None:
+            params["ait_exclusion_zone"] = self._ait_exclusion_zone
+        if self._ait_exclusion_zone_temperature is not None:
+            params["ait_exclusion_zone_temperature"] = self._ait_exclusion_zone_temperature
+        if self._ait_exclusion_zone_devc_id is not None:
+            params["ait_exclusion_zone_devc_id"] = self._ait_exclusion_zone_devc_id
+        if self._ait_exclusion_zone_ctrl_id is not None:
+            params["ait_exclusion_zone_ctrl_id"] = self._ait_exclusion_zone_ctrl_id
 
         reaction = Reaction(**params)
         self._mark_built()

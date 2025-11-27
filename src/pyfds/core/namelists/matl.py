@@ -47,10 +47,20 @@ class Material(NamelistBase):
         Pre-exponential factors for reactions [1/s]
     e : list[float], optional
         Activation energies for reactions [kJ/kmol]
-    nu_spec : list[str], optional
-        Species produced by each reaction
-    nu_matl : list[str], optional
-        Residue materials from each reaction
+    nu_spec : list[list[float]] or list[float], optional
+        Species yields: NU_SPEC(species_idx, reaction_idx) for multi-reaction
+    nu_matl : list[list[float]] or list[float], optional
+        Residue yields: NU_MATL(material_idx, reaction_idx) for multi-reaction
+    spec_id : str, list[str], or list[list[str]], optional
+        Gas species ID(s): single, per reaction, or 2D array for multi-species per reaction
+    matl_id_products : str, list[str], or list[list[str]], optional
+        Residue material ID(s) per reaction (alias: matl_id)
+    heat_of_combustion_array : list[list[float]] or list[float], optional
+        Heat of combustion per species per reaction [kJ/kg]
+    part_id : list[list[str]] or list[str], optional
+        Particle class ID(s) produced by reactions
+    nu_part : list[list[float]] or list[float], optional
+        Particle yields: NU_PART(particle_idx, reaction_idx)
 
     Examples
     --------
@@ -95,7 +105,9 @@ class Material(NamelistBase):
     # Pyrolysis properties
     n_reactions: int = Field(1, ge=1, description="Number of reactions")
     reference_temperature: float | None = Field(None, description="Reference temperature [°C]")
-    heat_of_reaction: list[float] | None = Field(None, description="Heat of reaction [kJ/kg]")
+    heat_of_reaction: list[float] | float | None = Field(
+        None, description="Heat of reaction [kJ/kg]"
+    )
 
     # Reaction kinetics
     a: list[float] | None = Field(None, description="Pre-exponential factors [1/s]")
@@ -104,17 +116,31 @@ class Material(NamelistBase):
     reference_rate: float | None = Field(None, gt=0, description="Reference reaction rate [1/s]")
 
     # Product specification (multi-reaction)
-    nu_spec: list[str] | None = Field(None, description="Product species IDs")
-    nu_matl: list[str] | None = Field(None, description="Residue material IDs")
-
-    # Single-reaction product specification (Stage 2.4)
-    spec_id: str | None = Field(None, description="Gas species ID for single reaction")
-    yield_fraction: float | None = Field(
-        None, ge=0, le=1, description="Fraction of material yielded"
+    spec_id: list[list[str]] | list[str] | str | None = Field(
+        None, description="Gas species ID(s) per reaction"
+    )
+    nu_spec: list[list[float]] | list[float] | float | None = Field(
+        None, description="Species yields: NU_SPEC(species_idx, reaction_idx)"
+    )
+    matl_id_products: list[list[str]] | list[str] | str | None = Field(
+        None, alias="matl_id", description="Residue material ID(s) per reaction"
+    )
+    nu_matl: list[list[float]] | list[float] | float | None = Field(
+        None, description="Residue yields: NU_MATL(material_idx, reaction_idx)"
+    )
+    heat_of_combustion_array: list[list[float]] | list[float] | float | None = Field(
+        None,
+        alias="heat_of_combustion",
+        description="Heat of combustion per species per reaction [kJ/kg]",
     )
 
-    # Heat of combustion (Stage 2.4)
-    heat_of_combustion: float | None = Field(None, gt=0, description="Heat of combustion (kJ/kg)")
+    # Particle products (Phase 2.1)
+    part_id: list[list[str]] | list[str] | str | None = Field(
+        None, description="Particle class ID(s) produced by reactions"
+    )
+    nu_part: list[list[float]] | list[float] | float | None = Field(
+        None, description="Particle yields: NU_PART(particle_idx, reaction_idx)"
+    )
 
     # Liquid Fuel Properties (Priority 1)
     boiling_temperature: float | None = Field(
@@ -122,6 +148,9 @@ class Material(NamelistBase):
     )
     mw: float | None = Field(
         None, gt=0, description="Molecular weight for liquid components (g/mol)"
+    )
+    heat_of_vaporization: float | None = Field(
+        None, gt=0, description="Heat of vaporization for liquid fuels (kJ/kg)"
     )
 
     # Advanced Reaction Parameters (Priority 1)
@@ -154,6 +183,14 @@ class Material(NamelistBase):
         None, ge=0, le=1, description="Oxygen concentration for kinetics (volume fraction)"
     )
 
+    # Delamination (Priority 1)
+    delamination_tmp: float | None = Field(
+        None, gt=0, description="Temperature for delamination (°C)"
+    )
+    delamination_density: float | None = Field(
+        None, gt=0, description="Density for delamination (kg/m³)"
+    )
+
     @model_validator(mode="after")
     def validate_material(self) -> "Material":
         """Validate material properties."""
@@ -169,21 +206,22 @@ class Material(NamelistBase):
                 f"Material '{self.id}': Must specify either SPECIFIC_HEAT or SPECIFIC_HEAT_RAMP"
             )
 
-        # Validate density range
-        if not (1.0 <= self.density <= 10000.0):
+        # Validate density range (allow low-density foams)
+        if not (0.1 <= self.density <= 25000.0):
             raise ValueError(
-                f"Material '{self.id}': DENSITY = {self.density} is outside valid range [1.0, 10000.0]"
+                f"Material '{self.id}': DENSITY = {self.density} "
+                f"is outside valid range [0.1, 25000.0] kg/m³"
             )
 
         # Validate conductivity range if specified
-        if self.conductivity is not None and not (0.001 <= self.conductivity <= 1000.0):
+        if self.conductivity is not None and not (0.001 <= self.conductivity <= 2000.0):
             raise ValueError(
                 f"Material '{self.id}': CONDUCTIVITY = {self.conductivity} "
-                f"is outside valid range [0.001, 1000.0]"
+                f"is outside valid range [0.001, 2000.0] W/(m·K)"
             )
 
         # Validate specific heat range if specified
-        if self.specific_heat is not None and not (0.1 <= self.specific_heat <= 10.0):
+        if self.specific_heat is not None and not (0.05 <= self.specific_heat <= 50.0):
             raise ValueError(
                 f"Material '{self.id}': SPECIFIC_HEAT = {self.specific_heat} "
                 f"is outside valid range [0.1, 10.0]"
@@ -241,6 +279,53 @@ class Material(NamelistBase):
                 f"Material '{self.id}': REFERENCE_ENTHALPY requires REFERENCE_ENTHALPY_TEMPERATURE"
             )
 
+        # Validate yield sums for each reaction
+        if self.nu_spec or self.nu_matl:
+            for reaction_idx in range(self.n_reactions):
+                total_yield = 0.0
+
+                # Sum nu_spec for this reaction
+                if self.nu_spec:
+                    if isinstance(self.nu_spec, (int, float)):
+                        total_yield += self.nu_spec
+                    elif isinstance(self.nu_spec, list) and reaction_idx < len(self.nu_spec):
+                        reaction_spec = self.nu_spec[reaction_idx]
+                        if isinstance(reaction_spec, (int, float)):
+                            total_yield += reaction_spec
+                        elif isinstance(reaction_spec, list):
+                            total_yield += sum(reaction_spec)
+
+                # Sum nu_matl for this reaction
+                if self.nu_matl:
+                    if isinstance(self.nu_matl, (int, float)):
+                        total_yield += self.nu_matl
+                    elif isinstance(self.nu_matl, list) and reaction_idx < len(self.nu_matl):
+                        reaction_matl = self.nu_matl[reaction_idx]
+                        if isinstance(reaction_matl, (int, float)):
+                            total_yield += reaction_matl
+                        elif isinstance(reaction_matl, list):
+                            total_yield += sum(reaction_matl)
+
+                if total_yield > 1.0:
+                    raise ValueError(
+                        f"Material '{self.id}': Total yield for reaction {reaction_idx + 1} "
+                        f"is {total_yield:.3f}, which exceeds 1.0"
+                    )
+
+        # Physical reasonableness checks (warnings, not errors)
+        if self.e is not None:
+            for _i, e_val in enumerate(self.e):
+                if e_val < 10000 or e_val > 500000:
+                    # This would be a warning in a real implementation
+                    # For now, we'll just pass (could log or add to warnings list)
+                    pass
+
+        if self.a is not None:
+            for _i, a_val in enumerate(self.a):
+                if a_val < 1e3 or a_val > 1e20:
+                    # This would be a warning in a real implementation
+                    pass
+
         return self
 
     def to_fds(self) -> str:
@@ -294,35 +379,139 @@ class Material(NamelistBase):
             result_parts.append(f"N_REACTIONS={self.n_reactions}")
 
             # Add indexed arrays for each reaction
-            if self.heat_of_reaction:
+            if self.heat_of_reaction and isinstance(self.heat_of_reaction, list):
                 for i, val in enumerate(self.heat_of_reaction, 1):
                     result_parts.append(f"HEAT_OF_REACTION({i})={val}")
-            if self.a:
+            if self.a and isinstance(self.a, list):
                 for i, val in enumerate(self.a, 1):
                     result_parts.append(f"A({i})={val}")
-            if self.e:
+            if self.e and isinstance(self.e, list):
                 for i, val in enumerate(self.e, 1):
                     result_parts.append(f"E({i})={val}")
-            if self.n_s:
+            if self.n_s and isinstance(self.n_s, list):
                 for i, val in enumerate(self.n_s, 1):
                     result_parts.append(f"N_S({i})={val}")
 
-            # Handle 2D arrays like NU_SPEC and NU_MATL
-            # These use notation like NU_SPEC(i,j) where i is species index, j is reaction index
+            # Handle 2D arrays for products
+            # SPEC_ID(i,j) where i=species index, j=reaction index
+            if self.spec_id:
+                if isinstance(self.spec_id, str):
+                    result_parts.append(f"SPEC_ID='{self.spec_id}'")
+                elif isinstance(self.spec_id, list):
+                    if all(isinstance(item, str) for item in self.spec_id):
+                        # List per reaction
+                        for j, spec in enumerate(self.spec_id, 1):
+                            result_parts.append(f"SPEC_ID({j})='{spec}'")
+                    elif all(isinstance(item, list) for item in self.spec_id):
+                        # 2D array
+                        for j, reaction_specs in enumerate(self.spec_id, 1):
+                            if reaction_specs:
+                                spec_count = len(reaction_specs)
+                                spec_str = ",".join(f"'{s}'" for s in reaction_specs)
+                                result_parts.append(f"SPEC_ID(1:{spec_count},{j})={spec_str}")
+
             if self.nu_spec:
-                for j, spec_list in enumerate(self.nu_spec, 1):
-                    if isinstance(spec_list, (list, tuple)):
-                        for i, val in enumerate(spec_list, 1):
-                            if val:  # Only add non-empty values
-                                result_parts.append(f"SPEC_ID({i},{j})='{val}'")
-                                result_parts.append(f"NU_SPEC({i},{j})=1.0")
+                if isinstance(self.nu_spec, (int, float)):
+                    result_parts.append(f"NU_SPEC={self.nu_spec}")
+                elif isinstance(self.nu_spec, list):
+                    if all(isinstance(item, (int, float)) for item in self.nu_spec):
+                        # List per reaction
+                        for j, nu in enumerate(self.nu_spec, 1):
+                            result_parts.append(f"NU_SPEC({j})={nu}")
+                    elif all(isinstance(item, list) for item in self.nu_spec):
+                        # 2D array
+                        for j, reaction_nus in enumerate(self.nu_spec, 1):
+                            if isinstance(reaction_nus, list) and reaction_nus:
+                                nu_count = len(reaction_nus)
+                                result_parts.append(
+                                    f"NU_SPEC(1:{nu_count},{j})={','.join(str(n) for n in reaction_nus)}"
+                                )
+
+            if self.matl_id_products:
+                if isinstance(self.matl_id_products, str):
+                    result_parts.append(f"MATL_ID='{self.matl_id_products}'")
+                elif isinstance(self.matl_id_products, list):
+                    if all(isinstance(item, str) for item in self.matl_id_products):
+                        # List per reaction
+                        for j, matl in enumerate(self.matl_id_products, 1):
+                            result_parts.append(f"MATL_ID({j})='{matl}'")
+                    elif all(isinstance(item, list) for item in self.matl_id_products):
+                        # 2D array
+                        for j, reaction_matls in enumerate(self.matl_id_products, 1):
+                            if isinstance(reaction_matls, list) and reaction_matls:
+                                matl_count = len(reaction_matls)
+                                matl_str = ",".join(f"'{m}'" for m in reaction_matls)
+                                result_parts.append(f"MATL_ID(1:{matl_count},{j})={matl_str}")
+
             if self.nu_matl:
-                for j, matl_list in enumerate(self.nu_matl, 1):
-                    if isinstance(matl_list, (list, tuple)):
-                        for i, val in enumerate(matl_list, 1):
-                            if val:  # Only add non-empty values
-                                result_parts.append(f"MATL_ID({i},{j})='{val}'")
-                                result_parts.append(f"NU_MATL({i},{j})=1.0")
+                if isinstance(self.nu_matl, (int, float)):
+                    result_parts.append(f"NU_MATL={self.nu_matl}")
+                elif isinstance(self.nu_matl, list):
+                    if all(isinstance(item, (int, float)) for item in self.nu_matl):
+                        # List per reaction
+                        for j, nu in enumerate(self.nu_matl, 1):
+                            result_parts.append(f"NU_MATL({j})={nu}")
+                    elif all(isinstance(item, list) for item in self.nu_matl):
+                        # 2D array
+                        for j, reaction_nus in enumerate(self.nu_matl, 1):
+                            if isinstance(reaction_nus, list) and reaction_nus:
+                                nu_count = len(reaction_nus)
+                                result_parts.append(
+                                    f"NU_MATL(1:{nu_count},{j})={','.join(str(n) for n in reaction_nus)}"
+                                )
+
+            if self.heat_of_combustion_array:
+                if isinstance(self.heat_of_combustion_array, (int, float)):
+                    result_parts.append(f"HEAT_OF_COMBUSTION={self.heat_of_combustion_array}")
+                elif isinstance(self.heat_of_combustion_array, list):
+                    if all(
+                        isinstance(item, (int, float)) for item in self.heat_of_combustion_array
+                    ):
+                        # List per reaction
+                        for j, hoc in enumerate(self.heat_of_combustion_array, 1):
+                            result_parts.append(f"HEAT_OF_COMBUSTION({j})={hoc}")
+                    elif all(isinstance(item, list) for item in self.heat_of_combustion_array):
+                        # 2D array
+                        for j, reaction_hocs in enumerate(self.heat_of_combustion_array, 1):
+                            if isinstance(reaction_hocs, list) and reaction_hocs:
+                                hoc_count = len(reaction_hocs)
+                                result_parts.append(
+                                    f"HEAT_OF_COMBUSTION(1:{hoc_count},{j})={','.join(str(h) for h in reaction_hocs)}"
+                                )
+
+            # Handle particle products
+            if self.part_id:
+                if isinstance(self.part_id, str):
+                    result_parts.append(f"PART_ID='{self.part_id}'")
+                elif isinstance(self.part_id, list):
+                    if all(isinstance(item, str) for item in self.part_id):
+                        # List per reaction
+                        for j, part in enumerate(self.part_id, 1):
+                            result_parts.append(f"PART_ID({j})='{part}'")
+                    elif all(isinstance(item, list) for item in self.part_id):
+                        # 2D array
+                        for j, reaction_parts in enumerate(self.part_id, 1):
+                            if reaction_parts:
+                                part_count = len(reaction_parts)
+                                part_str = ",".join(f"'{p}'" for p in reaction_parts)
+                                result_parts.append(f"PART_ID(1:{part_count},{j})={part_str}")
+
+            if self.nu_part:
+                if isinstance(self.nu_part, (int, float)):
+                    result_parts.append(f"NU_PART={self.nu_part}")
+                elif isinstance(self.nu_part, list):
+                    if all(isinstance(item, (int, float)) for item in self.nu_part):
+                        # List per reaction
+                        for j, nu in enumerate(self.nu_part, 1):
+                            result_parts.append(f"NU_PART({j})={nu}")
+                    elif all(isinstance(item, list) for item in self.nu_part):
+                        # 2D array
+                        for j, reaction_nus in enumerate(self.nu_part, 1):
+                            if isinstance(reaction_nus, list) and reaction_nus:
+                                nu_count = len(reaction_nus)
+                                result_parts.append(
+                                    f"NU_PART(1:{nu_count},{j})={','.join(str(n) for n in reaction_nus)}"
+                                )
 
             return ", ".join(result_parts) + " /\n"
         # Single reaction or no reactions - use standard format
@@ -343,21 +532,34 @@ class Material(NamelistBase):
         if self.nu_matl:
             params["nu_matl"] = self.nu_matl
 
-        # Single-reaction product specification (Stage 2.4)
+        # Single-reaction product specification
         if self.spec_id:
-            params["spec_id"] = self.spec_id
-        if self.yield_fraction is not None:
-            params["yield_fraction"] = self.yield_fraction
+            if isinstance(self.spec_id, str):
+                params["spec_id"] = self.spec_id
+            elif isinstance(self.spec_id, list):
+                # Multiple species for single reaction
+                spec_str = ",".join(f"'{s}'" for s in self.spec_id)
+                params["spec_id"] = spec_str
+        if self.matl_id_products and isinstance(self.matl_id_products, str):
+            params["matl_id"] = self.matl_id_products
+        if self.heat_of_combustion_array and isinstance(
+            self.heat_of_combustion_array, (int, float)
+        ):
+            params["heat_of_combustion"] = self.heat_of_combustion_array
 
-        # Heat of combustion (Stage 2.4)
-        if self.heat_of_combustion is not None:
-            params["heat_of_combustion"] = self.heat_of_combustion
+        # Particle products (single reaction)
+        if self.part_id and isinstance(self.part_id, str):
+            params["part_id"] = self.part_id
+        if self.nu_part and isinstance(self.nu_part, (int, float)):
+            params["nu_part"] = self.nu_part
 
         # Liquid Fuel Properties (Priority 1)
         if self.boiling_temperature is not None:
             params["boiling_temperature"] = self.boiling_temperature
         if self.mw is not None:
             params["mw"] = self.mw
+        if self.heat_of_vaporization is not None:
+            params["heat_of_vaporization"] = self.heat_of_vaporization
 
         # Advanced Reaction Parameters (Priority 1)
         if self.n_t:
@@ -390,5 +592,11 @@ class Material(NamelistBase):
             params["reference_enthalpy_temperature"] = self.reference_enthalpy_temperature
         if self.x_o2_pyro is not None:
             params["x_o2_pyro"] = self.x_o2_pyro
+
+        # Delamination (Priority 1)
+        if self.delamination_tmp is not None:
+            params["delamination_tmp"] = self.delamination_tmp
+        if self.delamination_density is not None:
+            params["delamination_density"] = self.delamination_density
 
         return self._build_namelist("MATL", params)

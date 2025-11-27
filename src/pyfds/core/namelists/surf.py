@@ -27,10 +27,24 @@ class Surface(NamelistBase):
         Heat release rate per unit area (kW/m²)
     tmp_front : float, optional
         Front surface temperature (°C)
-    matl_id : str, optional
-        Material identifier
-    thickness : float, optional
-        Material thickness (m)
+    matl_id : str, list[str], or list[list[str]], optional
+        Material identifier(s): single material, list per layer, or 2D array for multi-component layers
+    thickness : float or list[float], optional
+        Material thickness(es) (m): single value or list per layer
+    matl_mass_fraction : list[list[float]], optional
+        Mass fractions for multi-component layers
+    delamination_tmp : list[float], optional
+        Temperature threshold for layer delamination [°C]
+    delamination_density : list[float], optional
+        Density threshold for layer delamination [kg/m³]
+    tmp_gas_front : float, optional
+        Gas temperature for convective heat transfer [°C]
+    heat_transfer_coefficient : float, optional
+        Fixed heat transfer coefficient [W/(m²·K)]
+    ramp_ef : str, optional
+        RAMP ID for external flux time history
+    tau_ef : float, optional
+        Time constant for external flux ramp-up [s]
 
     Examples
     --------
@@ -44,8 +58,13 @@ class Surface(NamelistBase):
     color: str | None = Field(None, description="Named color")
     hrrpua: float | None = Field(None, ge=0, description="Heat release rate per unit area (kW/m²)")
     tmp_front: float | None = Field(None, description="Front surface temperature (°C)")
-    matl_id: str | None = Field(None, description="Material identifier")
-    thickness: float | None = Field(None, gt=0, description="Material thickness (m)")
+    matl_id: list[list[str]] | list[str] | str | None = Field(
+        None, description="Material ID(s): single, list per layer, or 2D array"
+    )
+    matl_mass_fraction: list[list[float]] | None = Field(
+        None, description="Mass fractions for multi-component layers"
+    )
+    thickness: list[float] | float | None = Field(None, description="Layer thickness(es) [m]")
     volume_flow: float | None = Field(None, description="Volume flow rate (m³/s)")
     vel: float | None = Field(None, description="Velocity (m/s)")
     mass_flow: float | None = Field(None, description="Mass flow rate (kg/s)")
@@ -143,6 +162,26 @@ class Surface(NamelistBase):
     # Liquid Evaporation (Priority 1)
     mass_transfer_coefficient: float | None = Field(
         None, gt=0, description="Mass transfer coefficient (m/s)"
+    )
+
+    # Delamination Model (Phase 2.2)
+    delamination_tmp: list[float] | None = Field(
+        None, description="Temperature threshold for layer delamination [°C]"
+    )
+    delamination_density: list[float] | None = Field(
+        None, description="Density threshold for layer delamination [kg/m³]"
+    )
+
+    # Cone Calorimeter Parameters (Phase 2.3)
+    tmp_gas_front: float | None = Field(
+        None, description="Gas temperature for convective heat transfer [°C]"
+    )
+    heat_transfer_coefficient: float | None = Field(
+        None, gt=0, description="Fixed heat transfer coefficient [W/(m²·K)]"
+    )
+    ramp_ef: str | None = Field(None, description="RAMP ID for external flux time history")
+    tau_ef: float | None = Field(
+        None, gt=0, description="Time constant for external flux ramp-up [s]"
     )
 
     @field_validator("rgb")
@@ -291,6 +330,60 @@ class Surface(NamelistBase):
 
         return self
 
+    @field_validator("thickness", mode="after")
+    @classmethod
+    def validate_thickness(cls, v: float | list[float] | None) -> float | list[float] | None:
+        """Validate thickness values are positive."""
+        if v is None:
+            return v
+        if isinstance(v, (int, float)):
+            if v <= 0:
+                raise ValueError("Thickness must be positive")
+            return v
+        if isinstance(v, list):
+            if not all(isinstance(t, (int, float)) and t > 0 for t in v):
+                raise ValueError("All thickness values must be positive")
+            return v
+        raise ValueError("Thickness must be a number or list of numbers")
+
+    def _format_multi_layer_params(self) -> dict[str, Any]:
+        """Format multi-layer material parameters for FDS output."""
+        params: dict[str, Any] = {}
+
+        if self.matl_id:
+            if isinstance(self.matl_id, str):
+                # Single material
+                params["matl_id"] = self.matl_id
+            elif isinstance(self.matl_id, list):
+                if all(isinstance(layer, str) for layer in self.matl_id):
+                    # List of materials per layer - use indexed format
+                    for i, matl in enumerate(self.matl_id):
+                        params[f"matl_id({i + 1})"] = matl
+                elif all(isinstance(layer, list) for layer in self.matl_id):
+                    # 2D array: layer x components
+                    for i, layer in enumerate(self.matl_id):
+                        if layer:  # Non-empty layer
+                            for j, matl in enumerate(layer):
+                                params[f"matl_id({i + 1},{j + 1})"] = matl
+
+        if self.matl_mass_fraction:
+            # 2D array for mass fractions
+            for i, layer in enumerate(self.matl_mass_fraction):  # type: ignore
+                layer: list[float]  # type: ignore
+                if layer:  # Non-empty layer
+                    for j, frac in enumerate(layer):
+                        frac: float  # type: ignore
+                        params[f"matl_mass_fraction({i + 1},{j + 1})"] = frac
+        if self.thickness is not None:
+            if isinstance(self.thickness, (int, float)):
+                params["thickness"] = self.thickness
+            elif isinstance(self.thickness, list):
+                # Use indexed format for multi-layer
+                for i, t in enumerate(self.thickness):
+                    params[f"thickness({i + 1})"] = t
+
+        return params
+
     def to_fds(self) -> str:
         """Generate FDS SURF namelist."""
         params: dict[str, Any] = {"id": self.id}
@@ -302,10 +395,11 @@ class Surface(NamelistBase):
             params["hrrpua"] = self.hrrpua
         if self.tmp_front is not None:
             params["tmp_front"] = self.tmp_front
-        if self.matl_id:
-            params["matl_id"] = self.matl_id
-        if self.thickness is not None:
-            params["thickness"] = self.thickness
+
+        # Multi-layer material parameters
+        multi_layer_params = self._format_multi_layer_params()
+        params.update(multi_layer_params)
+
         if self.volume_flow is not None:
             params["volume_flow"] = self.volume_flow
         if self.vel is not None:
@@ -434,5 +528,21 @@ class Surface(NamelistBase):
         # Liquid Evaporation
         if self.mass_transfer_coefficient is not None:
             params["mass_transfer_coefficient"] = self.mass_transfer_coefficient
+
+        # Delamination Model
+        if self.delamination_tmp is not None:
+            params["delamination_tmp"] = self.delamination_tmp
+        if self.delamination_density is not None:
+            params["delamination_density"] = self.delamination_density
+
+        # Cone Calorimeter Parameters
+        if self.tmp_gas_front is not None:
+            params["tmp_gas_front"] = self.tmp_gas_front
+        if self.heat_transfer_coefficient is not None:
+            params["heat_transfer_coefficient"] = self.heat_transfer_coefficient
+        if self.ramp_ef is not None:
+            params["ramp_ef"] = self.ramp_ef
+        if self.tau_ef is not None:
+            params["tau_ef"] = self.tau_ef
 
         return self._build_namelist("SURF", params)

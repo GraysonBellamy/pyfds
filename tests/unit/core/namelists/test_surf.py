@@ -600,3 +600,106 @@ class TestSurfBackwardCompatibility:
         assert surf.mcc_conversion_factor == 1.0  # Default value
         assert surf.dsc_conversion_factor == 1.0  # Default value
         assert surf.mass_transfer_coefficient is None
+
+
+class TestSurfDelamination:
+    """Test delamination model features."""
+
+    def test_delamination_temperature(self):
+        """Test delamination temperature thresholds."""
+        surf = Surface(
+            id="CLT",
+            matl_id=["TIMBER", "TIMBER", "TIMBER"],
+            thickness=[0.02, 0.02, 0.02],
+            delamination_tmp=[200.0, 250.0, 300.0],
+        )
+        assert surf.delamination_tmp == [200.0, 250.0, 300.0]
+        fds_str = surf.to_fds()
+        assert "DELAMINATION_TMP=200.0,250.0,300.0" in fds_str
+
+    def test_delamination_density(self):
+        """Test delamination density thresholds."""
+        surf = Surface(
+            id="COMPOSITE", matl_id="FIBERGLASS", thickness=0.005, delamination_density=[150.0]
+        )
+        assert surf.delamination_density == [150.0]
+        fds_str = surf.to_fds()
+        assert "DELAMINATION_DENSITY=150.0" in fds_str
+
+
+class TestSurfMultiLayer:
+    """Test multi-layer material configurations."""
+
+    def test_single_layer_single_material(self):
+        """Test single layer with single material."""
+        surf = Surface(id="WALL", matl_id="GYPSUM", thickness=0.013)
+        assert surf.matl_id == "GYPSUM"
+        assert surf.thickness == 0.013
+        fds_str = surf.to_fds()
+        assert "MATL_ID='GYPSUM'" in fds_str
+        assert "THICKNESS=0.013" in fds_str
+
+    def test_multi_layer_single_material(self):
+        """Test multiple layers with same material."""
+        surf = Surface(id="CLT", matl_id=["WOOD", "WOOD", "WOOD"], thickness=[0.02, 0.001, 0.02])
+        assert surf.matl_id == ["WOOD", "WOOD", "WOOD"]
+        assert surf.thickness == [0.02, 0.001, 0.02]
+        fds_str = surf.to_fds()
+        assert "MATL_ID(1)='WOOD'" in fds_str
+        assert "MATL_ID(2)='WOOD'" in fds_str
+        assert "MATL_ID(3)='WOOD'" in fds_str
+        assert "THICKNESS(1)=0.02" in fds_str
+        assert "THICKNESS(2)=0.001" in fds_str
+        assert "THICKNESS(3)=0.02" in fds_str
+
+    def test_multi_layer_multi_component(self):
+        """Test multiple layers with multiple components per layer."""
+        surf = Surface(
+            id="COMPOSITE",
+            matl_id=[["WOOD", "GLUE"], ["GYPSUM"]],
+            matl_mass_fraction=[[0.8, 0.2], [1.0]],
+            thickness=[0.02, 0.013],
+        )
+        assert surf.matl_id == [["WOOD", "GLUE"], ["GYPSUM"]]
+        assert surf.matl_mass_fraction == [[0.8, 0.2], [1.0]]
+        assert surf.thickness == [0.02, 0.013]
+        fds_str = surf.to_fds()
+        assert "MATL_ID(1,1)='WOOD'" in fds_str
+        assert "MATL_ID(1,2)='GLUE'" in fds_str
+        assert "MATL_ID(2,1)='GYPSUM'" in fds_str
+        assert "MATL_MASS_FRACTION(1,1)=0.8" in fds_str
+        assert "MATL_MASS_FRACTION(1,2)=0.2" in fds_str
+        assert "MATL_MASS_FRACTION(2,1)=1.0" in fds_str
+
+    def test_thickness_validation(self):
+        """Test thickness validation (must be positive)."""
+        with pytest.raises(ValidationError):
+            Surface(id="BAD", matl_id="WOOD", thickness=-0.01)
+
+
+class TestSurfConeCalorimeter:
+    """Test cone calorimeter simulation support."""
+
+    def test_cone_calorimeter_basic(self):
+        """Test basic cone calorimeter setup."""
+        surf = Surface(
+            id="SAMPLE",
+            matl_id="PMMA",
+            thickness=0.006,
+            external_flux=50.0,
+            tmp_gas_front=25.0,
+            heat_transfer_coefficient=15.0,
+        )
+        fds_str = surf.to_fds()
+        assert "EXTERNAL_FLUX=50.0" in fds_str
+        assert "TMP_GAS_FRONT=25.0" in fds_str
+        assert "HEAT_TRANSFER_COEFFICIENT=15.0" in fds_str
+
+    def test_cone_calorimeter_with_ramp(self):
+        """Test cone calorimeter with time-varying flux."""
+        surf = Surface(
+            id="SAMPLE", matl_id="PMMA", thickness=0.006, ramp_ef="FLUX_RAMP", tau_ef=5.0
+        )
+        fds_str = surf.to_fds()
+        assert "RAMP_EF='FLUX_RAMP'" in fds_str
+        assert "TAU_EF=5.0" in fds_str
