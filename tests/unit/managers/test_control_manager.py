@@ -77,7 +77,9 @@ class TestControlManager:
         sim.add_init(init)
 
         assert len(sim.controls.inits) == 1
-        assert sim.controls.inits[0].xyz == (5, 5, 1)
+        assert sim.controls.inits[0].xyz.x == 5
+        assert sim.controls.inits[0].xyz.y == 5
+        assert sim.controls.inits[0].xyz.z == 1
 
     def test_add_multiple_inits(self):
         """Test adding multiple initial conditions."""
