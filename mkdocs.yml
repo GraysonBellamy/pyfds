@@ -202,7 +202,9 @@ nav:
     - Boundary Conditions: guide/boundaries.md
     - Materials & Surfaces: guide/materials-surfaces.md
     - Fire Sources: guide/fire-sources.md
+    - Particles: guide/particles.md
     - Devices & Measurement: guide/devices.md
+    - Suppression Systems: guide/suppression-systems.md
     - Time-Varying Properties: guide/ramps.md
     - Control Logic: guide/controls.md
     - Initial Conditions: guide/initial-conditions.md

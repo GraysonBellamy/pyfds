@@ -21,6 +21,7 @@ from pyfds.core.namelists.obst import Obstruction
 from pyfds.core.namelists.prop import Prop
 from pyfds.core.namelists.ramp import Ramp
 from pyfds.core.namelists.reac import Reaction
+from pyfds.core.namelists.spec import Species
 from pyfds.core.namelists.surf import Surface
 from pyfds.core.namelists.time import Time
 from pyfds.core.namelists.vent import Vent
@@ -45,6 +46,7 @@ class NamelistFactory:
         "OBST": Obstruction,
         "VENT": Vent,
         "REAC": Reaction,
+        "SPEC": Species,
         "RAMP": Ramp,
         "PROP": Prop,
         "DEVC": Device,

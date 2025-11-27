@@ -116,6 +116,44 @@ class Material(NamelistBase):
     # Heat of combustion (Stage 2.4)
     heat_of_combustion: float | None = Field(None, gt=0, description="Heat of combustion (kJ/kg)")
 
+    # Liquid Fuel Properties (Priority 1)
+    boiling_temperature: float | None = Field(
+        None, description="Boiling temperature for liquid fuels (°C)"
+    )
+    mw: float | None = Field(
+        None, gt=0, description="Molecular weight for liquid components (g/mol)"
+    )
+
+    # Advanced Reaction Parameters (Priority 1)
+    n_t: list[float] | None = Field(None, description="Temperature exponents in reaction rate")
+    n_o2: list[float] | None = Field(None, description="Oxygen reaction orders")
+    gas_diffusion_depth: list[float] | None = Field(
+        None, description="Gas diffusion length scale (m)"
+    )
+    max_reaction_rate: list[float] | None = Field(
+        None, description="Maximum reaction rate (kg/m³/s)"
+    )
+
+    # Kinetic Parameter Estimation (Priority 1)
+    pyrolysis_range: float | None = Field(
+        None, gt=0, description="Width of mass loss rate curve (°C or K)"
+    )
+    heating_rate: float = Field(5.0, gt=0, description="TGA heating rate (K/min)")
+
+    # Material Behavior (Priority 1)
+    allow_shrinking: bool = Field(True, description="Allow material shrinking")
+    allow_swelling: bool = Field(True, description="Allow material swelling")
+
+    # Energy Conservation (Priority 1)
+    adjust_h: bool = Field(True, description="Adjust enthalpies for energy conservation")
+    reference_enthalpy: float | None = Field(None, description="Reference enthalpy (kJ/kg)")
+    reference_enthalpy_temperature: float | None = Field(
+        None, description="Temperature for reference enthalpy (°C)"
+    )
+    x_o2_pyro: float | None = Field(
+        None, ge=0, le=1, description="Oxygen concentration for kinetics (volume fraction)"
+    )
+
     @model_validator(mode="after")
     def validate_material(self) -> "Material":
         """Validate material properties."""
@@ -153,13 +191,55 @@ class Material(NamelistBase):
 
         # Validate multi-reaction arrays
         if self.n_reactions > 1:
-            for param_name in ["a", "e", "heat_of_reaction"]:
+            for param_name in [
+                "a",
+                "e",
+                "heat_of_reaction",
+                "n_t",
+                "n_o2",
+                "gas_diffusion_depth",
+                "max_reaction_rate",
+            ]:
                 param_value = getattr(self, param_name)
                 if param_value is not None and len(param_value) != self.n_reactions:
                     raise ValueError(
                         f"Material '{self.id}': {param_name.upper()} must have "
                         f"{self.n_reactions} values for N_REACTIONS={self.n_reactions}"
                     )
+
+        # Validate liquid fuel model
+        if self.boiling_temperature is not None:
+            # BOILING_TEMPERATURE triggers liquid pyrolysis model
+            # This automatically sets N_REACTIONS=1
+            if self.n_reactions > 1:
+                raise ValueError(
+                    f"Material '{self.id}': BOILING_TEMPERATURE (liquid model) "
+                    f"cannot be used with N_REACTIONS > 1"
+                )
+            if self.spec_id is None:
+                raise ValueError(
+                    f"Material '{self.id}': BOILING_TEMPERATURE requires SPEC_ID "
+                    f"to specify the gaseous fuel species"
+                )
+
+        # Validate REFERENCE_TEMPERATURE and (A, E) mutual exclusivity
+        if self.reference_temperature is not None and (self.a is not None or self.e is not None):
+            raise ValueError(
+                f"Material '{self.id}': Cannot specify both REFERENCE_TEMPERATURE "
+                f"and (A, E). Use one or the other."
+            )
+
+        # Validate PYROLYSIS_RANGE and REFERENCE_RATE mutual exclusivity
+        if self.pyrolysis_range is not None and self.reference_rate is not None:
+            raise ValueError(
+                f"Material '{self.id}': Cannot specify both PYROLYSIS_RANGE and REFERENCE_RATE"
+            )
+
+        # Validate REFERENCE_ENTHALPY requires REFERENCE_ENTHALPY_TEMPERATURE
+        if self.reference_enthalpy is not None and self.reference_enthalpy_temperature is None:
+            raise ValueError(
+                f"Material '{self.id}': REFERENCE_ENTHALPY requires REFERENCE_ENTHALPY_TEMPERATURE"
+            )
 
         return self
 
@@ -272,5 +352,43 @@ class Material(NamelistBase):
         # Heat of combustion (Stage 2.4)
         if self.heat_of_combustion is not None:
             params["heat_of_combustion"] = self.heat_of_combustion
+
+        # Liquid Fuel Properties (Priority 1)
+        if self.boiling_temperature is not None:
+            params["boiling_temperature"] = self.boiling_temperature
+        if self.mw is not None:
+            params["mw"] = self.mw
+
+        # Advanced Reaction Parameters (Priority 1)
+        if self.n_t:
+            params["n_t"] = self.n_t
+        if self.n_o2:
+            params["n_o2"] = self.n_o2
+        if self.gas_diffusion_depth:
+            params["gas_diffusion_depth"] = self.gas_diffusion_depth
+        if self.max_reaction_rate:
+            params["max_reaction_rate"] = self.max_reaction_rate
+
+        # Kinetic Parameter Estimation (Priority 1)
+        if self.pyrolysis_range is not None:
+            params["pyrolysis_range"] = self.pyrolysis_range
+        if self.heating_rate != 5.0:
+            params["heating_rate"] = self.heating_rate
+
+        # Material Behavior (Priority 1)
+        if not self.allow_shrinking:  # Only output if False
+            params["allow_shrinking"] = self.allow_shrinking
+        if not self.allow_swelling:  # Only output if False
+            params["allow_swelling"] = self.allow_swelling
+
+        # Energy Conservation (Priority 1)
+        if not self.adjust_h:  # Only output if False
+            params["adjust_h"] = self.adjust_h
+        if self.reference_enthalpy is not None:
+            params["reference_enthalpy"] = self.reference_enthalpy
+        if self.reference_enthalpy_temperature is not None:
+            params["reference_enthalpy_temperature"] = self.reference_enthalpy_temperature
+        if self.x_o2_pyro is not None:
+            params["x_o2_pyro"] = self.x_o2_pyro
 
         return self._build_namelist("MATL", params)

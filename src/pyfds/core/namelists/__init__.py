@@ -19,6 +19,7 @@ from pyfds.core.namelists.part import Part
 from pyfds.core.namelists.prop import Prop
 from pyfds.core.namelists.ramp import Ramp
 from pyfds.core.namelists.reac import Reaction
+from pyfds.core.namelists.spec import Species
 from pyfds.core.namelists.surf import Surface
 from pyfds.core.namelists.time import Time
 from pyfds.core.namelists.vent import Vent, VentShape, VentType
@@ -39,6 +40,7 @@ __all__ = [
     "Prop",
     "Ramp",
     "Reaction",
+    "Species",
     "Surface",
     "Time",
     "TurbulenceModel",

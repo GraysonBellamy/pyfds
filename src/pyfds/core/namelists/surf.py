@@ -89,6 +89,62 @@ class Surface(NamelistBase):
         None, description="Particle velocity vector (vx, vy, vz)"
     )
 
+    # Fire Spread Parameters (Priority 1)
+    spread_rate: float | None = Field(None, gt=0, description="Radial fire spread rate (m/s)")
+    xyz: tuple[float, float, float] | None = Field(
+        None, description="Ignition point (x, y, z) for spreading fire"
+    )
+    area_multiplier: float = Field(1.0, gt=0, description="Surface area correction factor")
+
+    # Species Control (Priority 1)
+    spec_id: list[str] | str | None = Field(None, description="Species ID(s) for surface emissions")
+    mass_fraction: list[float] | None = Field(
+        None, description="Mass fractions for multiple species"
+    )
+
+    # Thermally-Thick Specified Burning (Priority 1)
+    heat_of_vaporization: float | None = Field(
+        None, gt=0, description="Heat of vaporization (kJ/kg)"
+    )
+    extinction_temperature: float | None = Field(None, description="Extinction temperature (°C)")
+    burn_duration: float | None = Field(None, gt=0, description="Burn duration after ignition (s)")
+
+    # SPyro Model Parameters (Priority 1)
+    inert_q_ref: bool = Field(False, description="Test data from inert pyrolysis (no combustion)")
+    reference_heat_flux: list[float] | float | None = Field(
+        None, description="Reference heat flux from test device (kW/m²)"
+    )
+    reference_thickness: list[float] | float | None = Field(
+        None, gt=0, description="Sample thickness in experiment (m)"
+    )
+    maximum_scaling_heat_flux: float = Field(
+        1500.0, gt=0, description="Upper limit on scaling heat flux (kW/m²)"
+    )
+    minimum_scaling_heat_flux: float = Field(
+        0.0, ge=0, description="Lower limit on scaling heat flux (kW/m²)"
+    )
+    reference_heat_flux_time_interval: float = Field(
+        1.0, gt=0, description="Smoothing window for heat flux (s)"
+    )
+
+    # Solid Phase Gas Transport (Priority 1)
+    layer_divide: float | None = Field(None, ge=0, description="Layer division for gas transport")
+
+    # Testing Parameters (Priority 1)
+    tga_analysis: bool = Field(False, description="Enable TGA analysis mode")
+    tga_heating_rate: float = Field(5.0, gt=0, description="TGA heating rate (K/min)")
+    tga_final_temperature: float = Field(800.0, description="TGA final temperature (°C)")
+    tga_dt: float | None = Field(None, gt=0, description="TGA timestep (s)")
+    tga_dump: float | None = Field(None, gt=0, description="TGA output spacing (°C)")
+    tga_conversion_factor: float = Field(1.0, description="TGA output multiplier")
+    mcc_conversion_factor: float = Field(1.0, description="MCC output multiplier")
+    dsc_conversion_factor: float = Field(1.0, description="DSC output multiplier")
+
+    # Liquid Evaporation (Priority 1)
+    mass_transfer_coefficient: float | None = Field(
+        None, gt=0, description="Mass transfer coefficient (m/s)"
+    )
+
     @field_validator("rgb")
     @classmethod
     def validate_rgb(cls, v: tuple[int, int, int] | None) -> tuple[int, int, int] | None:
@@ -122,9 +178,17 @@ class Surface(NamelistBase):
             return v.upper()
         return v
 
+    @field_validator("spec_id")
+    @classmethod
+    def normalize_spec_id(cls, v: list[str] | str | None) -> list[str] | str | None:
+        """Normalize SPEC_ID to list or string."""
+        # Keep as-is, will be handled in validation
+        return v
+
     @model_validator(mode="after")
-    def validate_heat_source(self) -> "Surface":
-        """Validate mutually exclusive heat source specifications."""
+    def validate_surface(self) -> "Surface":
+        """Validate surface parameters and dependencies."""
+        # Validate mutually exclusive heat source specifications
         heat_sources = [
             self.hrrpua is not None,
             self.mlrpua is not None,
@@ -137,6 +201,79 @@ class Surface(NamelistBase):
                 "Only one heat source specification allowed per SURF: "
                 "HRRPUA, MLRPUA, MASS_FLUX_TOTAL, CONVECTIVE_HEAT_FLUX, or NET_HEAT_FLUX"
             )
+
+        # Validate SPEC_ID and MASS_FRACTION consistency
+        if self.mass_fraction is not None:
+            if self.spec_id is None:
+                raise ValueError("MASS_FRACTION requires SPEC_ID to be specified")
+            if isinstance(self.spec_id, str):
+                raise ValueError(
+                    "MASS_FRACTION requires SPEC_ID to be a list of species, not a single species"
+                )
+            if len(self.spec_id) != len(self.mass_fraction):
+                raise ValueError(
+                    f"SPEC_ID ({len(self.spec_id)} items) and MASS_FRACTION "
+                    f"({len(self.mass_fraction)} items) must have same length"
+                )
+            # Validate mass fractions sum to ~1.0
+            total = sum(self.mass_fraction)
+            if not (0.99 <= total <= 1.01):
+                raise ValueError(f"MASS_FRACTION values must sum to 1.0, got {total:.3f}")
+
+        # Validate fire spread parameters
+        if self.spread_rate is not None and self.hrrpua is None and self.mlrpua is None:
+            raise ValueError("SPREAD_RATE requires HRRPUA or MLRPUA to be specified")
+
+        # Validate extinction temperature
+        if (
+            self.extinction_temperature is not None
+            and self.ignition_temperature is not None
+            and self.extinction_temperature > self.ignition_temperature
+        ):
+            raise ValueError(
+                f"EXTINCTION_TEMPERATURE ({self.extinction_temperature}°C) must be <= "
+                f"IGNITION_TEMPERATURE ({self.ignition_temperature}°C)"
+            )
+
+        # Validate SPyro model requirements
+        spyro_params = [
+            self.reference_heat_flux is not None,
+            self.ignition_temperature is not None and self.ramp_q is not None,
+        ]
+        if (
+            any(spyro_params)
+            and not all([self.hrrpua is not None, self.ignition_temperature is not None])
+            and self.reference_heat_flux is not None
+            and self.ramp_q is None
+        ):
+            # SPyro model is being used - check requirements
+            raise ValueError(
+                "SPyro model (REFERENCE_HEAT_FLUX) requires RAMP_Q to be specified with test data"
+            )
+
+        # Validate REFERENCE_HEAT_FLUX and REFERENCE_THICKNESS array consistency
+        if self.reference_heat_flux is not None and self.reference_thickness is not None:
+            # Convert to lists for validation
+            ref_flux = (
+                self.reference_heat_flux
+                if isinstance(self.reference_heat_flux, list)
+                else [self.reference_heat_flux]
+            )
+            ref_thick = (
+                self.reference_thickness
+                if isinstance(self.reference_thickness, list)
+                else [self.reference_thickness]
+            )
+            if len(ref_flux) != len(ref_thick):
+                raise ValueError(
+                    f"REFERENCE_HEAT_FLUX ({len(ref_flux)} values) and REFERENCE_THICKNESS "
+                    f"({len(ref_thick)} values) must have same length for multiple experiments"
+                )
+
+        # Validate TGA_ANALYSIS requirements
+        if self.tga_analysis and self.matl_id is None:
+            raise ValueError("TGA_ANALYSIS requires MATL_ID to be specified")
+
         return self
 
     def to_fds(self) -> str:
@@ -220,5 +357,67 @@ class Surface(NamelistBase):
             params["vel_part"] = self.vel_part
         if self.particle_velocity is not None:
             params["particle_velocity"] = self.particle_velocity
+
+        # Fire Spread Parameters
+        if self.spread_rate is not None:
+            params["spread_rate"] = self.spread_rate
+        if self.xyz is not None:
+            params["xyz"] = self.xyz
+        if self.area_multiplier != 1.0:
+            params["area_multiplier"] = self.area_multiplier
+
+        # Species Control
+        if self.spec_id is not None:
+            params["spec_id"] = self.spec_id
+        if self.mass_fraction is not None:
+            params["mass_fraction"] = self.mass_fraction
+
+        # Thermally-Thick Specified Burning
+        if self.heat_of_vaporization is not None:
+            params["heat_of_vaporization"] = self.heat_of_vaporization
+        if self.extinction_temperature is not None:
+            params["extinction_temperature"] = self.extinction_temperature
+        if self.burn_duration is not None:
+            params["burn_duration"] = self.burn_duration
+
+        # SPyro Model Parameters
+        if self.inert_q_ref:
+            params["inert_q_ref"] = self.inert_q_ref
+        if self.reference_heat_flux is not None:
+            params["reference_heat_flux"] = self.reference_heat_flux
+        if self.reference_thickness is not None:
+            params["reference_thickness"] = self.reference_thickness
+        if self.maximum_scaling_heat_flux != 1500.0:
+            params["maximum_scaling_heat_flux"] = self.maximum_scaling_heat_flux
+        if self.minimum_scaling_heat_flux != 0.0:
+            params["minimum_scaling_heat_flux"] = self.minimum_scaling_heat_flux
+        if self.reference_heat_flux_time_interval != 1.0:
+            params["reference_heat_flux_time_interval"] = self.reference_heat_flux_time_interval
+
+        # Solid Phase Gas Transport
+        if self.layer_divide is not None:
+            params["layer_divide"] = self.layer_divide
+
+        # Testing Parameters
+        if self.tga_analysis:
+            params["tga_analysis"] = self.tga_analysis
+        if self.tga_heating_rate != 5.0:
+            params["tga_heating_rate"] = self.tga_heating_rate
+        if self.tga_final_temperature != 800.0:
+            params["tga_final_temperature"] = self.tga_final_temperature
+        if self.tga_dt is not None:
+            params["tga_dt"] = self.tga_dt
+        if self.tga_dump is not None:
+            params["tga_dump"] = self.tga_dump
+        if self.tga_conversion_factor != 1.0:
+            params["tga_conversion_factor"] = self.tga_conversion_factor
+        if self.mcc_conversion_factor != 1.0:
+            params["mcc_conversion_factor"] = self.mcc_conversion_factor
+        if self.dsc_conversion_factor != 1.0:
+            params["dsc_conversion_factor"] = self.dsc_conversion_factor
+
+        # Liquid Evaporation
+        if self.mass_transfer_coefficient is not None:
+            params["mass_transfer_coefficient"] = self.mass_transfer_coefficient
 
         return self._build_namelist("SURF", params)
