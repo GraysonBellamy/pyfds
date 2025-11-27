@@ -4,6 +4,7 @@ Unit tests for the NamelistFactory.
 
 import pytest
 
+from pyfds.core.geometry import Bounds3D, Grid3D
 from pyfds.core.namelists import Head, Mesh, NamelistFactory, Surface, Time
 
 
@@ -21,8 +22,8 @@ class TestNamelistFactory:
         """Test creating MESH namelist."""
         mesh = NamelistFactory.create("mesh", ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
         assert isinstance(mesh, Mesh)
-        assert mesh.ijk == (10, 10, 10)
-        assert mesh.xb == (0, 1, 0, 1, 0, 1)
+        assert mesh.ijk == Grid3D(nx=10, ny=10, nz=10)
+        assert mesh.xb == Bounds3D(xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1)
 
     def test_create_unknown_namelist(self):
         """Test creating unknown namelist raises error."""
@@ -58,8 +59,8 @@ class TestNamelistFactory:
         fds_text = "&MESH XB=0,5,0,5,0,5, IJK=10,10,10 /"
         mesh = NamelistFactory.parse_fds_namelist(fds_text)
         assert isinstance(mesh, Mesh)
-        assert mesh.xb == (0.0, 5.0, 0.0, 5.0, 0.0, 5.0)
-        assert mesh.ijk == (10, 10, 10)
+        assert mesh.xb == Bounds3D(xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
+        assert mesh.ijk == Grid3D(nx=10, ny=10, nz=10)
 
     def test_parse_fds_namelist_multiple_params(self):
         """Test parsing FDS namelist with multiple parameters."""

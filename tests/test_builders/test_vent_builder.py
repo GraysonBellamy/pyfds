@@ -3,7 +3,7 @@
 import pytest
 
 from pyfds.builders import VentBuilder
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Point3D
 
 
 class TestVentBuilder:
@@ -14,7 +14,7 @@ class TestVentBuilder:
         vent = VentBuilder.opening(xb=(5, 5, 2, 4, 0, 2.1), id="DOOR")
 
         assert vent.id == "DOOR"
-        assert vent.xb == (5, 5, 2, 4, 0, 2.1)
+        assert vent.xb == Bounds3D(5, 5, 2, 4, 0, 2.1)
         assert vent.surf_id == "OPEN"
 
     def test_opening_no_id(self):
@@ -55,10 +55,8 @@ class TestVentBuilder:
         assert vent.xyz == Point3D(0, 0, 0)
         assert vent.radius == 0.5
         assert vent.surf_id == "FIRE"
-        # Check bounding box is correct
-        assert vent.xb == (-0.5, 0.5, -0.5, 0.5, 0, 0)
-
-    def test_annular_burner(self):
+    # Check bounding box is correct
+    assert vent.xb == Bounds3D(xmin=-0.5, xmax=0.5, ymin=-0.5, ymax=0.5, zmin=0, zmax=0)    def test_annular_burner(self):
         """Test annular (ring) burner vent."""
         vent = VentBuilder.annular_burner(
             center=(0, 0, 0),
@@ -99,13 +97,13 @@ class TestVentBuilder:
 
         assert vent.id == "DOOR_1"
         assert vent.surf_id == "OPEN"
-        assert vent.xb == (5.0, 5.0, 2.0, 3.0, 0.0, 2.1)
+        assert vent.xb == Bounds3D(xmin=5.0, xmax=5.0, ymin=2.0, ymax=3.0, zmin=0.0, zmax=2.1)
 
     def test_door_custom_height(self):
         """Test door with custom height."""
         vent = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0, z_min=0.1, z_max=2.5, id="TALL_DOOR")
 
-        assert vent.xb == (5.0, 5.0, 2.0, 3.0, 0.1, 2.5)
+        assert vent.xb == Bounds3D(xmin=5.0, xmax=5.0, ymin=2.0, ymax=3.0, zmin=0.1, zmax=2.5)
 
     def test_window(self):
         """Test window opening."""
@@ -113,7 +111,7 @@ class TestVentBuilder:
 
         assert vent.id == "WINDOW_1"
         assert vent.surf_id == "OPEN"
-        assert vent.xb == (0.0, 0.0, 1.0, 2.0, 1.0, 1.5)
+        assert vent.xb == Bounds3D(xmin=0.0, xmax=0.0, ymin=1.0, ymax=2.0, zmin=1.0, zmax=1.5)
 
     def test_fds_output_format_opening(self):
         """Test FDS output format for opening."""

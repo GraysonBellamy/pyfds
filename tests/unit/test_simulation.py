@@ -4,6 +4,7 @@ Unit tests for Simulation class.
 
 import pytest
 
+from pyfds.core.geometry import Bounds3D, Grid3D
 from pyfds.core.simulation import Simulation
 
 
@@ -39,7 +40,7 @@ class TestSimulation:
 
         assert result is sim  # Check method chaining
         assert len(sim.geometry.meshes) == 1
-        assert sim.geometry.meshes[0].ijk == (10, 10, 10)
+        assert sim.geometry.meshes[0].ijk == Grid3D(nx=10, ny=10, nz=10)
 
     def test_multiple_meshes(self):
         """Test adding multiple meshes."""
@@ -83,7 +84,7 @@ class TestSimulation:
 
         assert result is sim
         assert len(sim.instrumentation.devices) == 1
-        assert sim.instrumentation.devices[0].xb == (0, 1, 0, 1, 0, 1)
+        assert sim.instrumentation.devices[0].xb == Bounds3D(xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1)
 
     def test_device_method_validation(self):
         """Test device() method requires either XYZ or XB."""

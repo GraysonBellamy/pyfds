@@ -50,6 +50,12 @@ class NamelistBase(BaseModel, ABC):
         """
         # Convert keys to lowercase for case-insensitive matching
         normalized_data = {k.lower(): v for k, v in data.items()}
+
+        # Convert lists to tuples for geometry fields that expect tuples
+        for key in ["ijk", "xb"]:
+            if key in normalized_data and isinstance(normalized_data[key], list):
+                normalized_data[key] = tuple(normalized_data[key])
+
         return cls(**normalized_data)
 
     def _format_value(self, value: Any) -> str:

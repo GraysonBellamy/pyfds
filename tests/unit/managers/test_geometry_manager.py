@@ -2,6 +2,7 @@
 Unit tests for GeometryManager.
 """
 
+from pyfds.core.geometry import Grid3D
 from pyfds.core.managers.geometry import GeometryManager
 from pyfds.core.simulation import Simulation
 
@@ -23,7 +24,7 @@ class TestGeometryManager:
 
         # Access through manager
         assert len(sim.geometry.meshes) == 1
-        assert sim.geometry.meshes[0].ijk == (10, 10, 10)
+        assert sim.geometry.meshes[0].ijk == Grid3D(nx=10, ny=10, nz=10)
 
     def test_add_multiple_meshes_via_simulation(self):
         """Test adding multiple meshes."""
