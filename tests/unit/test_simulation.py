@@ -84,7 +84,9 @@ class TestSimulation:
 
         assert result is sim
         assert len(sim.instrumentation.devices) == 1
-        assert sim.instrumentation.devices[0].xb == Bounds3D(xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1)
+        assert sim.instrumentation.devices[0].xb == Bounds3D(
+            xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1
+        )
 
     def test_device_method_validation(self):
         """Test device() method requires either XYZ or XB."""

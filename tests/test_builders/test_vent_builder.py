@@ -55,8 +55,11 @@ class TestVentBuilder:
         assert vent.xyz == Point3D(0, 0, 0)
         assert vent.radius == 0.5
         assert vent.surf_id == "FIRE"
-    # Check bounding box is correct
-    assert vent.xb == Bounds3D(xmin=-0.5, xmax=0.5, ymin=-0.5, ymax=0.5, zmin=0, zmax=0)    def test_annular_burner(self):
+
+        # Check bounding box is correct
+        assert vent.xb == Bounds3D(xmin=-0.5, xmax=0.5, ymin=-0.5, ymax=0.5, zmin=0, zmax=0)
+
+    def test_annular_burner(self):
         """Test annular (ring) burner vent."""
         vent = VentBuilder.annular_burner(
             center=(0, 0, 0),
@@ -65,6 +68,8 @@ class TestVentBuilder:
             surf_id="FIRE",
             id="RING_BURNER",
         )
+        # Check bounding box is correct
+        assert vent.xb == Bounds3D(xmin=-0.5, xmax=0.5, ymin=-0.5, ymax=0.5, zmin=0, zmax=0)
 
         assert vent.xyz == Point3D(0, 0, 0)
         assert vent.radius == 0.5
