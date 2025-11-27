@@ -160,6 +160,8 @@ class TestSurfSPyroModel:
         surf = Surface(
             id="TEST",
             hrrpua=1.0,
+            ignition_temperature=300.0,
+            ramp_q="test_data",
             reference_heat_flux=[25.0, 50.0],
             reference_thickness=[0.01, 0.02],
         )
@@ -171,6 +173,8 @@ class TestSurfSPyroModel:
             Surface(
                 id="BAD",
                 hrrpua=1.0,
+                ignition_temperature=300.0,
+                ramp_q="test_data",
                 reference_heat_flux=[25.0, 50.0, 75.0],
                 reference_thickness=[0.01, 0.02],
             )

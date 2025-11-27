@@ -115,7 +115,7 @@ class Surface(NamelistBase):
         None, description="Reference heat flux from test device (kW/m²)"
     )
     reference_thickness: list[float] | float | None = Field(
-        None, gt=0, description="Sample thickness in experiment (m)"
+        None, description="Sample thickness in experiment (m)"
     )
     maximum_scaling_heat_flux: float = Field(
         1500.0, gt=0, description="Upper limit on scaling heat flux (kW/m²)"
@@ -176,6 +176,21 @@ class Surface(NamelistBase):
             if v.upper() not in valid_patterns:
                 raise ValueError(f"SPRAY_PATTERN must be one of {valid_patterns}, got '{v}'")
             return v.upper()
+        return v
+
+    @field_validator("reference_thickness")
+    @classmethod
+    def validate_reference_thickness(
+        cls, v: list[float] | float | None
+    ) -> list[float] | float | None:
+        """Validate reference thickness values are positive."""
+        if v is not None:
+            if isinstance(v, list):
+                if any(thickness <= 0 for thickness in v):
+                    raise ValueError("All REFERENCE_THICKNESS values must be > 0")
+            else:
+                if v <= 0:
+                    raise ValueError("REFERENCE_THICKNESS must be > 0")
         return v
 
     @field_validator("spec_id")
