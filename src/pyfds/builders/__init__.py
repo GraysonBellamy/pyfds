@@ -30,18 +30,26 @@ Examples
 
 from .base import Builder
 from .control import ControlBuilder
+from .devc import DevcBuilder
 from .material import MaterialBuilder
+from .mesh import MeshBuilder
+from .part import PartBuilder
 from .prop import PropBuilder
 from .ramp import RampBuilder
 from .reaction import ReactionBuilder
+from .surf import SurfBuilder
 from .vent import VentBuilder
 
 __all__ = [
     "Builder",
     "ControlBuilder",
+    "DevcBuilder",
     "MaterialBuilder",
+    "MeshBuilder",
+    "PartBuilder",
     "PropBuilder",
     "RampBuilder",
     "ReactionBuilder",
+    "SurfBuilder",
     "VentBuilder",
 ]

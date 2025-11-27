@@ -74,6 +74,11 @@ class MaterialBuilder(Builder[Material]):
         self._absorption_coefficient: float = 50000.0
         self._reference_temperature: float | None = None
         self._reactions: list[dict] = []
+        # Stage 2.4 enhancements
+        self._spec_id: str | None = None
+        self._yield_fraction: float | None = None
+        self._heat_of_combustion: float | None = None
+        self._reference_rate: float | None = None
 
     def density(self, value: float) -> "MaterialBuilder":
         """
@@ -231,6 +236,81 @@ class MaterialBuilder(Builder[Material]):
         self._reference_temperature = temp
         return self
 
+    def with_pyrolysis_product(
+        self, spec_id: str, yield_fraction: float | None = None
+    ) -> "MaterialBuilder":
+        """
+        Set pyrolysis product for single-reaction materials (Stage 2.4).
+
+        Parameters
+        ----------
+        spec_id : str
+            Gas species ID produced by pyrolysis
+        yield_fraction : float, optional
+            Fraction of material yielded (0-1)
+
+        Returns
+        -------
+        MaterialBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> mat = MaterialBuilder('PMMA') \\
+        ...     .density(1200) \\
+        ...     .thermal_conductivity(0.19) \\
+        ...     .specific_heat(1.4) \\
+        ...     .with_pyrolysis_product('MMA_VAPOR', yield_fraction=1.0) \\
+        ...     .build()
+        """
+        self._spec_id = spec_id
+        if yield_fraction is not None:
+            self._yield_fraction = yield_fraction
+        return self
+
+    def with_heat_of_combustion(self, value: float) -> "MaterialBuilder":
+        """
+        Set heat of combustion (Stage 2.4).
+
+        Parameters
+        ----------
+        value : float
+            Heat of combustion in kJ/kg
+
+        Returns
+        -------
+        MaterialBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> mat = MaterialBuilder('FUEL') \\
+        ...     .density(800) \\
+        ...     .thermal_conductivity(0.1) \\
+        ...     .specific_heat(2.0) \\
+        ...     .with_heat_of_combustion(25000) \\
+        ...     .build()
+        """
+        self._heat_of_combustion = value
+        return self
+
+    def with_reference_rate(self, rate: float) -> "MaterialBuilder":
+        """
+        Set reference reaction rate (Stage 2.4).
+
+        Parameters
+        ----------
+        rate : float
+            Reference reaction rate in 1/s
+
+        Returns
+        -------
+        MaterialBuilder
+            Self for method chaining
+        """
+        self._reference_rate = rate
+        return self
+
     def add_pyrolysis_reaction(
         self,
         a: float,
@@ -330,6 +410,16 @@ class MaterialBuilder(Builder[Material]):
         # Reference temperature
         if self._reference_temperature is not None:
             params["reference_temperature"] = self._reference_temperature
+
+        # Stage 2.4 enhancements
+        if self._spec_id is not None:
+            params["spec_id"] = self._spec_id
+        if self._yield_fraction is not None:
+            params["yield_fraction"] = self._yield_fraction
+        if self._heat_of_combustion is not None:
+            params["heat_of_combustion"] = self._heat_of_combustion
+        if self._reference_rate is not None:
+            params["reference_rate"] = self._reference_rate
 
         # Pyrolysis reactions
         if self._reactions:

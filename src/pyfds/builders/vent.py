@@ -20,10 +20,9 @@ class VentBuilder(Builder[Vent]):
     ...     id='DOOR'
     ... )
 
-    >>> # HVAC supply vent
-    >>> supply = VentBuilder.hvac_supply(
+    >>> # HVAC vent (define flow on SURF, not VENT)
+    >>> hvac_vent = VentBuilder.opening(
     ...     xb=(5, 6, 5, 6, 3, 3),
-    ...     volume_flow=0.5,
     ...     id='SUPPLY_VENT'
     ... )
 
@@ -69,74 +68,6 @@ class VentBuilder(Builder[Vent]):
         >>> window = VentBuilder.opening(xb=(0, 0, 1, 2, 1, 1.5))
         """
         return Vent(xb=xb, surf_id="OPEN", id=id)
-
-    @classmethod
-    def hvac_supply(
-        cls,
-        xb: tuple[float, float, float, float, float, float],
-        volume_flow: float,
-        id: str | None = None,
-    ) -> Vent:
-        """
-        Create HVAC supply vent.
-
-        Parameters
-        ----------
-        xb : tuple[float, float, float, float, float, float]
-            Bounding box (xmin, xmax, ymin, ymax, zmin, zmax)
-        volume_flow : float
-            Volume flow rate in m³/s (positive for supply)
-        id : str, optional
-            Vent identifier
-
-        Returns
-        -------
-        Vent
-            HVAC supply vent object
-
-        Examples
-        --------
-        >>> supply = VentBuilder.hvac_supply(
-        ...     xb=(5, 6, 5, 6, 3, 3),
-        ...     volume_flow=0.5,
-        ...     id='SUPPLY'
-        ... )
-        """
-        return Vent(xb=xb, surf_id="HVAC", volume_flow=volume_flow, id=id)
-
-    @classmethod
-    def hvac_exhaust(
-        cls,
-        xb: tuple[float, float, float, float, float, float],
-        volume_flow: float,
-        id: str | None = None,
-    ) -> Vent:
-        """
-        Create HVAC exhaust vent.
-
-        Parameters
-        ----------
-        xb : tuple[float, float, float, float, float, float]
-            Bounding box (xmin, xmax, ymin, ymax, zmin, zmax)
-        volume_flow : float
-            Volume flow rate in m³/s (will be made negative for exhaust)
-        id : str, optional
-            Vent identifier
-
-        Returns
-        -------
-        Vent
-            HVAC exhaust vent object
-
-        Examples
-        --------
-        >>> exhaust = VentBuilder.hvac_exhaust(
-        ...     xb=(0, 1, 0, 1, 3, 3),
-        ...     volume_flow=0.3,
-        ...     id='EXHAUST'
-        ... )
-        """
-        return Vent(xb=xb, surf_id="HVAC", volume_flow=-abs(volume_flow), id=id)
 
     @classmethod
     def circular_burner(
@@ -365,6 +296,6 @@ class VentBuilder(Builder[Vent]):
             This builder uses factory methods instead
         """
         raise NotImplementedError(
-            "VentBuilder uses factory methods (opening, hvac_supply, etc.) "
+            "VentBuilder uses factory methods (opening, circular_burner, etc.) "
             "instead of the standard build() pattern"
         )

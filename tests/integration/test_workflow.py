@@ -246,25 +246,35 @@ class TestVentMiscIntegration:
         assert "SURF_ID='OPEN'" in content
 
     def test_hvac_system(self, tmp_path):
-        """Test HVAC system with supply and exhaust vents."""
+        """Test HVAC system with supply and exhaust vents.
+
+        Note: HVAC flow parameters (VOLUME_FLOW, VEL, MASS_FLOW) are defined
+        on SURF namelists, not VENT namelists, per FDS User Guide.
+        """
         sim = Simulation("hvac_test")
         sim.set_misc()  # Use defaults
         sim.mesh(ijk=(40, 40, 20), xb=(0, 10, 0, 10, 0, 3))
         sim.time(t_end=300.0)
 
-        # Add HVAC vents using convenience method
-        sim.vent(xb=(2, 2.5, 2, 2.5, 3, 3), surf_id="HVAC", volume_flow=0.5)
-        sim.vent(xb=(7.5, 8, 7.5, 8, 3, 3), surf_id="HVAC", volume_flow=-0.4)
+        # Define HVAC surfaces with flow parameters
+        sim.surface(id="HVAC_SUPPLY", volume_flow=-0.5)  # Negative = supply
+        sim.surface(id="HVAC_EXHAUST", volume_flow=0.4)  # Positive = exhaust
+
+        # Add HVAC vents that reference the surfaces
+        sim.vent(xb=(2, 2.5, 2, 2.5, 3, 3), surf_id="HVAC_SUPPLY")
+        sim.vent(xb=(7.5, 8, 7.5, 8, 3, 3), surf_id="HVAC_EXHAUST")
 
         output_file = tmp_path / "hvac_test.fds"
         sim.write(output_file)
         content = output_file.read_text()
 
-        # Verify HVAC vents
+        # Verify HVAC surfaces and vents
         assert content.count("&VENT") == 2
-        assert "SURF_ID='HVAC'" in content
-        assert "VOLUME_FLOW=0.5" in content
-        assert "VOLUME_FLOW=-0.4" in content
+        assert content.count("&SURF") >= 2
+        assert "SURF_ID='HVAC_SUPPLY'" in content
+        assert "SURF_ID='HVAC_EXHAUST'" in content
+        assert "VOLUME_FLOW=-0.5" in content
+        assert "VOLUME_FLOW=0.4" in content
 
     def test_wildfire_simulation(self, tmp_path):
         """Test wildfire simulation with special settings."""

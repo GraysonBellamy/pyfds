@@ -48,6 +48,8 @@ uv sync --extra dev
 
 ## Quick Start
 
+### Basic Fire Simulation
+
 Create a simple room fire simulation in just a few lines:
 
 ```python
@@ -75,6 +77,67 @@ sim.device(id='TEMP_CEILING', quantity='TEMPERATURE',
 
 # Validate and write
 sim.write('room_fire.fds')
+```
+
+### Advanced Fire Simulation (Stage 1 Features ✨)
+
+Use the new builder API for advanced fire scenarios:
+
+```python
+from pyfds import Simulation
+from pyfds.builders import SurfBuilder, DevcBuilder, MeshBuilder, ReactionBuilder
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Head, Time
+
+# Create simulation
+sim = Simulation()
+sim.add(Head(chid='advanced_fire', title='Fire with Sprinkler Control'))
+sim.add(Time(t_end=300.0))
+
+# Mesh with parallel processing
+mesh = (MeshBuilder()
+       .with_id('ROOM')
+       .with_bounds(Bounds3D(0, 6, 0, 6, 0, 3))
+       .with_grid(Grid3D(60, 60, 30))
+       .with_mpi(process=0, n_threads=4)
+       .build())
+sim.add(mesh)
+
+# Growing fire with ramped heat release
+fire_surf = (SurfBuilder('FIRE')
+            .with_heat_release(500.0, ramp_id='t2_growth')
+            .with_ignition(temperature=250.0, burn_away=True)
+            .with_radiation(emissivity=0.9)
+            .build())
+sim.add(fire_surf)
+
+# Sprinkler with activation control
+sprinkler = (DevcBuilder('SPRINK1')
+            .with_quantity('SPRINKLER_LINK_TEMPERATURE')
+            .with_control(setpoint=74.0, trip_direction=1, latch=True)
+            .at_point(Point3D(3.0, 3.0, 2.8))
+            .build())
+sim.add(sprinkler)
+
+# Statistical temperature monitoring
+avg_temp = (DevcBuilder('AVG_TEMP')
+           .with_quantity('TEMPERATURE')
+           .with_statistics('MEAN', start_time=10.0)
+           .in_bounds(Bounds3D(0, 6, 0, 6, 2.0, 3.0))
+           .build())
+sim.add(avg_temp)
+
+# Advanced combustion with suppression
+reaction = (ReactionBuilder()
+           .fuel('PROPANE')
+           .with_extinction('EXTINCTION_1', critical_temp=1200.0)
+           .with_suppression(k_suppression=0.3)
+           .radiative_fraction(0.35)
+           .build())
+sim.add(reaction)
+
+# Write FDS input file
+sim.write('advanced_fire.fds')
 ```
 
 ## Phase 2 Features: Execution and Analysis
@@ -310,10 +373,17 @@ for warning in validator.get_warnings():
 
 See the `examples/` directory for complete examples:
 
+### Stage 1 Examples (NEW! ✨)
+- [`01_simple_room_fire.py`](examples/01_simple_room_fire.py) - Basic fire with heat release and monitoring
+- [`02_fire_with_sprinkler.py`](examples/02_fire_with_sprinkler.py) - Growing fire with sprinkler control and suppression
+- [`03_multi_mesh_parallel.py`](examples/03_multi_mesh_parallel.py) - Multi-mesh parallel simulation with MPI
+- [`04_advanced_combustion.py`](examples/04_advanced_combustion.py) - Advanced combustion with extinction and species tracking
+
+### Foundation Examples
 - [`basic_room_fire.py`](examples/basic_room_fire.py) - Simple room fire simulation
 - [`parametric_study.py`](examples/parametric_study.py) - HRR sensitivity study
 - [`advanced_room.py`](examples/advanced_room.py) - Complex geometry with multiple surfaces
-- [`execution_demo.py`](examples/execution_demo.py) - **NEW!** Complete execution and analysis workflow
+- [`execution_demo.py`](examples/execution_demo.py) - Complete execution and analysis workflow
 
 ## Testing
 
@@ -364,7 +434,7 @@ pyfds/
 
 ## Implementation Status
 
-### Phase 1: Foundation  (Complete)
+### Phase 1: Foundation ✅ (Complete)
 - [x] Project structure and dependencies
 - [x] Basic namelist classes (HEAD, TIME, MESH, SURF, OBST, DEVC)
 - [x] FDS file writer
@@ -372,7 +442,7 @@ pyfds/
 - [x] Unit and integration tests
 - [x] Documentation and examples
 
-### Phase 2: Core Features ✅ (Complete)
+### Phase 2: Execution and Analysis ✅ (Complete)
 - [x] Local execution runner with process management
 - [x] CSV output parser for device and HRR data
 - [x] Real-time progress monitoring
@@ -382,17 +452,44 @@ pyfds/
 - [x] Built-in plotting utilities
 - [x] Comprehensive test coverage (100 tests)
 
-### Phase 3: Advanced Features (Planned)
-- [ ] HPC cluster execution support
-- [ ] Binary output parsers
-- [ ] Visualization utilities
-- [ ] Parametric study framework
+### Stage 1: Critical Fire Simulation Features ✅ (Complete)
+**Target**: 35% FDS feature coverage | **Achieved**: 29% (190/647 parameters)
 
-### Phase 4: Polish and Release (Planned)
-- [ ] Complete documentation
-- [ ] Example notebooks
-- [ ] CI/CD pipeline
-- [ ] PyPI release
+- [x] **Phase 1.1**: SURF enhancements (18 new parameters)
+  - Heat release rate, mass flux, pyrolysis control
+  - Radiation properties, time-dependent ramping
+  - SurfBuilder with 16 fluent methods
+- [x] **Phase 1.2**: DEVC enhancements (20 new parameters)
+  - Control logic, statistics, device relationships
+  - DevcBuilder with 17 fluent methods
+- [x] **Phase 1.3**: REAC enhancements (11 new parameters)
+  - Extinction, suppression, species tracking
+  - Enhanced ReactionBuilder with 5 new methods
+- [x] **Phase 1.4**: MESH enhancements (10 new parameters)
+  - MPI parallel processing, stability controls
+  - MeshBuilder with 13 fluent methods
+- [x] **Phase 1.5**: Integration tests (21 comprehensive tests)
+- [x] **Phase 1.6**: Documentation and examples (4 complete examples)
+
+📚 **See [STAGE1_FEATURES.md](STAGE1_FEATURES.md) for complete documentation**
+
+### Stage 2: Particle Systems (Planned)
+- [ ] PART namelist for particle tracking
+- [ ] PROP namelist for device properties
+- [ ] Enhanced SURF for particle generation
+- [ ] Sprinkler and spray systems
+
+### Stage 3: Vegetation and HVAC (Planned)
+- [ ] Vegetation parameters for wildfire modeling
+- [ ] MULT namelist for geometry replication
+- [ ] GEOM namelist for complex geometry
+- [ ] HVAC namelist for HVAC systems
+
+### Stage 4: Advanced Features (Planned)
+- [ ] Finite-rate chemistry
+- [ ] CTRL namelist for control functions
+- [ ] INIT namelist for initial conditions
+- [ ] Advanced radiation modeling
 
 ## Requirements
 

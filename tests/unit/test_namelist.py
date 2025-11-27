@@ -439,12 +439,11 @@ class TestVent:
         area = vent.get_area()
         assert area == pytest.approx(6.0)  # 2m x 3m
 
-    def test_hvac_supply_vent(self):
-        """Test HVAC supply vent."""
-        vent = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id="HVAC", volume_flow=0.5)
+    def test_hvac_vent(self):
+        """Test HVAC vent (flow parameters defined on SURF, not VENT)."""
+        vent = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id="HVAC")
         assert vent.surf_id == "HVAC"
         assert vent.get_vent_type() == VentType.HVAC
-        assert vent.volume_flow == 0.5
         area = vent.get_area()
         assert area == pytest.approx(1.0)
 
@@ -512,11 +511,6 @@ class TestVent:
                 radius_inner=1.0,
             )
 
-    def test_hvac_only_one_flow_parameter(self):
-        """Test HVAC vent can only have one flow parameter."""
-        with pytest.raises(ValidationError, match="can only specify one of"):
-            Vent(xb=(5, 6, 5, 6, 3, 3), surf_id="HVAC", volume_flow=0.5, mass_flow=0.6)
-
     def test_mb_valid_values(self):
         """Test MB must be valid boundary name."""
         with pytest.raises(ValidationError, match="MB must be one of"):
@@ -541,10 +535,9 @@ class TestVent:
 
     def test_vent_to_fds_hvac(self):
         """Test FDS output for HVAC vent."""
-        vent = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id="HVAC", volume_flow=0.5)
+        vent = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id="HVAC")
         fds_str = vent.to_fds()
         assert "SURF_ID='HVAC'" in fds_str
-        assert "VOLUME_FLOW=0.5" in fds_str
 
     def test_vent_to_fds_circular(self):
         """Test FDS output for circular vent."""

@@ -44,6 +44,23 @@ class Mesh(NamelistBase):
     id: str | None = Field(None, description="Mesh identifier")
     mpi_process: int | None = Field(None, ge=0, description="MPI process number")
 
+    # Parallel Processing (Stage 1.4)
+    n_threads: int | None = Field(None, ge=1, description="Number of OpenMP threads")
+
+    # Mesh Refinement (Stage 1.4)
+    mult_id: str | None = Field(None, description="MULT ID for mesh replication")
+
+    # Performance Parameters (Stage 1.4)
+    maximum_internal_iterations: int = Field(10, ge=1, description="Max pressure iterations")
+    check_vn: bool = Field(True, description="Check Von Neumann number")
+    restrict_time_step: bool = Field(True, description="Restrict time step for stability")
+    vn_max: float = Field(1.0, gt=0, description="Maximum Von Neumann number")
+    cfl_max: float = Field(1.0, gt=0, description="Maximum CFL number")
+    cfl_min: float = Field(0.8, gt=0, description="Minimum CFL number")
+
+    # Cylindrical Coordinates (Stage 1.4)
+    cylindrical: bool = Field(False, description="Use cylindrical coordinates")
+
     @field_validator("ijk", mode="before")
     @classmethod
     def validate_ijk(cls, v: Any) -> Grid3D:
@@ -71,6 +88,33 @@ class Mesh(NamelistBase):
             params["id"] = self.id
         if self.mpi_process is not None:
             params["mpi_process"] = self.mpi_process
+
+        # Parallel Processing
+        if self.n_threads is not None:
+            params["n_threads"] = self.n_threads
+
+        # Mesh Refinement
+        if self.mult_id:
+            params["mult_id"] = self.mult_id
+
+        # Performance Parameters (only output if not default)
+        if self.maximum_internal_iterations != 10:
+            params["maximum_internal_iterations"] = self.maximum_internal_iterations
+        if not self.check_vn:
+            params["check_vn"] = self.check_vn
+        if not self.restrict_time_step:
+            params["restrict_time_step"] = self.restrict_time_step
+        if self.vn_max != 1.0:
+            params["vn_max"] = self.vn_max
+        if self.cfl_max != 1.0:
+            params["cfl_max"] = self.cfl_max
+        if self.cfl_min != 0.8:
+            params["cfl_min"] = self.cfl_min
+
+        # Cylindrical Coordinates
+        if self.cylindrical:
+            params["cylindrical"] = self.cylindrical
+
         return self._build_namelist("MESH", params)
 
     def get_cell_size(self) -> tuple[float, float, float]:

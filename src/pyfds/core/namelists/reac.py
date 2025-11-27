@@ -6,7 +6,7 @@ Combustion reaction definition.
 
 from typing import Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from pyfds.core.namelists.base import NamelistBase
 
@@ -66,6 +66,41 @@ class Reaction(NamelistBase):
     radiative_fraction: float | None = Field(None, ge=0, le=1, description="Radiative fraction")
     auto_ignition_temperature: float | None = Field(None, description="Auto-ignition temp [°C]")
 
+    # Extinction Parameters (Stage 1.3)
+    extinction_model: str | None = Field(
+        None, description="Extinction model: EXTINCTION_1, EXTINCTION_2"
+    )
+    critical_flame_temperature: float | None = Field(
+        None, gt=0, description="Critical flame temperature for extinction (K)"
+    )
+
+    # Suppression Parameters (Stage 1.3)
+    suppression: bool = Field(False, description="Enable suppression model")
+    k_suppression: float | None = Field(None, ge=0, description="Suppression rate constant")
+
+    # Heat of Combustion Mode (Stage 1.3)
+    ideal: bool = Field(True, description="Use ideal heat of combustion")
+
+    # Species Tracking (Stage 1.3)
+    spec_id_nu: list[str] = Field(default_factory=list, description="Species IDs for stoichiometry")
+    nu: list[float] = Field(default_factory=list, description="Stoichiometric coefficients")
+
+    # Advanced Parameters (Stage 1.3)
+    fixed_mix_time: float | None = Field(None, gt=0, description="Fixed mixing time (s)")
+    tau_chem: float | None = Field(None, gt=0, description="Chemical time scale (s)")
+    tau_flame: float | None = Field(None, gt=0, description="Flame time scale (s)")
+
+    @field_validator("extinction_model")
+    @classmethod
+    def validate_extinction_model(cls, v: str | None) -> str | None:
+        """Validate extinction model."""
+        if v is not None:
+            valid_models = ["EXTINCTION_1", "EXTINCTION_2"]
+            if v.upper() not in valid_models:
+                raise ValueError(f"EXTINCTION_MODEL must be one of {valid_models}, got '{v}'")
+            return v.upper()
+        return v
+
     @model_validator(mode="after")
     def validate_reaction(self) -> "Reaction":
         """Validate reaction parameters."""
@@ -73,6 +108,10 @@ class Reaction(NamelistBase):
         total_yield = self.soot_yield + self.co_yield
         if total_yield > 1.0:
             raise ValueError(f"Sum of product yields ({total_yield:.2f}) exceeds 1.0")
+
+        # Validate species stoichiometry
+        if len(self.spec_id_nu) != len(self.nu):
+            raise ValueError("SPEC_ID_NU and NU must have same length")
 
         return self
 
@@ -100,5 +139,35 @@ class Reaction(NamelistBase):
             params["radiative_fraction"] = self.radiative_fraction
         if self.auto_ignition_temperature is not None:
             params["auto_ignition_temperature"] = self.auto_ignition_temperature
+
+        # Extinction Parameters
+        if self.extinction_model:
+            params["extinction_model"] = self.extinction_model
+        if self.critical_flame_temperature is not None:
+            params["critical_flame_temperature"] = self.critical_flame_temperature
+
+        # Suppression Parameters
+        if self.suppression:
+            params["suppression"] = self.suppression
+        if self.k_suppression is not None:
+            params["k_suppression"] = self.k_suppression
+
+        # Heat of Combustion Mode
+        if not self.ideal:  # Only output if False (default is True)
+            params["ideal"] = self.ideal
+
+        # Species Tracking
+        if self.spec_id_nu:
+            params["spec_id_nu"] = self.spec_id_nu
+        if self.nu:
+            params["nu"] = self.nu
+
+        # Advanced Parameters
+        if self.fixed_mix_time is not None:
+            params["fixed_mix_time"] = self.fixed_mix_time
+        if self.tau_chem is not None:
+            params["tau_chem"] = self.tau_chem
+        if self.tau_flame is not None:
+            params["tau_flame"] = self.tau_flame
 
         return self._build_namelist("REAC", params)

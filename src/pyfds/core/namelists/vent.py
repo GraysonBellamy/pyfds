@@ -60,15 +60,6 @@ class Vent(NamelistBase):
     radius_inner : float, optional
         Inner radius for annular vents [m]
 
-    HVAC Parameters
-    --------------
-    volume_flow : float, optional
-        Volume flow rate [m³/s] (positive=inflow, negative=outflow)
-    mass_flow : float, optional
-        Mass flow rate [kg/s]
-    vel : float, optional
-        Velocity [m/s]
-
     Control Parameters
     -----------------
     devc_id : str, optional
@@ -98,8 +89,8 @@ class Vent(NamelistBase):
     >>> # Opening to ambient
     >>> door = Vent(xb=(5, 5, 2, 4, 0, 3), surf_id='OPEN')
 
-    >>> # HVAC supply vent
-    >>> supply = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id='HVAC', volume_flow=0.5)
+    >>> # HVAC vent (flow parameters defined on SURF, not VENT)
+    >>> hvac_vent = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id='HVAC')
 
     >>> # Circular burner
     >>> burner = Vent(
@@ -115,7 +106,7 @@ class Vent(NamelistBase):
     Notes
     -----
     - VENTs must be planar (exactly one dimension in XB must be zero)
-    - HVAC vents should reference a SURF with VOLUME_FLOW, VEL, or MASS_FLOW
+    - HVAC flow parameters (VOLUME_FLOW, VEL, MASS_FLOW) are defined on SURF, not VENT
     - Circular vents require both xyz and radius
     - For mesh boundaries, use mb instead of xb
     """

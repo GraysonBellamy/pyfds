@@ -24,27 +24,6 @@ class TestVentBuilder:
         assert vent.id is None
         assert vent.surf_id == "OPEN"
 
-    def test_hvac_supply(self):
-        """Test HVAC supply vent."""
-        vent = VentBuilder.hvac_supply(xb=(5, 6, 5, 6, 3, 3), volume_flow=0.5, id="SUPPLY")
-
-        assert vent.id == "SUPPLY"
-        assert vent.surf_id == "HVAC"
-        assert vent.volume_flow == 0.5
-
-    def test_hvac_exhaust(self):
-        """Test HVAC exhaust vent."""
-        vent = VentBuilder.hvac_exhaust(xb=(0, 1, 0, 1, 3, 3), volume_flow=0.3, id="EXHAUST")
-
-        assert vent.surf_id == "HVAC"
-        assert vent.volume_flow == -0.3  # Should be negative
-
-    def test_hvac_exhaust_negative_input(self):
-        """Test HVAC exhaust with already negative flow."""
-        vent = VentBuilder.hvac_exhaust(xb=(0, 1, 0, 1, 3, 3), volume_flow=-0.3, id="EXHAUST")
-
-        assert vent.volume_flow == -0.3  # Should stay negative
-
     def test_circular_burner(self):
         """Test circular burner vent."""
         vent = VentBuilder.circular_burner(
@@ -126,14 +105,6 @@ class TestVentBuilder:
         assert "&VENT" in fds_output
         assert "ID='DOOR'" in fds_output
         assert "SURF_ID='OPEN'" in fds_output
-
-    def test_fds_output_format_hvac(self):
-        """Test FDS output format for HVAC."""
-        vent = VentBuilder.hvac_supply(xb=(5, 6, 5, 6, 3, 3), volume_flow=0.5, id="SUPPLY")
-
-        fds_output = vent.to_fds()
-        assert "SURF_ID='HVAC'" in fds_output
-        assert "VOLUME_FLOW=0.5" in fds_output
 
     def test_fds_output_format_circular(self):
         """Test FDS output format for circular vent."""

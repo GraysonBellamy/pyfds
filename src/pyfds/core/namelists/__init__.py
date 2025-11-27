@@ -15,6 +15,7 @@ from pyfds.core.namelists.matl import Material
 from pyfds.core.namelists.mesh import Mesh
 from pyfds.core.namelists.misc import Misc, TurbulenceModel
 from pyfds.core.namelists.obst import Obstruction
+from pyfds.core.namelists.part import Part
 from pyfds.core.namelists.prop import Prop
 from pyfds.core.namelists.ramp import Ramp
 from pyfds.core.namelists.reac import Reaction
@@ -34,6 +35,7 @@ __all__ = [
     "NamelistBase",
     "NamelistFactory",
     "Obstruction",
+    "Part",
     "Prop",
     "Ramp",
     "Reaction",

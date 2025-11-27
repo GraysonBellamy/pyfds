@@ -376,12 +376,143 @@ sim.material(
 | Brick | 0.69 | 0.84 | 1920 |
 | Insulation | 0.04 | 0.84 | 100 |
 
+## Pyrolysis Materials
+
+Materials can thermally decompose (pyrolyze) producing gaseous fuel vapors and solid residues.
+
+### Single-Reaction Pyrolysis
+
+Simple material that decomposes into one product:
+
+```python
+from pyfds.builders import MaterialBuilder
+
+# PMMA pyrolysis
+pmma = (
+    MaterialBuilder("PMMA")
+    .density(1200)
+    .thermal_conductivity(0.19)
+    .specific_heat(1.4)
+    .with_pyrolysis_product("MMA_VAPOR", yield_fraction=1.0)
+    .with_heat_of_combustion(25000)
+    .build()
+)
+
+sim.add_material(pmma)
+```
+
+### Multi-Reaction Pyrolysis
+
+Materials with complex decomposition (e.g., wood → vapor + char):
+
+```python
+# Wood decomposition
+wood = (
+    MaterialBuilder("WOOD")
+    .density(500)
+    .thermal_conductivity(0.13)
+    .specific_heat(2.5)
+    .add_pyrolysis_reaction(
+        a=1e10,                      # Pre-exponential factor (1/s)
+        e=100000,                    # Activation energy (kJ/kmol)
+        heat_of_reaction=1800,       # Heat absorbed (kJ/kg)
+        product_species="WOOD_VAPOR" # Gas product
+    )
+    .add_pyrolysis_reaction(
+        a=5e8,
+        e=120000,
+        heat_of_reaction=500,
+        residue_material="CHAR"      # Solid residue
+    )
+    .build()
+)
+
+# Char material (solid residue)
+char = (
+    MaterialBuilder("CHAR")
+    .density(200)
+    .thermal_conductivity(0.08)
+    .specific_heat(1.0)
+    .build()
+)
+
+sim.add_material(wood)
+sim.add_material(char)
+```
+
+### Predefined Materials
+
+Use common materials with validated properties:
+
+```python
+# Pre-configured materials
+concrete = MaterialBuilder.concrete()
+steel = MaterialBuilder.steel()
+wood = MaterialBuilder.wood()
+gypsum = MaterialBuilder.gypsum()
+aluminum = MaterialBuilder.aluminum()
+brick = MaterialBuilder.brick()
+
+# Add to simulation
+sim.add_material(concrete)
+sim.add_material(steel)
+```
+
+### Pyrolysis Parameters
+
+**Kinetics:**
+- `a`: Pre-exponential factor (1/s) - typical range: 1e8 to 1e12
+- `e`: Activation energy (kJ/kmol) - typical range: 80,000 to 200,000
+- `heat_of_reaction`: Energy absorbed during pyrolysis (kJ/kg)
+
+**Products:**
+- `product_species`: Gas species ID produced
+- `residue_material`: Solid material ID remaining
+- `yield_fraction`: Fraction of original material yielded (0-1)
+- `reaction_order`: Reaction order (default: 1.0)
+
+## Surface Particle Generation
+
+Surfaces can generate particles (e.g., smoke from fires, water from sprinklers):
+
+```python
+from pyfds.builders import SurfBuilder
+
+# Fire generating smoke
+fire_surf = (
+    SurfBuilder("FIRE")
+    .with_heat_release(1000.0, ramp_id="fire_growth")
+    .with_particle_generation("SMOKE", mass_flux=0.002, nppc=2)
+    .with_color("ORANGE")
+    .build()
+)
+
+# Sprinkler generating water droplets
+sprinkler_surf = (
+    SurfBuilder("SPRINKLER")
+    .as_sprinkler(
+        part_id="WATER_DROP",
+        mass_flux=0.02,
+        median_diameter=0.001,
+        velocity=6.0
+    )
+    .build()
+)
+
+sim.add_surface(fire_surf)
+sim.add_surface(sprinkler_surf)
+```
+
+See [Particles](particles.md) and [Suppression Systems](suppression-systems.md) for details.
+
 ## Next Steps
 
 - [Fire Sources](fire-sources.md) - Creating fires
+- [Particles](particles.md) - Particle systems
+- [Suppression Systems](suppression-systems.md) - Sprinkler systems
 - [RAMP Guide](ramps.md) - Temperature-dependent properties
 - [Combustion](combustion.md) - Fuel properties
 
 ---
 
-[RAMP Guide →](ramps.md){ .md-button .md-button--primary }
+[Particles Guide →](particles.md){ .md-button .md-button--primary }

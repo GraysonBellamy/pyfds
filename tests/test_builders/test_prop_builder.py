@@ -117,3 +117,125 @@ class TestPropBuilder:
         builder = PropBuilder()
         with pytest.raises(NotImplementedError, match="factory methods"):
             builder.build()
+
+
+class TestPropBuilderEnhanced:
+    """Test enhanced PropBuilder functionality (Stage 2.3)."""
+
+    def test_sprinkler_with_c_factor(self):
+        """Test sprinkler with C-factor."""
+        prop = PropBuilder.sprinkler(id="SPRINKLER_C", activation_temp=68, rti=50, c_factor=3.5)
+        assert prop.c_factor == 3.5
+
+    def test_sprinkler_with_pressure(self):
+        """Test sprinkler with operating pressure."""
+        prop = PropBuilder.sprinkler(id="SPRINKLER_P", activation_temp=68, rti=50, pressure=200000)
+        assert prop.pressure == 200000
+
+    def test_sprinkler_with_orifice_diameter(self):
+        """Test sprinkler with orifice diameter."""
+        prop = PropBuilder.sprinkler(
+            id="SPRINKLER_D", activation_temp=68, rti=50, orifice_diameter=0.012
+        )
+        assert prop.orifice_diameter == 0.012
+
+    def test_smoke_detector_with_optical_properties(self):
+        """Test smoke detector with extinction and scattering coefficients."""
+        prop = PropBuilder.smoke_detector(
+            id="OPTICAL_SMOKE", activation_obscuration=3.28, alpha_e=0.5, beta_e=0.3
+        )
+        assert prop.alpha_e == 0.5
+        assert prop.beta_e == 0.3
+
+    def test_smoke_detector_with_smokeview_id(self):
+        """Test smoke detector with Smokeview ID."""
+        prop = PropBuilder.smoke_detector(id="SMOKE_VIS", smokeview_id="SMOKE_VIZ_1")
+        assert prop.smokeview_id == "SMOKE_VIZ_1"
+
+    def test_heat_detector_with_bead_properties(self):
+        """Test heat detector with bead properties."""
+        prop = PropBuilder.heat_detector(
+            id="HEAT_BEAD",
+            activation_temp=74,
+            rti=10.0,
+            bead_diameter=0.001,
+            bead_density=8000,
+            bead_specific_heat=0.5,
+        )
+        assert prop.bead_diameter == 0.001
+        assert prop.bead_density == 8000
+        assert prop.bead_specific_heat == 0.5
+
+    def test_nozzle_with_flow_rate(self):
+        """Test nozzle with flow rate."""
+        prop = PropBuilder.nozzle(id="SPRAY_NOZZLE", flow_rate=50, pressure=300000)
+        assert prop.id == "SPRAY_NOZZLE"
+        assert prop.flow_rate == 50
+        assert prop.pressure == 300000
+
+    def test_nozzle_with_k_factor(self):
+        """Test nozzle with K-factor and orifice diameter."""
+        prop = PropBuilder.nozzle(id="K_NOZZLE", k_factor=80, orifice_diameter=0.01)
+        assert prop.k_factor == 80
+        assert prop.orifice_diameter == 0.01
+
+
+class TestPropBuilderFDSOutput:
+    """Test FDS output for enhanced PROP features."""
+
+    def test_sprinkler_with_all_parameters_fds(self):
+        """Test FDS output for sprinkler with all parameters."""
+        prop = PropBuilder.sprinkler(
+            id="FULL_SPRINKLER",
+            activation_temp=68,
+            rti=50,
+            flow_rate=60,
+            k_factor=80,
+            spray_angle=(45, 90),
+            c_factor=3.5,
+            pressure=200000,
+            orifice_diameter=0.012,
+        )
+        fds_output = prop.to_fds()
+        assert "&PROP" in fds_output
+        assert "FULL_SPRINKLER" in fds_output
+        assert "68" in fds_output
+        assert "50" in fds_output
+        assert "60" in fds_output
+        assert "80" in fds_output
+        assert "3.5" in fds_output
+        assert "200000" in fds_output
+        assert "0.012" in fds_output
+
+    def test_smoke_detector_with_optical_fds(self):
+        """Test FDS output for smoke detector with optical properties."""
+        prop = PropBuilder.smoke_detector(id="OPTICAL", alpha_e=0.5, beta_e=0.3, smokeview_id="VIZ")
+        fds_output = prop.to_fds()
+        assert "OPTICAL" in fds_output
+        assert "0.5" in fds_output
+        assert "0.3" in fds_output
+        assert "VIZ" in fds_output
+
+    def test_heat_detector_with_bead_fds(self):
+        """Test FDS output for heat detector with bead properties."""
+        prop = PropBuilder.heat_detector(
+            id="BEAD_DET",
+            activation_temp=74,
+            bead_diameter=0.001,
+            bead_density=8000,
+            bead_specific_heat=0.5,
+        )
+        fds_output = prop.to_fds()
+        assert "BEAD_DET" in fds_output
+        assert "0.001" in fds_output
+        assert "8000" in fds_output
+        assert "0.5" in fds_output
+
+    def test_nozzle_fds_output(self):
+        """Test FDS output for nozzle."""
+        prop = PropBuilder.nozzle(id="NOZZLE", flow_rate=50, pressure=300000)
+        fds_output = prop.to_fds()
+        assert "&PROP" in fds_output
+        assert "NOZZLE" in fds_output
+        assert "50" in fds_output
+        assert "300000" in fds_output

@@ -73,6 +73,17 @@ class ReactionBuilder(Builder[Reaction]):
         self._co_yield: float = 0.0
         self._radiative_fraction: float | None = None
         self._auto_ignition_temp: float | None = None
+        # Stage 1.3 parameters
+        self._extinction_model: str | None = None
+        self._critical_flame_temp: float | None = None
+        self._suppression: bool = False
+        self._k_suppression: float | None = None
+        self._ideal: bool = True
+        self._spec_id_nu: list[str] = []
+        self._nu: list[float] = []
+        self._fixed_mix_time: float | None = None
+        self._tau_chem: float | None = None
+        self._tau_flame: float | None = None
 
     def fuel(self, name: str) -> "ReactionBuilder":
         """
@@ -259,6 +270,145 @@ class ReactionBuilder(Builder[Reaction]):
         self._auto_ignition_temp = temp
         return self
 
+    def with_extinction(self, model: str, critical_temp: float | None = None) -> "ReactionBuilder":
+        """
+        Configure extinction model.
+
+        Parameters
+        ----------
+        model : str
+            Extinction model: 'EXTINCTION_1' or 'EXTINCTION_2'
+        critical_temp : float, optional
+            Critical flame temperature for extinction (K)
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = ReactionBuilder() \\
+        ...     .fuel('PROPANE') \\
+        ...     .with_extinction('EXTINCTION_1', critical_temp=1200.0) \\
+        ...     .build()
+        """
+        self._extinction_model = model.upper()
+        if critical_temp is not None:
+            self._critical_flame_temp = critical_temp
+        return self
+
+    def with_suppression(self, k_suppression: float) -> "ReactionBuilder":
+        """
+        Enable suppression model.
+
+        Parameters
+        ----------
+        k_suppression : float
+            Suppression rate constant
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = ReactionBuilder() \\
+        ...     .fuel('WOOD') \\
+        ...     .with_suppression(k_suppression=0.5) \\
+        ...     .build()
+        """
+        self._suppression = True
+        self._k_suppression = k_suppression
+        return self
+
+    def with_species_stoichiometry(
+        self, species: list[str], coefficients: list[float]
+    ) -> "ReactionBuilder":
+        """
+        Set species stoichiometry.
+
+        Parameters
+        ----------
+        species : list[str]
+            List of species IDs
+        coefficients : list[float]
+            List of stoichiometric coefficients
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = ReactionBuilder() \\
+        ...     .fuel('METHANE') \\
+        ...     .with_species_stoichiometry(['CO2', 'H2O'], [1.0, 2.0]) \\
+        ...     .build()
+        """
+        self._spec_id_nu = species
+        self._nu = coefficients
+        return self
+
+    def with_time_scales(
+        self,
+        fixed_mix_time: float | None = None,
+        tau_chem: float | None = None,
+        tau_flame: float | None = None,
+    ) -> "ReactionBuilder":
+        """
+        Set reaction time scales.
+
+        Parameters
+        ----------
+        fixed_mix_time : float, optional
+            Fixed mixing time (s)
+        tau_chem : float, optional
+            Chemical time scale (s)
+        tau_flame : float, optional
+            Flame time scale (s)
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = ReactionBuilder() \\
+        ...     .fuel('PROPANE') \\
+        ...     .with_time_scales(tau_chem=0.1, tau_flame=0.5) \\
+        ...     .build()
+        """
+        if fixed_mix_time is not None:
+            self._fixed_mix_time = fixed_mix_time
+        if tau_chem is not None:
+            self._tau_chem = tau_chem
+        if tau_flame is not None:
+            self._tau_flame = tau_flame
+        return self
+
+    def use_non_ideal_hoc(self) -> "ReactionBuilder":
+        """
+        Use non-ideal heat of combustion.
+
+        Returns
+        -------
+        ReactionBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> reac = ReactionBuilder() \\
+        ...     .fuel('PROPANE') \\
+        ...     .use_non_ideal_hoc() \\
+        ...     .build()
+        """
+        self._ideal = False
+        return self
+
     def build(self) -> Reaction:
         """
         Build the Reaction object.
@@ -309,6 +459,28 @@ class ReactionBuilder(Builder[Reaction]):
             params["radiative_fraction"] = self._radiative_fraction
         if self._auto_ignition_temp is not None:
             params["auto_ignition_temperature"] = self._auto_ignition_temp
+
+        # Stage 1.3 parameters
+        if self._extinction_model:
+            params["extinction_model"] = self._extinction_model
+        if self._critical_flame_temp is not None:
+            params["critical_flame_temperature"] = self._critical_flame_temp
+        if self._suppression:
+            params["suppression"] = self._suppression
+        if self._k_suppression is not None:
+            params["k_suppression"] = self._k_suppression
+        if not self._ideal:
+            params["ideal"] = self._ideal
+        if self._spec_id_nu:
+            params["spec_id_nu"] = self._spec_id_nu
+        if self._nu:
+            params["nu"] = self._nu
+        if self._fixed_mix_time is not None:
+            params["fixed_mix_time"] = self._fixed_mix_time
+        if self._tau_chem is not None:
+            params["tau_chem"] = self._tau_chem
+        if self._tau_flame is not None:
+            params["tau_flame"] = self._tau_flame
 
         reaction = Reaction(**params)
         self._mark_built()

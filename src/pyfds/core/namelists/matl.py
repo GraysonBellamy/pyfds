@@ -101,10 +101,20 @@ class Material(NamelistBase):
     a: list[float] | None = Field(None, description="Pre-exponential factors [1/s]")
     e: list[float] | None = Field(None, description="Activation energies [kJ/kmol]")
     n_s: list[float] | None = Field(None, description="Reaction orders")
+    reference_rate: float | None = Field(None, gt=0, description="Reference reaction rate [1/s]")
 
-    # Product specification
+    # Product specification (multi-reaction)
     nu_spec: list[str] | None = Field(None, description="Product species IDs")
     nu_matl: list[str] | None = Field(None, description="Residue material IDs")
+
+    # Single-reaction product specification (Stage 2.4)
+    spec_id: str | None = Field(None, description="Gas species ID for single reaction")
+    yield_fraction: float | None = Field(
+        None, ge=0, le=1, description="Fraction of material yielded"
+    )
+
+    # Heat of combustion (Stage 2.4)
+    heat_of_combustion: float | None = Field(None, gt=0, description="Heat of combustion (kJ/kg)")
 
     @model_validator(mode="after")
     def validate_material(self) -> "Material":
@@ -246,9 +256,21 @@ class Material(NamelistBase):
             params["e"] = self.e
         if self.n_s:
             params["n_s"] = self.n_s
+        if self.reference_rate is not None:
+            params["reference_rate"] = self.reference_rate
         if self.nu_spec:
             params["nu_spec"] = self.nu_spec
         if self.nu_matl:
             params["nu_matl"] = self.nu_matl
+
+        # Single-reaction product specification (Stage 2.4)
+        if self.spec_id:
+            params["spec_id"] = self.spec_id
+        if self.yield_fraction is not None:
+            params["yield_fraction"] = self.yield_fraction
+
+        # Heat of combustion (Stage 2.4)
+        if self.heat_of_combustion is not None:
+            params["heat_of_combustion"] = self.heat_of_combustion
 
         return self._build_namelist("MATL", params)
