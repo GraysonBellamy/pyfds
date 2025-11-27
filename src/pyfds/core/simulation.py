@@ -8,7 +8,7 @@ programmatically in Python.
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.managers import (
     ControlManager,
     GeometryManager,
@@ -187,8 +187,8 @@ class Simulation:
 
     def mesh(
         self,
-        ijk: tuple[int, int, int],
-        xb: tuple[float, float, float, float, float, float],
+        ijk: tuple[int, int, int] | Grid3D,
+        xb: tuple[float, float, float, float, float, float] | Bounds3D,
         id: str | None = None,
         mpi_process: int | None = None,
     ) -> "Simulation":
@@ -200,9 +200,9 @@ class Simulation:
 
         Parameters
         ----------
-        ijk : Tuple[int, int, int]
+        ijk : Tuple[int, int, int] or Grid3D
             Number of grid cells in x, y, z directions
-        xb : Tuple[float, float, float, float, float, float]
+        xb : Tuple[float, float, float, float, float, float] or Bounds3D
             Domain bounds (xmin, xmax, ymin, ymax, zmin, zmax)
         id : str, optional
             Mesh identifier for multi-mesh simulations
@@ -338,7 +338,7 @@ class Simulation:
 
     def obstruction(
         self,
-        xb: tuple[float, float, float, float, float, float],
+        xb: tuple[float, float, float, float, float, float] | Bounds3D,
         surf_id: str | None = None,
         surf_id_top: str | None = None,
         surf_id_bottom: str | None = None,
@@ -353,7 +353,7 @@ class Simulation:
 
         Parameters
         ----------
-        xb : Tuple[float, float, float, float, float, float]
+        xb : Tuple[float, float, float, float, float, float] or Bounds3D
             Obstruction bounds (xmin, xmax, ymin, ymax, zmin, zmax)
         surf_id : str, optional
             Surface ID for all faces
@@ -419,7 +419,7 @@ class Simulation:
         id: str,
         quantity: str,
         xyz: Point3D | tuple[float, float, float] | None = None,
-        xb: tuple[float, float, float, float, float, float] | None = None,
+        xb: tuple[float, float, float, float, float, float] | Bounds3D | None = None,
     ) -> "Simulation":
         """
         Add a measurement device to the simulation.
@@ -435,7 +435,7 @@ class Simulation:
             FDS quantity to measure (e.g., 'TEMPERATURE', 'VELOCITY')
         xyz : Point3D or tuple[float, float, float], optional
             Device location (x, y, z) in meters
-        xb : Tuple[float, float, float, float, float, float], optional
+        xb : Tuple[float, float, float, float, float, float] or Bounds3D, optional
             Device bounds for spatial averaging
 
         Returns
@@ -955,7 +955,7 @@ class Simulation:
 
     def init(
         self,
-        xb: tuple[float, float, float, float, float, float] | None = None,
+        xb: tuple[float, float, float, float, float, float] | Bounds3D | None = None,
         xyz: tuple[float, float, float] | None = None,
         temperature: float | None = None,
         density: float | None = None,
@@ -972,7 +972,7 @@ class Simulation:
 
         Parameters
         ----------
-        xb : tuple[float, float, float, float, float, float], optional
+        xb : tuple[float, float, float, float, float, float] or Bounds3D, optional
             Region bounds (xmin, xmax, ymin, ymax, zmin, zmax)
         xyz : tuple[float, float, float], optional
             Point location (x, y, z)
@@ -1131,7 +1131,7 @@ class Simulation:
 
     def vent(
         self,
-        xb: tuple[float, float, float, float, float, float] | None = None,
+        xb: tuple[float, float, float, float, float, float] | Bounds3D | None = None,
         mb: str | None = None,
         surf_id: str = "INERT",
         **kwargs: Any,
@@ -1144,7 +1144,7 @@ class Simulation:
 
         Parameters
         ----------
-        xb : tuple[float, float, float, float, float, float], optional
+        xb : tuple[float, float, float, float, float, float] or Bounds3D, optional
             Bounding box coordinates (xmin, xmax, ymin, ymax, zmin, zmax)
         mb : str, optional
             Mesh boundary location ('XMIN', 'XMAX', etc.)

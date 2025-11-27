@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import Field, field_validator, model_validator
 
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Point3D
 from pyfds.core.namelists.base import NamelistBase
 
 
@@ -47,8 +47,8 @@ class Init(NamelistBase):
     ... )
     """
 
-    xb: tuple[float, float, float, float, float, float] | None = Field(
-        None, description="Region bounds"
+    xb: Bounds3D | None = Field(
+        None, description="Initialization bounds (xmin,xmax,ymin,ymax,zmin,zmax)"
     )
     xyz: Point3D | None = Field(None, description="Point location")
     temperature: float | None = Field(None, description="Temperature [°C]")
@@ -62,6 +62,13 @@ class Init(NamelistBase):
     def validate_xyz(cls, v: Any) -> Any:
         if isinstance(v, tuple):
             return Point3D.from_tuple(v)
+        return v
+
+    @field_validator("xb", mode="before")
+    @classmethod
+    def validate_xb(cls, v: Any) -> Any:
+        if isinstance(v, tuple):
+            return Bounds3D.from_tuple(v)
         return v
 
     @model_validator(mode="after")
@@ -87,7 +94,7 @@ class Init(NamelistBase):
         params: dict[str, Any] = {}
 
         if self.xb:
-            params["xb"] = self.xb
+            params["xb"] = self.xb.as_tuple()
         if self.xyz:
             params["xyz"] = self.xyz.as_tuple()
         if self.temperature is not None:

@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 from pydantic import Field, field_validator, model_validator
 
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Point3D
 from pyfds.core.namelists.base import NamelistBase
 
 
@@ -121,9 +121,7 @@ class Vent(NamelistBase):
     """
 
     # Geometry
-    xb: tuple[float, float, float, float, float, float] | None = Field(
-        None, description="Bounding box"
-    )
+    xb: Bounds3D | None = Field(None, description="Vent bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
     mb: str | None = Field(None, description="Mesh boundary")
     surf_id: str = Field("INERT", description="Surface ID")
     id: str | None = Field(None, description="Vent identifier")
@@ -163,6 +161,13 @@ class Vent(NamelistBase):
             return Point3D.from_tuple(v)
         return v
 
+    @field_validator("xb", mode="before")
+    @classmethod
+    def validate_xb(cls, v: Any) -> Any:
+        if isinstance(v, tuple):
+            return Bounds3D.from_tuple(v)
+        return v
+
     @model_validator(mode="after")
     def validate_vent(self) -> "Vent":
         """Validate vent parameters."""
@@ -173,9 +178,9 @@ class Vent(NamelistBase):
         # XB validation - must define a plane
         if self.xb:
             dims = [
-                abs(self.xb[1] - self.xb[0]),
-                abs(self.xb[3] - self.xb[2]),
-                abs(self.xb[5] - self.xb[4]),
+                abs(self.xb.xmax - self.xb.xmin),
+                abs(self.xb.ymax - self.xb.ymin),
+                abs(self.xb.zmax - self.xb.zmin),
             ]
             zero_dims = sum(1 for d in dims if d < 1e-6)
             if zero_dims != 1:
@@ -247,9 +252,9 @@ class Vent(NamelistBase):
         shape = self.get_shape()
 
         if shape == VentShape.RECTANGULAR and self.xb:
-            dx = abs(self.xb[1] - self.xb[0])
-            dy = abs(self.xb[3] - self.xb[2])
-            dz = abs(self.xb[5] - self.xb[4])
+            dx = abs(self.xb.xmax - self.xb.xmin)
+            dy = abs(self.xb.ymax - self.xb.ymin)
+            dz = abs(self.xb.zmax - self.xb.zmin)
 
             # Area is the non-zero face
             if dx < 1e-6:
@@ -274,7 +279,7 @@ class Vent(NamelistBase):
         if self.id:
             params["id"] = self.id
         if self.xb:
-            params["xb"] = self.xb
+            params["xb"] = self.xb.as_tuple()
         if self.mb:
             params["mb"] = self.mb
             if self.mesh_id:

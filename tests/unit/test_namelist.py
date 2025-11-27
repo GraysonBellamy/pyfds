@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import (
     ControlFunction,
     Ctrl,
@@ -119,8 +119,8 @@ class TestMesh:
     def test_basic_creation(self):
         """Test basic Mesh creation."""
         mesh = Mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
-        assert mesh.ijk == (10, 10, 10)
-        assert mesh.xb == (0, 1, 0, 1, 0, 1)
+        assert mesh.ijk == Grid3D(10, 10, 10)
+        assert mesh.xb == Bounds3D(0, 1, 0, 1, 0, 1)
 
     def test_to_fds(self):
         """Test FDS output format."""
@@ -206,7 +206,7 @@ class TestObstruction:
     def test_basic_creation(self):
         """Test basic Obstruction creation."""
         obst = Obstruction(xb=(0, 1, 0, 1, 0, 1))
-        assert obst.xb == (0, 1, 0, 1, 0, 1)
+        assert obst.xb == Bounds3D(0, 1, 0, 1, 0, 1)
 
     def test_with_surf_id(self):
         """Test Obstruction with surface ID."""
@@ -224,7 +224,7 @@ class TestObstruction:
     def test_thin_obstruction(self):
         """Test thin obstruction (equal bounds allowed)."""
         obst = Obstruction(xb=(0, 0, 0, 1, 0, 1))
-        assert obst.xb == (0, 0, 0, 1, 0, 1)
+        assert obst.xb == Bounds3D(0, 0, 0, 1, 0, 1)
 
     def test_xb_validation(self):
         """Test XB validation."""
@@ -245,7 +245,7 @@ class TestDevice:
     def test_basic_creation_xb(self):
         """Test basic Device creation with XB."""
         dev = Device(id="TEMP1", quantity="TEMPERATURE", xb=(0, 1, 0, 1, 0, 1))
-        assert dev.xb == (0, 1, 0, 1, 0, 1)
+        assert dev.xb == Bounds3D(0, 1, 0, 1, 0, 1)
 
     def test_to_fds_xyz(self):
         """Test FDS output format with XYZ."""
@@ -410,7 +410,7 @@ class TestInit:
     def test_basic_creation(self):
         """Test init with region bounds."""
         init = Init(xb=(0, 10, 0, 10, 0, 0.1), temperature=500)
-        assert init.xb == (0, 10, 0, 10, 0, 0.1)
+        assert init.xb == Bounds3D(0, 10, 0, 10, 0, 0.1)
         assert init.temperature == 500
 
     def test_init_validation_requires_xb_or_xyz(self):

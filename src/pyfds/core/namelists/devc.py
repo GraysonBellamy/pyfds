@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import Field, field_validator
 
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Point3D
 from pyfds.core.namelists.base import NamelistBase
 
 
@@ -38,9 +38,7 @@ class Device(NamelistBase):
     id: str = Field(..., description="Device identifier")
     quantity: str = Field(..., description="Quantity to measure")
     xyz: Point3D | None = Field(None, description="Device location")
-    xb: tuple[float, float, float, float, float, float] | None = Field(
-        None, description="Device bounds"
-    )
+    xb: Bounds3D | None = Field(None, description="Device bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
 
     @field_validator("xyz", mode="before")
     @classmethod
@@ -49,11 +47,18 @@ class Device(NamelistBase):
             return Point3D.from_tuple(v)
         return v
 
+    @field_validator("xb", mode="before")
+    @classmethod
+    def validate_xb(cls, v: Any) -> Any:
+        if isinstance(v, tuple):
+            return Bounds3D.from_tuple(v)
+        return v
+
     def to_fds(self) -> str:
         """Generate FDS DEVC namelist."""
         params: dict[str, Any] = {"id": self.id, "quantity": self.quantity}
         if self.xyz:
             params["xyz"] = self.xyz.as_tuple()
         if self.xb:
-            params["xb"] = self.xb
+            params["xb"] = self.xb.as_tuple()
         return self._build_namelist("DEVC", params)

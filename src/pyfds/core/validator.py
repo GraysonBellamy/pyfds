@@ -132,7 +132,7 @@ class Validator:
     def _validate_mesh(self, mesh: "Mesh") -> None:
         """Validate MESH namelist parameters."""
         # Check grid dimensions
-        total_cells = mesh.ijk[0] * mesh.ijk[1] * mesh.ijk[2]
+        total_cells = mesh.ijk.total_cells
 
         if total_cells > 10_000_000:
             self.warnings.append(
