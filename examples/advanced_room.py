@@ -9,6 +9,8 @@ This example demonstrates more advanced PyFDS features including:
 - Method chaining
 """
 
+from pathlib import Path
+
 from pyfds import Simulation
 from pyfds.core.geometry import Point3D
 
@@ -24,6 +26,9 @@ sim.surface(id="WALL", color="GRAY", tmp_front=20.0)
 sim.surface(id="CEILING", color="WHITE", tmp_front=20.0)
 sim.surface(id="FLOOR", color="TAN", tmp_front=20.0)
 sim.surface(id="FIRE", hrrpua=1000.0, color="RED")
+
+# Add reaction for combustion
+sim.reaction(fuel="PROPANE")
 
 # Build room geometry
 # Floor
@@ -78,7 +83,9 @@ else:
     print("\n✓ Validation passed!")
 
 # Write file
-output_file = sim.write("advanced_room.fds")
+output_dir = Path(__file__).parent / "fds"
+output_dir.mkdir(exist_ok=True)
+output_file = sim.write(output_dir / "advanced_room.fds")
 print(f"\n✓ FDS input file written to: {output_file}")
 
 # Summary

@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'docs-mkdocs/**'
+      - 'docs/**'
       - 'mkdocs.yml'
       - 'src/pyfds/**'
       - '.github/workflows/docs.yml'
@@ -14,7 +14,7 @@ on:
   # Trigger on pull requests that change documentation
   pull_request:
     paths:
-      - 'docs-mkdocs/**'
+      - 'docs/**'
       - 'mkdocs.yml'
       - 'src/pyfds/**'
 

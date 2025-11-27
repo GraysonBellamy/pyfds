@@ -289,6 +289,10 @@ class ReactionBuilder(Builder[Reaction]):
             "co_yield": self._co_yield,
         }
 
+        # Add fuel name if specified
+        if self._fuel_name is not None:
+            params["fuel"] = self._fuel_name
+
         # Include c and h (can be 0 for fuels like hydrogen)
         if self._c is not None and self._c > 0:
             params["c"] = self._c

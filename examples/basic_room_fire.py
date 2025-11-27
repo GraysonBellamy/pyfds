@@ -6,6 +6,8 @@ This example demonstrates how to create a simple room fire simulation
 using PyFDS. It follows the example from Section 7.2.1 of the implementation plan.
 """
 
+from pathlib import Path
+
 from pyfds import Simulation
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
@@ -28,6 +30,9 @@ sim.surface(
     color="RED",
 )
 
+# Add reaction for combustion
+sim.reaction(fuel="PROPANE")
+
 # Add fire source (1m x 1m burner at floor level)
 sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id="BURNER")
 
@@ -49,7 +54,9 @@ else:
     print("Validation passed!")
 
 # Generate and save FDS input file
-output_file = sim.write("room_fire.fds")
+output_dir = Path(__file__).parent / "fds"
+output_dir.mkdir(exist_ok=True)
+output_file = sim.write(output_dir / "room_fire.fds")
 print(f"\nFDS input file written to: {output_file}")
 
 # Print preview of the FDS file

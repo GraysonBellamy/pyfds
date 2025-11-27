@@ -8,6 +8,8 @@ This example creates a simple room with an HVAC system including:
 - Temperature monitoring at various locations
 """
 
+from pathlib import Path
+
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Vent
 from pyfds.core.simulation import Simulation
@@ -48,26 +50,30 @@ sim.obstruction(xb=Bounds3D(6, 10, 10, 10, 0.5, 2))  # Right side
 
 # ===== HVAC VENTS =====
 # Supply vent (ceiling-mounted, providing fresh air)
+# VOLUME_FLOW must be on SURF, not VENT
+sim.surface(id="SUPPLY", volume_flow=-0.5, color="BLUE")  # negative = into domain
 supply_vent = Vent(
     xb=Bounds3D(2, 2.5, 2, 2.5, 3, 3),
-    surf_id="HVAC",
-    volume_flow=0.5,  # 0.5 m³/s supply (positive = inflow)
-    id="SUPPLY",
+    surf_id="SUPPLY",
+    id="SUPPLY_VENT",
 )
 sim.add_vent(supply_vent)
 
 # Exhaust vent (ceiling-mounted, removing air)
+sim.surface(id="EXHAUST", volume_flow=0.4, color="RED")  # positive = out of domain
 exhaust_vent = Vent(
     xb=Bounds3D(7.5, 8, 7.5, 8, 3, 3),
-    surf_id="HVAC",
-    volume_flow=-0.4,  # -0.4 m³/s exhaust (negative = outflow)
-    id="EXHAUST",
+    surf_id="EXHAUST",
+    id="EXHAUST_VENT",
 )
 sim.add_vent(exhaust_vent)
 
 # ===== DOOR OPENING =====
 # Opening to ambient (using convenience method)
-sim.vent(xb=Bounds3D(4, 4, 4, 6, 0.5, 2), surf_id="OPEN", id="DOOR")
+sim.vent(xb=Bounds3D(4, 6, 10, 10, 0.5, 2), surf_id="OPEN", id="DOOR")
+
+# Add reaction for combustion
+sim.reaction(fuel="PROPANE")
 
 # ===== Heat source (simulating occupant/equipment heat) =====
 sim.surface(id="HEAT_SOURCE", hrrpua=100.0, color="ORANGE")
@@ -88,10 +94,13 @@ sim.device(id="TEMP_EXHAUST", quantity="TEMPERATURE", xyz=Point3D(7.75, 7.75, 2.
 sim.device(id="VEL_DOOR", quantity="VELOCITY", xyz=Point3D(4, 5, 1.25))
 
 # Generate FDS file
-output_file = sim.write("hvac_system.fds")
+output_dir = Path(__file__).parent / "fds"
+output_dir.mkdir(exist_ok=True)
+output_file = sim.write(output_dir / "hvac_system.fds")
 print(f"✓ Created FDS file: {output_file}")
-print(f"✓ Ambient temperature: {sim.misc_params.tmpa}°C")
-print(f"✓ Humidity: {sim.misc_params.humidity}%")
+if sim.physics.misc_params:
+    print(f"✓ Ambient temperature: {sim.physics.misc_params.tmpa}°C")
+    print(f"✓ Humidity: {sim.physics.misc_params.humidity}%")
 print(f"✓ Number of vents: {len(sim.geometry.vents)}")
 print("✓ Supply flow: 0.5 m³/s")
 print("✓ Exhaust flow: -0.4 m³/s")

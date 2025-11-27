@@ -263,6 +263,9 @@ class Simulation:
         tmp_front: float | None = None,
         matl_id: str | None = None,
         thickness: float | None = None,
+        volume_flow: float | None = None,
+        vel: float | None = None,
+        mass_flow: float | None = None,
     ) -> "Simulation":
         """
         Add a surface definition to the simulation.
@@ -286,6 +289,12 @@ class Simulation:
             Material identifier
         thickness : float, optional
             Material thickness (m)
+        volume_flow : float, optional
+            Volume flow rate (m³/s)
+        vel : float, optional
+            Velocity (m/s)
+        mass_flow : float, optional
+            Mass flow rate (kg/s)
 
         Returns
         -------
@@ -296,6 +305,7 @@ class Simulation:
         --------
         >>> sim = Simulation('test')
         >>> sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
+        >>> sim.surface(id='SUPPLY', volume_flow=-0.5, color='BLUE')
 
         See Also
         --------
@@ -309,6 +319,9 @@ class Simulation:
             tmp_front=tmp_front,
             matl_id=matl_id,
             thickness=thickness,
+            volume_flow=volume_flow,
+            vel=vel,
+            mass_flow=mass_flow,
         )
         self._material_mgr.add_surface(surf_obj)
         return self
@@ -420,6 +433,7 @@ class Simulation:
         quantity: str,
         xyz: Point3D | tuple[float, float, float] | None = None,
         xb: tuple[float, float, float, float, float, float] | Bounds3D | None = None,
+        prop_id: str | None = None,
     ) -> "Simulation":
         """
         Add a measurement device to the simulation.
@@ -437,6 +451,8 @@ class Simulation:
             Device location (x, y, z) in meters
         xb : Tuple[float, float, float, float, float, float] or Bounds3D, optional
             Device bounds for spatial averaging
+        prop_id : str, optional
+            Device property ID (for sprinklers, detectors)
 
         Returns
         -------
@@ -468,7 +484,7 @@ class Simulation:
         if isinstance(xyz, tuple):
             xyz = Point3D.from_tuple(xyz)
 
-        dev_obj = Device(id=id, quantity=quantity, xyz=xyz, xb=xb)
+        dev_obj = Device(id=id, quantity=quantity, xyz=xyz, xb=xb, prop_id=prop_id)
         self._instrumentation.add_device(dev_obj)
         return self
 

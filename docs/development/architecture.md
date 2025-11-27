@@ -45,7 +45,7 @@ pyfds/
 │   ├── io/              # File I/O
 │   └── utils/           # Utilities
 ├── tests/               # Test suite
-├── docs-mkdocs/         # Documentation
+├── docs/                # Documentation
 ├── examples/            # Example scripts
 └── pyproject.toml       # Project configuration
 ```

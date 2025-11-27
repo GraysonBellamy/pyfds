@@ -12,7 +12,7 @@ from pyfds import Simulation
 from pyfds.core.geometry import Point3D
 
 # Create output directory
-output_dir = Path("parametric_study")
+output_dir = Path(__file__).parent / "fds"
 output_dir.mkdir(exist_ok=True)
 
 # Define parameter values to study
@@ -30,6 +30,9 @@ for hrr in hrr_values:
 
     # Mesh - 3m x 3m x 1.5m domain
     sim.mesh(ijk=(30, 30, 15), xb=(0, 3, 0, 3, 0, 1.5))
+
+    # Add reaction for combustion
+    sim.reaction(fuel="PROPANE")
 
     # Fire surface with current HRR
     sim.surface(id="FIRE", hrrpua=float(hrr), color="RED")

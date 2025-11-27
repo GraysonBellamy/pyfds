@@ -115,7 +115,7 @@ class Vent(NamelistBase):
     Notes
     -----
     - VENTs must be planar (exactly one dimension in XB must be zero)
-    - HVAC vents can specify only one of: volume_flow, mass_flow, or vel
+    - HVAC vents should reference a SURF with VOLUME_FLOW, VEL, or MASS_FLOW
     - Circular vents require both xyz and radius
     - For mesh boundaries, use mb instead of xb
     """
@@ -130,11 +130,6 @@ class Vent(NamelistBase):
     xyz: Point3D | None = Field(None, description="Center point")
     radius: float | None = Field(None, gt=0, description="Radius [m]")
     radius_inner: float | None = Field(None, gt=0, description="Inner radius [m]")
-
-    # HVAC parameters
-    volume_flow: float | None = Field(None, description="Volume flow rate [m³/s]")
-    mass_flow: float | None = Field(None, description="Mass flow rate [kg/s]")
-    vel: float | None = Field(None, description="Velocity [m/s]")
 
     # Control
     devc_id: str | None = Field(None, description="Device ID for activation")
@@ -195,14 +190,6 @@ class Vent(NamelistBase):
             if self.radius_inner and self.radius_inner >= self.radius:
                 raise ValueError(
                     f"RADIUS_INNER ({self.radius_inner}) must be less than RADIUS ({self.radius})"
-                )
-
-        # HVAC validation - only one flow parameter
-        if self.surf_id == "HVAC":
-            flow_params = [self.volume_flow, self.mass_flow, self.vel]
-            if sum(p is not None for p in flow_params) > 1:
-                raise ValueError(
-                    "HVAC vent can only specify one of: VOLUME_FLOW, MASS_FLOW, or VEL"
                 )
 
         # MB validation
@@ -293,13 +280,6 @@ class Vent(NamelistBase):
             params["radius"] = self.radius
         if self.radius_inner is not None:
             params["radius_inner"] = self.radius_inner
-
-        if self.volume_flow is not None:
-            params["volume_flow"] = self.volume_flow
-        if self.mass_flow is not None:
-            params["mass_flow"] = self.mass_flow
-        if self.vel is not None:
-            params["vel"] = self.vel
 
         if self.devc_id:
             params["devc_id"] = self.devc_id

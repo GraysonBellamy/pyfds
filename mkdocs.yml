@@ -4,10 +4,10 @@ site_author: Grayson Bellamy
 site_url: https://graysonbellamy.github.io/pyfds
 repo_url: https://github.com/GraysonBellamy/pyfds
 repo_name: GraysonBellamy/pyfds
-edit_uri: edit/main/docs-mkdocs/
+edit_uri: edit/main/docs/
 
 # Documentation directory
-docs_dir: docs-mkdocs
+docs_dir: docs
 
 # Exclude from navigation warnings
 not_in_nav: |

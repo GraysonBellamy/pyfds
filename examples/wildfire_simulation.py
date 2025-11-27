@@ -9,6 +9,8 @@ This example demonstrates:
 - Large outdoor domain
 """
 
+from pathlib import Path
+
 from pyfds import Simulation
 from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import TurbulenceModel
@@ -30,6 +32,9 @@ sim.time(t_end=600.0, dt=0.1)
 
 # Large outdoor mesh - 100m x 100m x 30m
 sim.mesh(ijk=(100, 100, 30), xb=(0, 100, 0, 100, 0, 30))
+
+# Add reaction for combustion
+sim.reaction(fuel="PROPANE")
 
 # ===== Terrain/Ground surface =====
 sim.surface(id="GROUND", color="BROWN")
@@ -61,17 +66,20 @@ for x in [25, 50, 75]:
     for y in [25, 50, 75]:
         sim.device(id=f"TEMP_X{x}_Y{y}", quantity="TEMPERATURE", xyz=Point3D(x, y, 2))
 
-# Heat release rate
-sim.device(id="HRR", quantity="HRR", xyz=Point3D(50, 50, 2))
+# Heat release rate (HRR requires xb for spatial statistic)
+sim.device(id="HRR", quantity="HRR", xb=(0, 100, 0, 100, 0, 30))
 
 # Wind velocity
 sim.device(id="WIND_VEL", quantity="VELOCITY", xyz=Point3D(50, 50, 5))
 
 # Generate FDS file
-output_file = sim.write("wildfire.fds")
+output_dir = Path(__file__).parent / "fds"
+output_dir.mkdir(exist_ok=True)
+output_file = sim.write(output_dir / "wildfire.fds")
 print(f"✓ Created FDS file: {output_file}")
-print(f"✓ Wildfire mode: LEVEL_SET_MODE={sim.misc_params.level_set_mode}")
-print(f"✓ Turbulence model: {sim.misc_params.turbulence_model.value}")
-print(f"✓ Ambient: {sim.misc_params.tmpa}°C, {sim.misc_params.humidity}% RH")
+if sim.physics.misc_params:
+    print(f"✓ Wildfire mode: LEVEL_SET_MODE={sim.physics.misc_params.level_set_mode}")
+    print(f"✓ Turbulence model: {sim.physics.misc_params.turbulence_model.value}")
+    print(f"✓ Ambient: {sim.physics.misc_params.tmpa}°C, {sim.physics.misc_params.humidity}% RH")
 print("✓ Domain: 100m x 100m x 30m")
 print(f"✓ Open boundaries: {len(sim.geometry.vents)}")

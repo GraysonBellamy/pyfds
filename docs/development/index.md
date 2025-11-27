@@ -131,7 +131,7 @@ pyfds/
 │   ├── unit/         # Unit tests
 │   └── integration/  # Integration tests
 ├── examples/          # Example scripts
-├── docs-mkdocs/       # Documentation
+├── docs/              # Documentation
 └── pyproject.toml     # Project configuration
 ```
 

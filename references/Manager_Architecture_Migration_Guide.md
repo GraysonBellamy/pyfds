@@ -165,13 +165,13 @@ sim.write('fire_test.fds')
 ## For More Information
 
 See the full documentation:
-- [Manager Architecture](docs-mkdocs/development/managers.md) - Complete manager reference
-- [Architecture Overview](docs-mkdocs/development/architecture.md) - System design
+- [Manager Architecture](docs/development/managers.md) - Complete manager reference
+- [Architecture Overview](docs/development/architecture.md) - System design
 - [Examples](examples/) - Updated examples using manager API
 
 ## Questions?
 
 If you encounter issues migrating your code, please:
 1. Check the [examples/](examples/) directory for updated patterns
-2. Review the [Manager Architecture docs](docs-mkdocs/development/managers.md)
+2. Review the [Manager Architecture docs](docs/development/managers.md)
 3. Open an issue on GitHub with your specific use case

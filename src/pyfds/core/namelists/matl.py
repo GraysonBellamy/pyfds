@@ -178,6 +178,64 @@ class Material(NamelistBase):
         # Reaction properties
         if self.n_reactions > 1:
             params["n_reactions"] = self.n_reactions
+
+        # For multi-reaction materials, FDS expects indexed parameters
+        # Format arrays as A(1)=val1, A(2)=val2, etc. instead of A=val1,val2
+        if self.n_reactions > 1:
+            # Build indexed parameters manually for multi-reaction case
+            result_parts = []
+            result_parts.append(f"&MATL ID='{self.id}', DENSITY={self.density}")
+
+            if self.conductivity is not None:
+                result_parts.append(f"CONDUCTIVITY={self.conductivity}")
+            elif self.conductivity_ramp:
+                result_parts.append(f"CONDUCTIVITY_RAMP='{self.conductivity_ramp}'")
+
+            if self.specific_heat is not None:
+                result_parts.append(f"SPECIFIC_HEAT={self.specific_heat}")
+            elif self.specific_heat_ramp:
+                result_parts.append(f"SPECIFIC_HEAT_RAMP='{self.specific_heat_ramp}'")
+
+            if self.emissivity != 0.9:
+                result_parts.append(f"EMISSIVITY={self.emissivity}")
+            if self.absorption_coefficient != 50000.0:
+                result_parts.append(f"ABSORPTION_COEFFICIENT={self.absorption_coefficient}")
+
+            result_parts.append(f"N_REACTIONS={self.n_reactions}")
+
+            # Add indexed arrays for each reaction
+            if self.heat_of_reaction:
+                for i, val in enumerate(self.heat_of_reaction, 1):
+                    result_parts.append(f"HEAT_OF_REACTION({i})={val}")
+            if self.a:
+                for i, val in enumerate(self.a, 1):
+                    result_parts.append(f"A({i})={val}")
+            if self.e:
+                for i, val in enumerate(self.e, 1):
+                    result_parts.append(f"E({i})={val}")
+            if self.n_s:
+                for i, val in enumerate(self.n_s, 1):
+                    result_parts.append(f"N_S({i})={val}")
+
+            # Handle 2D arrays like NU_SPEC and NU_MATL
+            # These use notation like NU_SPEC(i,j) where i is species index, j is reaction index
+            if self.nu_spec:
+                for j, spec_list in enumerate(self.nu_spec, 1):
+                    if isinstance(spec_list, (list, tuple)):
+                        for i, val in enumerate(spec_list, 1):
+                            if val:  # Only add non-empty values
+                                result_parts.append(f"SPEC_ID({i},{j})='{val}'")
+                                result_parts.append(f"NU_SPEC({i},{j})=1.0")
+            if self.nu_matl:
+                for j, matl_list in enumerate(self.nu_matl, 1):
+                    if isinstance(matl_list, (list, tuple)):
+                        for i, val in enumerate(matl_list, 1):
+                            if val:  # Only add non-empty values
+                                result_parts.append(f"MATL_ID({i},{j})='{val}'")
+                                result_parts.append(f"NU_MATL({i},{j})=1.0")
+
+            return ", ".join(result_parts) + " /\n"
+        # Single reaction or no reactions - use standard format
         if self.reference_temperature is not None:
             params["reference_temperature"] = self.reference_temperature
         if self.heat_of_reaction:

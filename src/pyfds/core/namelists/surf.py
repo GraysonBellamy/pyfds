@@ -46,6 +46,9 @@ class Surface(NamelistBase):
     tmp_front: float | None = Field(None, description="Front surface temperature (°C)")
     matl_id: str | None = Field(None, description="Material identifier")
     thickness: float | None = Field(None, gt=0, description="Material thickness (m)")
+    volume_flow: float | None = Field(None, description="Volume flow rate (m³/s)")
+    vel: float | None = Field(None, description="Velocity (m/s)")
+    mass_flow: float | None = Field(None, description="Mass flow rate (kg/s)")
 
     @field_validator("rgb")
     @classmethod
@@ -73,4 +76,10 @@ class Surface(NamelistBase):
             params["matl_id"] = self.matl_id
         if self.thickness is not None:
             params["thickness"] = self.thickness
+        if self.volume_flow is not None:
+            params["volume_flow"] = self.volume_flow
+        if self.vel is not None:
+            params["vel"] = self.vel
+        if self.mass_flow is not None:
+            params["mass_flow"] = self.mass_flow
         return self._build_namelist("SURF", params)

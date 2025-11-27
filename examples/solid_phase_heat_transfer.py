@@ -9,6 +9,8 @@ This example demonstrates:
 - Material heat transfer
 """
 
+from pathlib import Path
+
 from pyfds import Simulation
 from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import Material, Vent
@@ -73,24 +75,25 @@ sim.vent(xb=(0, 1, 1, 1, 0, 1), surf_id="INERT", id="WALL_YMAX")
 sim.vent(xb=(0, 1, 0, 1, 1, 1), surf_id="INERT", id="WALL_ZMAX")
 
 # ===== Monitoring devices =====
-# Temperature at various heights in the concrete block
-for i, z in enumerate([0.05, 0.1, 0.2, 0.3, 0.35], start=1):
-    sim.device(id=f"TEMP_CONCRETE_{i}", quantity="WALL TEMPERATURE", xyz=Point3D(0.5, 0.5, z))
+# Temperature measurements near the surfaces (since it's solid phase only)
+sim.device(id="TEMP_NEAR_BOTTOM", quantity="TEMPERATURE", xyz=Point3D(0.5, 0.5, 0.01))
 
-# Temperature at steel plate
-sim.device(id="TEMP_STEEL", quantity="WALL TEMPERATURE", xyz=Point3D(0.5, 0.5, 0.4))
+# Temperature at mid-height
+sim.device(id="TEMP_MID", quantity="TEMPERATURE", xyz=Point3D(0.5, 0.5, 0.2))
 
-# Heat flux measurements
-sim.device(id="HEAT_FLUX_BOTTOM", quantity="WALL HEAT FLUX", xyz=Point3D(0.5, 0.5, 0.05))
-
-sim.device(id="HEAT_FLUX_TOP", quantity="WALL HEAT FLUX", xyz=Point3D(0.5, 0.5, 0.35))
+# Temperature near top
+sim.device(id="TEMP_NEAR_TOP", quantity="TEMPERATURE", xyz=Point3D(0.5, 0.5, 0.39))
 
 # Generate FDS file
-output_file = sim.write("heat_transfer.fds")
+output_dir = Path(__file__).parent / "fds"
+output_dir.mkdir(exist_ok=True)
+output_file = sim.write(output_dir / "heat_transfer.fds")
 print(f"✓ Created FDS file: {output_file}")
-print(f"✓ Mode: SOLID_PHASE_ONLY={sim.misc_params.solid_phase_only}")
-print(f"✓ Radiation: {sim.misc_params.radiation}")
+if sim.physics.misc_params:
+    print(f"✓ Mode: SOLID_PHASE_ONLY={sim.physics.misc_params.solid_phase_only}")
+    print(f"✓ Radiation: {sim.physics.misc_params.radiation}")
 print(f"✓ Materials: {len(sim.material_mgr.materials)}")
 print(f"✓ Vents: {len(sim.geometry.vents)} (boundary conditions)")
-print(f"✓ Simulation time: {sim.time_params.t_end}s (1 hour)")
+if sim.time_params:
+    print(f"✓ Simulation time: {sim.time_params.t_end}s (1 hour)")
 print("\nThis simulation models pure heat conduction without fluid flow.")

@@ -12,7 +12,7 @@ from pyfds import Simulation
 from pyfds.core.geometry import Point3D
 
 # Create output directory
-output_dir = Path("./demo_output")
+output_dir = Path(__file__).parent / "fds"
 output_dir.mkdir(exist_ok=True)
 
 

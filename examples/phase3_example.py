@@ -7,6 +7,8 @@ This example creates a simple fire simulation with:
 - Sprinkler activation control
 """
 
+from pathlib import Path
+
 from pyfds.core.geometry import Point3D
 from pyfds.core.namelists import (
     ControlFunction,
@@ -91,7 +93,9 @@ init = Init(xb=(0, 5, 0, 5, 2.0, 2.5), temperature=100)
 sim.add_init(init)
 
 # Generate FDS file
-output_file = sim.write("phase3_demo.fds")
+output_dir = Path(__file__).parent / "fds"
+output_dir.mkdir(exist_ok=True)
+output_file = sim.write(output_dir / "phase3_demo.fds")
 print(f"✓ Created FDS file: {output_file}")
 print(f"✓ Simulation uses {len(sim.ramps.ramps)} ramps")
 print(f"✓ Simulation uses {len(sim.material_mgr.materials)} materials")

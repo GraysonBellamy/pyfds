@@ -5,6 +5,8 @@ This example shows how to use builders to create a complete fire simulation
 with materials, reactions, ramps, controls, and vents using a fluent API.
 """
 
+from pathlib import Path
+
 from pyfds import Simulation
 from pyfds.builders import (
     ControlBuilder,
@@ -103,20 +105,26 @@ def main():
     # ========================================================================
     print("Adding vents...")
 
-    # Door using convenience method
-    door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0, z_min=0.0, z_max=2.1, id="DOOR_1")
+    # Door using convenience method (on X=10 boundary)
+    door = VentBuilder.door(x=10.0, y_min=4.0, y_max=6.0, z_min=0.0, z_max=2.1, id="DOOR_1")
     sim.add_vent(door)
 
-    # Window
-    window = VentBuilder.window(x=0.0, y_min=1.0, y_max=2.0, z_min=1.0, z_max=1.5, id="WINDOW_1")
+    # Window (on X=0 boundary)
+    window = VentBuilder.window(x=0.0, y_min=2.0, y_max=4.0, z_min=1.0, z_max=2.0, id="WINDOW_1")
     sim.add_vent(window)
 
-    # HVAC supply
-    supply = VentBuilder.hvac_supply(xb=(5, 6, 5, 6, 3, 3), volume_flow=0.5, id="SUPPLY_1")
+    # HVAC vents - Note: VOLUME_FLOW must be on SURF, not VENT per FDS requirements
+    # Create surfaces with volume flow
+    sim.surface(id="HVAC_SUPPLY", volume_flow=-0.5, color="BLUE")  # negative = into domain
+    sim.surface(id="HVAC_EXHAUST", volume_flow=0.3, color="RED")  # positive = out of domain
+
+    # Create vents referencing the surfaces (on ceiling at Z=5)
+    from pyfds.core.namelists import Vent
+
+    supply = Vent(xb=(5, 6, 5, 6, 5, 5), surf_id="HVAC_SUPPLY", id="SUPPLY_1")
     sim.add_vent(supply)
 
-    # HVAC exhaust
-    exhaust = VentBuilder.hvac_exhaust(xb=(0, 1, 0, 1, 3, 3), volume_flow=0.3, id="EXHAUST_1")
+    exhaust = Vent(xb=(0, 1, 0, 1, 5, 5), surf_id="HVAC_EXHAUST", id="EXHAUST_1")
     sim.add_vent(exhaust)
 
     # Circular burner
@@ -190,11 +198,36 @@ def main():
     # HRR measurement
     sim.device(id="HRR", quantity="HRR", xb=(0, 10, 0, 10, 0, 5))
 
+    # Actual detector devices (referenced by controls)
+    sim.device(
+        id="SMOKE_DET_1",
+        quantity="CHAMBER OBSCURATION",
+        xyz=Point3D(3, 3, 2.5),
+        prop_id="SMOKE_DET",
+    )
+    sim.device(
+        id="SMOKE_DET_2",
+        quantity="CHAMBER OBSCURATION",
+        xyz=Point3D(7, 3, 2.5),
+        prop_id="SMOKE_DET",
+    )
+    sim.device(
+        id="SMOKE_DET_3",
+        quantity="CHAMBER OBSCURATION",
+        xyz=Point3D(5, 7, 2.5),
+        prop_id="SMOKE_DET",
+    )
+    sim.device(
+        id="HEAT_DET", quantity="LINK TEMPERATURE", xyz=Point3D(5, 5, 2.5), prop_id="HEAT_DET"
+    )
+
     # ========================================================================
     # Write FDS File
     # ========================================================================
     print("\nWriting FDS file...")
-    fds_file = sim.write("apartment_fire.fds")
+    output_dir = Path(__file__).parent / "fds"
+    output_dir.mkdir(exist_ok=True)
+    fds_file = sim.write(output_dir / "apartment_fire.fds")
     print(f"✅ FDS file written to: {fds_file}")
 
     # ========================================================================

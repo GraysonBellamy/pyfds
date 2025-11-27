@@ -39,6 +39,7 @@ class Device(NamelistBase):
     quantity: str = Field(..., description="Quantity to measure")
     xyz: Point3D | None = Field(None, description="Device location")
     xb: Bounds3D | None = Field(None, description="Device bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
+    prop_id: str | None = Field(None, description="Device property ID (for sprinklers, detectors)")
 
     @field_validator("xyz", mode="before")
     @classmethod
@@ -61,4 +62,6 @@ class Device(NamelistBase):
             params["xyz"] = self.xyz.as_tuple()
         if self.xb:
             params["xb"] = self.xb.as_tuple()
+        if self.prop_id:
+            params["prop_id"] = self.prop_id
         return self._build_namelist("DEVC", params)
