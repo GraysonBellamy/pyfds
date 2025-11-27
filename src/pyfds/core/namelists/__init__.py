@@ -8,6 +8,7 @@ The classes can be imported directly from this package for convenience.
 from pyfds.core.namelists.base import NamelistBase
 from pyfds.core.namelists.ctrl import ControlFunction, Ctrl
 from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.factory import NamelistFactory
 from pyfds.core.namelists.head import Head
 from pyfds.core.namelists.init import Init
 from pyfds.core.namelists.matl import Material
@@ -31,6 +32,7 @@ __all__ = [
     "Mesh",
     "Misc",
     "NamelistBase",
+    "NamelistFactory",
     "Obstruction",
     "Prop",
     "Ramp",

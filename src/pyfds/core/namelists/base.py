@@ -33,6 +33,25 @@ class NamelistBase(BaseModel, ABC):
         """
         pass
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "NamelistBase":
+        """
+        Create a namelist instance from a dictionary.
+
+        Parameters
+        ----------
+        data : dict[str, Any]
+            Dictionary containing namelist parameters
+
+        Returns
+        -------
+        NamelistBase
+            Instance of the namelist class
+        """
+        # Convert keys to lowercase for case-insensitive matching
+        normalized_data = {k.lower(): v for k, v in data.items()}
+        return cls(**normalized_data)
+
     def _format_value(self, value: Any) -> str:
         """
         Format a Python value for FDS namelist format.
