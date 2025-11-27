@@ -15,7 +15,7 @@ from pyfds.builders import (
     VentBuilder,
 )
 from pyfds.builders.libraries import CommonMaterials
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 
 def main():
@@ -26,7 +26,7 @@ def main():
 
     # Time and mesh
     sim.time(t_end=600.0)
-    sim.mesh(ijk=(100, 100, 50), xb=(0, 10, 0, 10, 0, 5))
+    sim.mesh(ijk=Grid3D(100, 100, 50), xb=Bounds3D(0, 10, 0, 10, 0, 5))
 
     # ========================================================================
     # Combustion Reaction (using builder)

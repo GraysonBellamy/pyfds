@@ -122,7 +122,7 @@ sim.obstruction(xb=(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
 sim.device(
     id='SMOKE_DET',
     quantity='OPTICAL DENSITY',
-    xyz=(4, 3, 2.9)
+    xyz=Point3D(4, 3, 2.9)
 )
 
 # Control: HVAC operates until smoke detector activates
@@ -154,7 +154,7 @@ for i, x in enumerate([2, 4, 6]):
     sim.device(
         id=f'TEMP_{i+1}',
         quantity='TEMPERATURE',
-        xyz=(x, 3, 2.5)
+        xyz=Point3D(x, 3, 2.5)
     )
 
 sim.write('hvac_control.fds')
@@ -222,14 +222,14 @@ for z in [2, 4, 6, 8, 9.5]:
     sim.device(
         id=f'TEMP_Z{z:.1f}',
         quantity='TEMPERATURE',
-        xyz=(8, 8, z)
+        xyz=Point3D(8, 8, z)
     )
 
 # Ceiling temperature
 sim.device(
     id='CEILING_TEMP',
     quantity='CEILING TEMPERATURE',
-    xyz=(8, 8, 9.8)
+    xyz=Point3D(8, 8, 9.8)
 )
 
 sim.write('atrium_fire.fds')
@@ -302,7 +302,7 @@ for x in [2, 5, 8]:
         sim.device(
             id=f'T_X{x}Y{y}',
             quantity='TEMPERATURE',
-            xyz=(x, y, 1.5)
+            xyz=Point3D(x, y, 1.5)
         )
 
 sim.write('data_center.fds')
@@ -375,7 +375,7 @@ for x in range(10, 91, 10):
     sim.device(
         id=f'TEMP_X{x}',
         quantity='TEMPERATURE',
-        xyz=(x, 4, 3.5)
+        xyz=Point3D(x, 4, 3.5)
     )
 
 # Visibility devices (critical for evacuation)
@@ -383,7 +383,7 @@ for x in [30, 50, 70]:
     sim.device(
         id=f'VIS_X{x}',
         quantity='VISIBILITY',
-        xyz=(x, 4, 1.5)
+        xyz=Point3D(x, 4, 1.5)
     )
 
 sim.write('tunnel_fire.fds')
@@ -451,7 +451,7 @@ for dist in [10, 15, 20, 25]:
     sim.device(
         id=f'HF_{dist}m',
         quantity='GAUGE HEAT FLUX',
-        xyz=(dist, 0, 3),
+        xyz=Point3D(dist, 0, 3),
         ior=1  # Facing fire (-X direction)
     )
 
@@ -460,7 +460,7 @@ for z in [5, 10, 15, 20]:
     sim.device(
         id=f'TEMP_Z{z}',
         quantity='TEMPERATURE',
-        xyz=(0, 0, z)
+        xyz=Point3D(0, 0, z)
     )
 
 sim.write('pool_fire.fds')
@@ -506,10 +506,10 @@ sim.ramp(id='INSTANT', t=[0, 1], f=[0, 1])  # Usually unrealistic
 # Good: Distributed measurements
 for x in range(2, 9, 2):
     for y in range(2, 7, 2):
-        sim.device(id=f'T_X{x}Y{y}', quantity='TEMPERATURE', xyz=(x, y, 2))
+        sim.device(id=f'T_X{x}Y{y}', quantity='TEMPERATURE', xyz=Point3D(x, y, 2))
 
 # Poor: Single measurement point
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(5, 4, 2))
+sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D(5, 4, 2))
 ```
 
 ## Next Steps

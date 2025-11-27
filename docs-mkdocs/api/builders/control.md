@@ -226,6 +226,7 @@ custom = (
 ```python
 from pyfds import Simulation
 from pyfds.builders import ControlBuilder, PropBuilder
+from pyfds.core.geometry import Point3D
 
 sim = Simulation('alarm_system')
 
@@ -234,7 +235,7 @@ for i in range(1, 4):
     sim.device(
         id=f'SMOKE_DET_{i}',
         prop_id='SMOKE_DETECTOR',
-        xyz=(i*2, 5, 2.5)
+        xyz=Point3D(i*2, 5, 2.5)
     )
 
 # Add detector properties
@@ -255,7 +256,7 @@ sim.add_ctrl(alarm)
 
 ```python
 # Heat detector
-sim.device(id='HEAT_DET', prop_id='HEAT_DETECTOR', xyz=(5, 5, 2.5))
+sim.device(id='HEAT_DET', prop_id='HEAT_DETECTOR', xyz=Point3D(5, 5, 2.5))
 
 heat_prop = PropBuilder.heat_detector(id='HEAT_DETECTOR', activation_temp=74)
 sim.add_prop(heat_prop)
@@ -273,7 +274,7 @@ sim.add_ctrl(sprinkler_ctrl)
 sim.device(
     id='SPRINKLER',
     prop_id='SPRINKLER_QR',
-    xyz=(5, 5, 3),
+    xyz=Point3D(5, 5, 3),
     ctrl_id='DELAYED_SPRINKLER'
 )
 ```
@@ -286,7 +287,7 @@ for zone in range(1, 4):
     sim.device(
         id=f'ZONE_{zone}_DET',
         prop_id='SMOKE_DETECTOR',
-        xyz=(zone*3, 5, 2.5)
+        xyz=Point3D(zone*3, 5, 2.5)
     )
 
 # ALL logic - requires all zones
@@ -311,7 +312,7 @@ sim.add_ctrl(any_zone)
 
 ```python
 # Temperature-based HVAC control
-sim.device(id='TEMP_SENSOR', quantity='TEMPERATURE', xyz=(5, 5, 2))
+sim.device(id='TEMP_SENSOR', quantity='TEMPERATURE', xyz=Point3D(5, 5, 2))
 
 # Turn on HVAC when temp > threshold
 hvac_on = (

@@ -10,6 +10,7 @@ This example demonstrates more advanced PyFDS features including:
 """
 
 from pyfds import Simulation
+from pyfds.core.geometry import Point3D
 
 # Create simulation using method chaining
 sim = (
@@ -54,14 +55,16 @@ device_count = 0
 for i, x in enumerate(x_positions):
     for j, y in enumerate(y_positions):
         device_count += 1
-        sim.device(id=f"TEMP_X{i + 1}Y{j + 1}", quantity="TEMPERATURE", xyz=(x, y, z_ceiling))
+        sim.device(
+            id=f"TEMP_X{i + 1}Y{j + 1}", quantity="TEMPERATURE", xyz=Point3D(x, y, z_ceiling)
+        )
 
 print(f"Added {device_count} temperature sensors")
 
 # Add vertical temperature profile at room center
 z_positions = [0.5, 1.0, 1.5, 2.0, 2.5, 2.9]
 for i, z in enumerate(z_positions, start=1):
-    sim.device(id=f"TEMP_VERT_{i}", quantity="TEMPERATURE", xyz=(3.0, 3.0, z))
+    sim.device(id=f"TEMP_VERT_{i}", quantity="TEMPERATURE", xyz=Point3D(3.0, 3.0, z))
 
 print(f"Added {len(z_positions)} vertical profile sensors")
 

@@ -52,6 +52,7 @@ Create a simple room fire simulation in just a few lines:
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 # Create simulation
 sim = Simulation(chid='room_fire', title='Simple Room Fire')
@@ -60,13 +61,13 @@ sim = Simulation(chid='room_fire', title='Simple Room Fire')
 sim.time(t_end=600.0)
 
 # Define computational domain (5m x 5m x 2.5m)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
 
 # Create fire surface (1000 kW/m²)
 sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
 
 # Add fire source (1m x 1m burner)
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
+sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
 
 # Add temperature measurement at ceiling
 sim.device(id='TEMP_CEILING', quantity='TEMPERATURE',
@@ -84,13 +85,14 @@ PyFDS now supports executing and analyzing FDS simulations directly from Python!
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 # Create simulation
 sim = Simulation(chid='room_fire', title='Room Fire')
 sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
 
 # Run simulation (blocks until complete)
@@ -169,12 +171,13 @@ results = sim.run(n_mpi=2, n_threads=4)  # 2 MPI ranks, 4 threads each
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='room_fire', title='Room Fire Test')
 sim.time(t_end=600.0, dt=0.1)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
 sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
+sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
 sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
 
 # Write FDS input file
@@ -185,12 +188,13 @@ sim.write('room_fire.fds')
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = (Simulation(chid='fire', title='My Fire Simulation')
        .time(t_end=600.0)
-       .mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+       .mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
        .surface(id='FIRE', hrrpua=1000.0)
-       .obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+       .obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
        .device(id='TEMP1', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4)))
 
 sim.write('fire.fds')
@@ -200,6 +204,7 @@ sim.write('fire.fds')
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 # Study effect of heat release rate
 hrr_values = [500, 1000, 1500, 2000]
@@ -207,9 +212,9 @@ hrr_values = [500, 1000, 1500, 2000]
 for hrr in hrr_values:
     sim = Simulation(chid=f'fire_{hrr}')
     sim.time(t_end=300.0)
-    sim.mesh(ijk=(30, 30, 15), xb=(0, 3, 0, 3, 0, 1.5))
+    sim.mesh(ijk=Grid3D(30, 30, 15), xb=Bounds3D(0, 3, 0, 3, 0, 1.5))
     sim.surface(id='FIRE', hrrpua=float(hrr))
-    sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
+    sim.obstruction(xb=Bounds3D(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
     sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(1.5, 1.5, 1.4))
 
     sim.write(f'fire_{hrr}.fds')
@@ -219,10 +224,11 @@ for hrr in hrr_values:
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='test')
 sim.time(t_end=100.0)
-sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+sim.mesh(ijk=Grid3D(10, 10, 10), xb=Bounds3D(0, 1, 0, 1, 0, 1))
 
 # Validate before running
 warnings = sim.validate()

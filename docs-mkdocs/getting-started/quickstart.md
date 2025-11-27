@@ -17,6 +17,7 @@ First, import the main `Simulation` class:
 
 ```python
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D
 ```
 
 ## Step 2: Create a Simulation
@@ -57,8 +58,8 @@ Create a mesh that defines the simulation space:
 
 ```python
 sim.mesh(
-    ijk=(50, 50, 25),              # Grid cells in each direction
-    xb=(0, 5, 0, 5, 0, 2.5)        # Domain bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
+    ijk=Grid3D(50, 50, 25),              # Grid cells in each direction
+    xb=Bounds3D(0, 5, 0, 5, 0, 2.5)        # Domain bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
 )
 ```
 
@@ -96,7 +97,7 @@ Create a 1m × 1m burner in the center of the room:
 
 ```python
 sim.obstruction(
-    xb=(2.0, 3.0, 2.0, 3.0, 0.0, 0.1),  # Bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
+    xb=Bounds3D(2.0, 3.0, 2.0, 3.0, 0.0, 0.1),  # Bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
     surf_id='FIRE'                        # Apply fire surface to top
 )
 ```

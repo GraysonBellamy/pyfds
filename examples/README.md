@@ -47,14 +47,16 @@ HVAC system with supply and exhaust vents:
 
 **Key Features:**
 ```python
+from pyfds.core.geometry import Bounds3D
+
 # Set ambient conditions
 sim.set_misc(tmpa=22.0, humidity=50.0)
 
 # HVAC supply vent
-sim.vent(xb=(2, 2.5, 2, 2.5, 3, 3), surf_id='HVAC', volume_flow=0.5)
+sim.vent(xb=Bounds3D(2, 2.5, 2, 2.5, 3, 3), surf_id='HVAC', volume_flow=0.5)
 
 # Door opening
-sim.vent(xb=(4, 4, 4, 6, 0.5, 2), surf_id='OPEN')
+sim.vent(xb=Bounds3D(4, 4, 4, 6, 0.5, 2), surf_id='OPEN')
 ```
 
 ### [wildfire_simulation.py](wildfire_simulation.py) ⭐ NEW
@@ -89,9 +91,11 @@ Circular and annular vent geometries:
 
 **Key Features:**
 ```python
+from pyfds.core.geometry import Bounds3D
+
 # Circular burner
 burner = Vent(
-    xb=(-2, 2, -2, 2, 0, 0),
+    xb=Bounds3D(-2, 2, -2, 2, 0, 0),
     surf_id='BURNER',
     xyz=(0, 0, 0),
     radius=1.0
@@ -99,7 +103,7 @@ burner = Vent(
 
 # Annular burner (ring)
 annular = Vent(
-    xb=(-2, 2, -2, 2, 7, 7),
+    xb=Bounds3D(-2, 2, -2, 2, 7, 7),
     surf_id='BURNER',
     xyz=(0, 0, 7),
     radius=1.5,
@@ -125,7 +129,7 @@ sim.set_misc(
 )
 
 # Temperature boundary
-hot_vent = Vent(xb=(0.3, 0.7, 0.3, 0.7, 0, 0), surf_id='HOT')
+hot_vent = Vent(xb=Bounds3D(0.3, 0.7, 0.3, 0.7, 0, 0), surf_id='HOT')
 ```
 
 ## Execution Examples

@@ -7,7 +7,7 @@ using PyFDS. It follows the example from Section 7.2.1 of the implementation pla
 """
 
 from pyfds import Simulation
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 # Create simulation
 sim = Simulation(chid="room_fire", title="Room Fire Test")
@@ -18,7 +18,7 @@ sim.time(t_end=600.0)  # 10 minutes simulation
 # Define computational domain
 # Room dimensions: 5m x 5m x 2.5m high
 # Grid resolution: 50 x 50 x 25 cells (10 cm cell size)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
 
 # Create fire surface
 # Heat release rate per unit area: 1000 kW/m²
@@ -29,7 +29,7 @@ sim.surface(
 )
 
 # Add fire source (1m x 1m burner at floor level)
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id="BURNER")
+sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id="BURNER")
 
 # Add measurement device at ceiling
 # Using Point3D for better type safety and operations

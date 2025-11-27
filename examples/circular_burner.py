@@ -9,7 +9,7 @@ This example shows:
 """
 
 from pyfds import Simulation
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Vent
 
 # Create simulation
@@ -22,7 +22,7 @@ sim.set_misc(tmpa=20.0, humidity=40.0)
 sim.time(t_end=120.0, dt=0.05)
 
 # Mesh centered around burner - 6m x 6m x 6m
-sim.mesh(ijk=(60, 60, 60), xb=(-3, 3, -3, 3, 0, 6))
+sim.mesh(ijk=Grid3D(60, 60, 60), xb=Bounds3D(-3, 3, -3, 3, 0, 6))
 
 # ===== Burner surfaces =====
 sim.surface(id="BURNER", hrrpua=500.0, color="RED")
@@ -30,7 +30,7 @@ sim.surface(id="BURNER", hrrpua=500.0, color="RED")
 # ===== Circular burner at center =====
 # Using Vent for circular geometry
 burner = Vent(
-    xb=(-2, 2, -2, 2, 0, 0),  # Bounding box
+    xb=Bounds3D(-2, 2, -2, 2, 0, 0),  # Bounding box
     surf_id="BURNER",
     xyz=Point3D(0, 0, 0),  # Center point
     radius=1.0,  # 1m radius
@@ -44,11 +44,11 @@ print(f"Circular burner area: {burner_area:.3f} m²")
 
 # ===== Annular (ring-shaped) burner =====
 # Create a second mesh for the annular burner demonstration
-sim.mesh(ijk=(60, 60, 60), xb=(-3, 3, -3, 3, 7, 13), id="MESH_02")
+sim.mesh(ijk=Grid3D(60, 60, 60), xb=Bounds3D(-3, 3, -3, 3, 7, 13), id="MESH_02")
 
 # Annular burner (ring with inner hole)
 annular_burner = Vent(
-    xb=(-2, 2, -2, 2, 7, 7),  # Bounding box
+    xb=Bounds3D(-2, 2, -2, 2, 7, 7),  # Bounding box
     surf_id="BURNER",
     xyz=Point3D(0, 0, 7),  # Center point
     radius=1.5,  # Outer radius 1.5m
