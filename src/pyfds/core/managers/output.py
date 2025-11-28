@@ -117,11 +117,23 @@ class OutputManager(BaseManager):
             for prop in self.instrumentation.props:
                 lines.append(prop.to_fds())
 
+        # MULT namelists (must come before objects that reference them)
+        if self.geometry.multipliers:
+            lines.append("! --- Multipliers ---")
+            for mult in self.geometry.multipliers:
+                lines.append(mult.to_fds())
+
         # OBST namelists
         if self.geometry.obstructions:
             lines.append("! --- Obstructions ---")
             for obst in self.geometry.obstructions:
                 lines.append(obst.to_fds())
+
+        # HOLE namelists (must come after OBST)
+        if self.geometry.holes:
+            lines.append("! --- Holes ---")
+            for hole in self.geometry.holes:
+                lines.append(hole.to_fds())
 
         # VENT namelists (after OBST and SURF)
         if self.geometry.vents:

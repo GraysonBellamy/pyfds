@@ -20,6 +20,10 @@ PyFDS builders offer an alternative to direct namelist construction with improve
 | [ControlBuilder](control.md) | Control logic | Logic gates, time delays, special functions |
 | [PropBuilder](prop.md) | Device properties | Sprinklers, detectors (factory methods) |
 | [VentBuilder](vent.md) | Boundary conditions | Openings, HVAC, circular vents (factory methods) |
+| [GeomBuilder](geom.md) | Unstructured geometry | Triangulated surfaces, predefined shapes, terrain |
+| [MoveBuilder](move.md) | Geometry transformations | Translation, rotation, scaling |
+| [HoleBuilder](hole.md) | Hole carving | Openings in obstructions |
+| [MultBuilder](mult.md) | Array replication | Regular arrays of objects |
 
 ## Builder Pattern
 
@@ -204,7 +208,102 @@ burner = VentBuilder.circular_burner(center=(0, 0, 0), radius=0.5, surf_id='FIRE
 
 [Full VentBuilder Documentation →](vent.md)
 
-## Design Principles
+### GeomBuilder
+
+```python
+from pyfds.builders import GeomBuilder
+
+# Triangulated surface
+geom = (
+    GeomBuilder('TRIANGLE')
+    .with_vertices([(0,0,0), (1,0,0), (0.5,1,0)])
+    .with_faces([(1,2,3,1)])  # vertex indices, surface index
+    .build()
+)
+
+# Sphere
+sphere = (
+    GeomBuilder('BALL')
+    .sphere(center=(5, 5, 1), radius=0.5, levels=3)
+    .build()
+)
+
+# Terrain
+terrain = (
+    GeomBuilder('LANDSCAPE')
+    .terrain(elevation_data=[1.0, 1.2, 1.1, 0.9])
+    .build()
+)
+```
+
+[Full GeomBuilder Documentation →](geom.md)
+
+### MoveBuilder
+
+```python
+from pyfds.builders import MoveBuilder
+
+# Translation
+move = MoveBuilder('SHIFT').translate(dx=5.0, dy=0.0, dz=2.0).build()
+
+# Rotation
+move = MoveBuilder('ROTATE').rotate(axis=(0,0,1), angle=90.0).build()
+
+# Combined
+move = (
+    MoveBuilder('TRANSFORM')
+    .translate(dx=1.0, dy=1.0, dz=0.0)
+    .rotate(axis=(0,0,1), angle=45.0)
+    .scale(sx=2.0, sy=2.0, sz=1.0)
+    .build()
+)
+```
+
+[Full MoveBuilder Documentation →](move.md)
+
+### HoleBuilder
+
+```python
+from pyfds.builders import HoleBuilder
+
+# Simple hole
+hole = HoleBuilder('DOOR').bounds(xb=(5,5.1,2,4,0,2.1)).build()
+
+# Controlled hole
+hole = (
+    HoleBuilder('WINDOW')
+    .bounds(xb=(0,0.1,1,2,1.5,2.5))
+    .controlled_by('WINDOW_CTRL')
+    .color_when_closed('GRAY')
+    .build()
+)
+```
+
+[Full HoleBuilder Documentation →](hole.md)
+
+### MultBuilder
+
+```python
+from pyfds.builders import MultBuilder
+
+# 3x3 array
+mult = (
+    MultBuilder('ARRAY_3X3')
+    .spacing(dx=2.0, dy=2.0)
+    .count(i_lower=0, i_upper=2, j_lower=0, j_upper=2)
+    .build()
+)
+
+# Linear array
+mult = (
+    MultBuilder('ROW_10')
+    .spacing(dx=1.0)
+    .count(n_lower=0, n_upper=9)
+    .build()
+)
+```
+
+[Full MultBuilder Documentation →](mult.md)
 
 ### 1. Fluent Interface
 

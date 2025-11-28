@@ -14,6 +14,7 @@ This uses the Simulation class convenience methods.
 from pathlib import Path
 
 from pyfds import Simulation
+from pyfds.builders import DevcBuilder, SurfBuilder
 
 
 def create_simple_room_fire():
@@ -32,8 +33,15 @@ def create_simple_room_fire():
     # Computational mesh
     sim.mesh(ijk=(50, 40, 30), xb=(0, 5, 0, 4, 0, 3), id="ROOM")
 
-    # Fire surface - 500 kW constant heat release (Stage 1.1 feature)
-    sim.surface(id="FIRE", hrrpua=500.0, color="ORANGE", emissivity=0.9)
+    # Fire surface - 500 kW constant heat release with radiation properties (Stage 1.1 feature)
+    fire_surf = (
+        SurfBuilder("FIRE")
+        .with_heat_release(500.0)
+        .with_color("ORANGE")
+        .with_radiation(emissivity=0.9)
+        .build()
+    )
+    sim.add_surface(fire_surf)
 
     # Fire source (burner at floor center)
     sim.obstruction(xb=(2.0, 3.0, 1.5, 2.5, 0.0, 0.1), surf_id="FIRE")
@@ -44,14 +52,14 @@ def create_simple_room_fire():
         sim.device(id=f"TEMP_{int(z * 10):02d}", quantity="TEMPERATURE", xyz=(2.5, 2.0, z))
 
     # Heat detector at ceiling with control logic (Stage 1.2 feature)
-    sim.device(
-        id="HEAT_DETECTOR",
-        quantity="TEMPERATURE",
-        xyz=(2.5, 2.0, 2.9),
-        setpoint=75.0,  # Activate at 75°C
-        trip_direction=1,  # Trip when temperature exceeds setpoint
-        latch=True,  # Stay activated
+    heat_detector = (
+        DevcBuilder("HEAT_DETECTOR")
+        .with_quantity("TEMPERATURE")
+        .at_point((2.5, 2.0, 2.9))
+        .with_control(setpoint=75.0, trip_direction=1, latch=True)
+        .build()
     )
+    sim.add_device(heat_detector)
 
     return sim
 

@@ -469,6 +469,403 @@ class SurfBuilder(Builder[Surface]):
         )
         return self
 
+    # === TEMPERATURE BOUNDARY CONDITIONS (Phase 3) ===
+    def with_initial_temperature(
+        self,
+        tmp_front_initial: float | None = None,
+        tmp_inner: float | None = None,
+        tmp_back: float | None = None,
+        tmp_gas_back: float | None = None,
+    ) -> "SurfBuilder":
+        """
+        Set initial and boundary temperatures.
+
+        Parameters
+        ----------
+        tmp_front_initial : float, optional
+            Initial front surface temperature [°C]
+        tmp_inner : float, optional
+            Initial solid interior temperature [°C]
+        tmp_back : float, optional
+            Fixed back surface temperature [°C]
+        tmp_gas_back : float, optional
+            Back gas temperature for convection [°C]
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        if tmp_front_initial is not None:
+            self._params["tmp_front_initial"] = tmp_front_initial
+        if tmp_inner is not None:
+            self._params["tmp_inner"] = tmp_inner
+        if tmp_back is not None:
+            self._params["tmp_back"] = tmp_back
+        if tmp_gas_back is not None:
+            self._params["tmp_gas_back"] = tmp_gas_back
+        return self
+
+    def with_temperature_ramps(
+        self,
+        ramp_t: str | None = None,
+        ramp_tmp_back: str | None = None,
+        ramp_tmp_gas_front: str | None = None,
+        ramp_tmp_gas_back: str | None = None,
+        ramp_t_i: str | None = None,
+    ) -> "SurfBuilder":
+        """
+        Set temperature ramps for time-varying boundary conditions.
+
+        Parameters
+        ----------
+        ramp_t : str, optional
+            Temperature ramp ID
+        ramp_tmp_back : str, optional
+            Back temperature ramp
+        ramp_tmp_gas_front : str, optional
+            Front gas temperature ramp
+        ramp_tmp_gas_back : str, optional
+            Back gas temperature ramp
+        ramp_t_i : str, optional
+            Initial temperature profile ramp
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        if ramp_t is not None:
+            self._params["ramp_t"] = ramp_t
+        if ramp_tmp_back is not None:
+            self._params["ramp_tmp_back"] = ramp_tmp_back
+        if ramp_tmp_gas_front is not None:
+            self._params["ramp_tmp_gas_front"] = ramp_tmp_gas_front
+        if ramp_tmp_gas_back is not None:
+            self._params["ramp_tmp_gas_back"] = ramp_tmp_gas_back
+        if ramp_t_i is not None:
+            self._params["ramp_t_i"] = ramp_t_i
+        return self
+
+    # === HEAT TRANSFER (Phase 3) ===
+    def with_adiabatic(self, adiabatic: bool = True) -> "SurfBuilder":
+        """
+        Make surface adiabatic (no heat transfer).
+
+        Parameters
+        ----------
+        adiabatic : bool, optional
+            Whether surface is adiabatic (default: True)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["adiabatic"] = adiabatic
+        return self
+
+    def with_heat_transfer_coefficient_back(
+        self, htc_back: float, ramp_id: str | None = None
+    ) -> "SurfBuilder":
+        """
+        Set back side heat transfer coefficient.
+
+        Parameters
+        ----------
+        htc_back : float
+            Back side convection coefficient [W/(m²·K)]
+        ramp_id : str, optional
+            Ramp ID for time-varying HTC
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["heat_transfer_coefficient_back"] = htc_back
+        if ramp_id is not None:
+            self._params["ramp_heat_transfer_coefficient_back"] = ramp_id
+        return self
+
+    def with_heat_transfer_model(
+        self,
+        model: str,
+        length_scale: float = 1.0,
+        ramp_htc: str | None = None,
+        blowing: bool = False,
+    ) -> "SurfBuilder":
+        """
+        Set heat transfer model and parameters.
+
+        Parameters
+        ----------
+        model : str
+            Heat transfer model: 'LOGLAW' or 'IMPINGING JET'
+        length_scale : float, optional
+            Characteristic length for convection [m] (default: 1.0)
+        ramp_htc : str, optional
+            Ramp ID for heat transfer coefficient
+        blowing : bool, optional
+            Account for mass flux effect on convection (default: False)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["heat_transfer_model"] = model
+        self._params["convection_length_scale"] = length_scale
+        if ramp_htc is not None:
+            self._params["ramp_heat_transfer_coefficient"] = ramp_htc
+        self._params["blowing"] = blowing
+        return self
+
+    def with_nusselt_correlation(self, c0: float, c1: float, c2: float, m: float) -> "SurfBuilder":
+        """
+        Set custom Nusselt correlation: Nu = C0 + C1 * Re^M * Pr^C2.
+
+        Parameters
+        ----------
+        c0, c1, c2 : float
+            Nusselt correlation coefficients
+        m : float
+            Reynolds number exponent
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["nusselt_c0"] = c0
+        self._params["nusselt_c1"] = c1
+        self._params["nusselt_c2"] = c2
+        self._params["nusselt_m"] = m
+        return self
+
+    def with_impinging_jet(self, sigma: float) -> "SurfBuilder":
+        """
+        Configure impinging jet heat transfer.
+
+        Parameters
+        ----------
+        sigma : float
+            Jet width [m]
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["heat_transfer_coefficient_sigma"] = sigma
+        return self
+
+    # === EMISSIVITY (Phase 3) ===
+    def with_emissivity_back(self, emissivity_back: float) -> "SurfBuilder":
+        """
+        Set back surface emissivity.
+
+        Parameters
+        ----------
+        emissivity_back : float
+            Back surface emissivity (0-1)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["emissivity_back"] = emissivity_back
+        return self
+
+    # === SOLID PHASE GEOMETRY (Phase 3) ===
+    def with_geometry(
+        self,
+        geometry: str,
+        inner_radius: float | None = None,
+        length: float | None = None,
+        radius: float | None = None,
+        width: float | None = None,
+        horizontal: bool = False,
+    ) -> "SurfBuilder":
+        """
+        Set solid phase geometry parameters.
+
+        Parameters
+        ----------
+        geometry : str
+            Geometry type: 'CARTESIAN', 'CYLINDRICAL', 'SPHERICAL', 'INNER CYLINDRICAL'
+        inner_radius : float, optional
+            Inner radius for hollow cylinder [m]
+        length : float, optional
+            Cylinder/particle length [m]
+        radius : float, optional
+            Cylinder/particle radius [m]
+        width : float, optional
+            Particle width [m]
+        horizontal : bool, optional
+            Horizontal cylinder orientation (default: False)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["geometry"] = geometry
+        if inner_radius is not None:
+            self._params["inner_radius"] = inner_radius
+        if length is not None:
+            self._params["length"] = length
+        if radius is not None:
+            self._params["radius"] = radius
+        if width is not None:
+            self._params["width"] = width
+        self._params["horizontal"] = horizontal
+        return self
+
+    # === 3D HEAT CONDUCTION (Phase 3) ===
+    def with_3d_heat_conduction(self, variable_thickness: bool = False) -> "SurfBuilder":
+        """
+        Enable 3-D heat conduction.
+
+        Parameters
+        ----------
+        variable_thickness : bool, optional
+            Variable thickness 1-D mode (default: False)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["ht3d"] = True
+        self._params["variable_thickness"] = variable_thickness
+        return self
+
+    # === NUMERICAL PARAMETERS (Phase 3) ===
+    def with_numerical_params(
+        self,
+        stretch_factor: list[float] | float | None = None,
+        cell_size_factor: list[float] | float | None = None,
+        cell_size: list[float] | float | None = None,
+        n_layer_cells_max: list[int] | int | None = None,
+        time_step_factor: float = 10.0,
+        delta_tmp_max: float = 10.0,
+        minimum_layer_thickness: list[float] | float | None = None,
+        minimum_layer_mass_fraction: list[float] | float | None = None,
+        remesh_ratio: float = 0.15,
+    ) -> "SurfBuilder":
+        """
+        Set numerical parameters for solid phase heat conduction.
+
+        Parameters
+        ----------
+        stretch_factor : list[float] | float, optional
+            Node spacing stretch factor per layer
+        cell_size_factor : list[float] | float, optional
+            Cell size multiplier per layer
+        cell_size : list[float] | float, optional
+            Explicit cell size per layer [m]
+        n_layer_cells_max : list[int] | int, optional
+            Maximum cells per layer
+        time_step_factor : float, optional
+            Maximum time step subdivision factor (default: 10.0)
+        delta_tmp_max : float, optional
+            Maximum temperature change per step [°C] (default: 10.0)
+        minimum_layer_thickness : list[float] | float, optional
+            Minimum layer thickness [m]
+        minimum_layer_mass_fraction : list[float] | float, optional
+            Minimum layer mass fraction
+        remesh_ratio : float, optional
+            Trigger ratio for remeshing (default: 0.15)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        if stretch_factor is not None:
+            self._params["stretch_factor"] = stretch_factor
+        if cell_size_factor is not None:
+            self._params["cell_size_factor"] = cell_size_factor
+        if cell_size is not None:
+            self._params["cell_size"] = cell_size
+        if n_layer_cells_max is not None:
+            self._params["n_layer_cells_max"] = n_layer_cells_max
+        self._params["time_step_factor"] = time_step_factor
+        self._params["delta_tmp_max"] = delta_tmp_max
+        if minimum_layer_thickness is not None:
+            self._params["minimum_layer_thickness"] = minimum_layer_thickness
+        if minimum_layer_mass_fraction is not None:
+            self._params["minimum_layer_mass_fraction"] = minimum_layer_mass_fraction
+        self._params["remesh_ratio"] = remesh_ratio
+        return self
+
+    # === INTERNAL HEAT SOURCE (Phase 3) ===
+    def with_internal_heat_source(
+        self, heat_source: list[float] | float, ramp_id: str | None = None
+    ) -> "SurfBuilder":
+        """
+        Set internal heat source per layer.
+
+        Parameters
+        ----------
+        heat_source : list[float] | float
+            Internal heat source per layer [kW/m³]
+        ramp_id : str, optional
+            Ramp ID for time-varying heat source
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["internal_heat_source"] = heat_source
+        if ramp_id is not None:
+            self._params["ramp_ihs"] = ramp_id
+        return self
+
+    # === VISUALIZATION (Phase 3) ===
+    def as_default(self) -> "SurfBuilder":
+        """
+        Mark surface as default boundary condition.
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["default"] = True
+        return self
+
+    def with_texture(
+        self, texture_map: str, width: float = 1.0, height: float = 1.0, transparency: float = 1.0
+    ) -> "SurfBuilder":
+        """
+        Set texture mapping for visualization.
+
+        Parameters
+        ----------
+        texture_map : str
+            Texture image file path
+        width : float, optional
+            Texture width [m] (default: 1.0)
+        height : float, optional
+            Texture height [m] (default: 1.0)
+        transparency : float, optional
+            Surface transparency (0-1) (default: 1.0)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+        """
+        self._params["texture_map"] = texture_map
+        self._params["texture_width"] = width
+        self._params["texture_height"] = height
+        self._params["transparency"] = transparency
+        return self
+
     def build(self) -> Surface:
         """
         Build the Surface object.

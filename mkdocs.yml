@@ -243,6 +243,10 @@ nav:
       - ControlBuilder: api/builders/control.md
       - PropBuilder: api/builders/prop.md
       - VentBuilder: api/builders/vent.md
+      - GeomBuilder: api/builders/geom.md
+      - HoleBuilder: api/builders/hole.md
+      - MoveBuilder: api/builders/move.md
+      - MultBuilder: api/builders/mult.md
     - Namelists:
       - api/namelists/index.md
       - Base Classes: api/namelists/base.md

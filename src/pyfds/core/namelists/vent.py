@@ -140,6 +140,45 @@ class Vent(NamelistBase):
     rgb: tuple[int, int, int] | None = Field(None, description="RGB color")
     transparency: float = Field(1.0, ge=0, le=1, description="Transparency [0-1]")
 
+    # === PHASE 4: VENT ENHANCEMENTS ===
+    # Geometry parameters
+    db: str | None = Field(None, description="Domain boundary")
+    pbx: float | None = Field(None, description="X plane position")
+    pby: float | None = Field(None, description="Y plane position")
+    pbz: float | None = Field(None, description="Z plane position")
+    ior: int | None = Field(None, description="Orientation: +/-1,2,3")
+
+    # Control parameters
+    outline: bool = Field(False, description="Draw outline only")
+    mult_id: str | None = Field(None, description="Multiplier ID")
+    obst_id: str | None = Field(None, description="Associated obstruction ID")
+
+    # Texture parameters
+    texture_origin: tuple[float, float, float] | None = Field(
+        None, description="Texture origin point"
+    )
+
+    # Fire spread (circular vents)
+    spread_rate: float | None = Field(None, gt=0, description="Fire spread rate [m/s]")
+
+    # Open boundary parameters
+    tmp_exterior_ramp: str | None = Field(None, description="Ramp for exterior temperature")
+    pressure_ramp: str | None = Field(None, description="Ramp for dynamic pressure")
+
+    # Synthetic turbulence parameters
+    n_eddy: int | None = Field(None, ge=1, description="Number of synthetic eddies")
+    l_eddy: float | None = Field(None, gt=0, description="Eddy length scale [m]")
+    l_eddy_ij: list[list[float]] | None = Field(
+        None, description="Anisotropic eddy length scales (3x3)"
+    )
+    vel_rms: float | None = Field(None, ge=0, description="RMS velocity fluctuation [m/s]")
+    reynolds_stress: list[list[float]] | None = Field(
+        None, description="Reynolds stress tensor (3x3)"
+    )
+    uvw: tuple[float, float, float] | None = Field(
+        None, description="Mean velocity components [m/s]"
+    )
+
     @field_validator("xyz", mode="before")
     @classmethod
     def validate_xyz(cls, v: Any) -> Any:
@@ -195,6 +234,23 @@ class Vent(NamelistBase):
                 raise ValueError("RGB must have exactly 3 values")
             if any(val < 0 or val > 255 for val in self.rgb):
                 raise ValueError("RGB values must be in range 0-255")
+
+        # Phase 4 validations
+        if self.ior is not None and abs(self.ior) not in [1, 2, 3]:
+            raise ValueError("IOR must be +/-1, +/-2, or +/-3")
+
+        if self.l_eddy_ij is not None and (
+            len(self.l_eddy_ij) != 3 or any(len(row) != 3 for row in self.l_eddy_ij)
+        ):
+            raise ValueError("L_EDDY_IJ must be a 3x3 matrix")
+
+        if self.reynolds_stress is not None and (
+            len(self.reynolds_stress) != 3 or any(len(row) != 3 for row in self.reynolds_stress)
+        ):
+            raise ValueError("REYNOLDS_STRESS must be a 3x3 matrix")
+
+        if self.uvw is not None and len(self.uvw) != 3:
+            raise ValueError("UVW must have exactly 3 components")
 
         return self
 
@@ -292,5 +348,48 @@ class Vent(NamelistBase):
             params["rgb"] = self.rgb
         if self.transparency != 1.0:
             params["transparency"] = self.transparency
+
+        # Phase 4: VENT Enhancements
+        if self.db:
+            params["db"] = self.db
+        if self.pbx is not None:
+            params["pbx"] = self.pbx
+        if self.pby is not None:
+            params["pby"] = self.pby
+        if self.pbz is not None:
+            params["pbz"] = self.pbz
+        if self.ior is not None:
+            params["ior"] = self.ior
+
+        if self.outline:
+            params["outline"] = self.outline
+        if self.mult_id:
+            params["mult_id"] = self.mult_id
+        if self.obst_id:
+            params["obst_id"] = self.obst_id
+
+        if self.texture_origin:
+            params["texture_origin"] = self.texture_origin
+
+        if self.spread_rate is not None:
+            params["spread_rate"] = self.spread_rate
+
+        if self.tmp_exterior_ramp:
+            params["tmp_exterior_ramp"] = self.tmp_exterior_ramp
+        if self.pressure_ramp:
+            params["pressure_ramp"] = self.pressure_ramp
+
+        if self.n_eddy is not None:
+            params["n_eddy"] = self.n_eddy
+        if self.l_eddy is not None:
+            params["l_eddy"] = self.l_eddy
+        if self.l_eddy_ij is not None:
+            params["l_eddy_ij"] = self.l_eddy_ij
+        if self.vel_rms is not None:
+            params["vel_rms"] = self.vel_rms
+        if self.reynolds_stress is not None:
+            params["reynolds_stress"] = self.reynolds_stress
+        if self.uvw:
+            params["uvw"] = self.uvw
 
         return self._build_namelist("VENT", params)

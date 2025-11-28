@@ -184,6 +184,104 @@ class Surface(NamelistBase):
         None, gt=0, description="Time constant for external flux ramp-up [s]"
     )
 
+    # === TEMPERATURE BOUNDARY CONDITIONS (Phase 3) ===
+    tmp_front_initial: float | None = Field(
+        None, description="Initial front surface temperature [°C]"
+    )
+    tmp_inner: float | None = Field(None, description="Initial solid interior temperature [°C]")
+    tmp_back: float | None = Field(None, description="Fixed back surface temperature [°C]")
+    tmp_gas_back: float | None = Field(None, description="Back gas temperature for convection [°C]")
+
+    # Temperature ramps
+    ramp_t: str | None = Field(None, description="Temperature ramp ID")
+    ramp_tmp_back: str | None = Field(None, description="Back temperature ramp")
+    ramp_tmp_gas_front: str | None = Field(None, description="Front gas temp ramp")
+    ramp_tmp_gas_back: str | None = Field(None, description="Back gas temp ramp")
+    ramp_t_i: str | None = Field(None, description="Initial temperature profile ramp")
+
+    # === HEAT TRANSFER (Phase 3) ===
+    adiabatic: bool = Field(False, description="Adiabatic surface (no heat transfer)")
+    heat_transfer_coefficient_back: float | None = Field(
+        None, gt=0, description="Back side convection coefficient [W/(m²·K)]"
+    )
+    heat_transfer_model: str | None = Field(
+        None, description="Heat transfer model: LOGLAW, IMPINGING JET"
+    )
+    convection_length_scale: float = Field(
+        1.0, gt=0, description="Characteristic length for convection [m]"
+    )
+    ramp_heat_transfer_coefficient: str | None = Field(
+        None, description="Ramp for heat transfer coefficient"
+    )
+    ramp_heat_transfer_coefficient_back: str | None = Field(None, description="Ramp for back HTC")
+    blowing: bool = Field(False, description="Account for mass flux effect on convection")
+
+    # Custom Nusselt correlation: Nu = C0 + C1 * Re^M * Pr^C2
+    nusselt_c0: float | None = Field(None, description="Nusselt correlation C0")
+    nusselt_c1: float | None = Field(None, description="Nusselt correlation C1")
+    nusselt_c2: float | None = Field(None, description="Nusselt correlation C2")
+    nusselt_m: float | None = Field(None, description="Nusselt correlation M (Re exponent)")
+
+    # Impinging jet parameters
+    heat_transfer_coefficient_sigma: float | None = Field(
+        None, gt=0, description="Impinging jet width [m]"
+    )
+
+    # === EMISSIVITY (Phase 3) ===
+    emissivity_back: float | None = Field(None, ge=0, le=1, description="Back surface emissivity")
+
+    # === SOLID PHASE GEOMETRY (Phase 3) ===
+    geometry: str | None = Field(
+        None, description="Solid geometry: CARTESIAN, CYLINDRICAL, SPHERICAL, INNER CYLINDRICAL"
+    )
+    inner_radius: float | None = Field(
+        None, gt=0, description="Inner radius for hollow cylinder [m]"
+    )
+    length: float | None = Field(None, gt=0, description="Cylinder/particle length [m]")
+    radius: float | None = Field(None, gt=0, description="Cylinder/particle radius [m]")
+    width: float | None = Field(None, gt=0, description="Particle width [m]")
+    horizontal: bool = Field(False, description="Horizontal cylinder orientation")
+
+    # === 3D HEAT CONDUCTION (Phase 3) ===
+    ht3d: bool = Field(False, description="Enable 3-D heat conduction")
+    variable_thickness: bool = Field(False, description="Variable thickness 1-D mode")
+
+    # === NUMERICAL PARAMETERS (Phase 3) ===
+    stretch_factor: list[float] | float | None = Field(
+        None, description="Node spacing stretch factor per layer"
+    )
+    cell_size_factor: list[float] | float | None = Field(
+        None, description="Cell size multiplier per layer"
+    )
+    cell_size: list[float] | float | None = Field(
+        None, description="Explicit cell size per layer [m]"
+    )
+    n_layer_cells_max: list[int] | int | None = Field(None, description="Maximum cells per layer")
+    time_step_factor: float = Field(10.0, gt=0, description="Maximum time step subdivision factor")
+    delta_tmp_max: float = Field(10.0, gt=0, description="Maximum temperature change per step [°C]")
+    minimum_layer_thickness: list[float] | float | None = Field(
+        None, description="Minimum layer thickness [m]"
+    )
+    minimum_layer_mass_fraction: list[float] | float | None = Field(
+        None, description="Minimum layer mass fraction"
+    )
+    remesh_ratio: float = Field(0.15, gt=0, description="Trigger ratio for remeshing")
+
+    # === INTERNAL HEAT SOURCE (Phase 3) ===
+    internal_heat_source: list[float] | float | None = Field(
+        None, description="Internal heat source per layer [kW/m³]"
+    )
+    ramp_ihs: list[str] | str | None = Field(
+        None, description="Ramp for internal heat source per layer"
+    )
+
+    # === VISUALIZATION (Phase 3) ===
+    default: bool = Field(False, description="Use as default boundary condition")
+    texture_map: str | None = Field(None, description="Texture image file")
+    texture_width: float = Field(1.0, gt=0, description="Texture width [m]")
+    texture_height: float = Field(1.0, gt=0, description="Texture height [m]")
+    transparency: float = Field(1.0, ge=0, le=1, description="Surface transparency")
+
     @field_validator("rgb")
     @classmethod
     def validate_rgb(cls, v: tuple[int, int, int] | None) -> tuple[int, int, int] | None:
@@ -237,6 +335,28 @@ class Surface(NamelistBase):
     def normalize_spec_id(cls, v: list[str] | str | None) -> list[str] | str | None:
         """Normalize SPEC_ID to list or string."""
         # Keep as-is, will be handled in validation
+        return v
+
+    @field_validator("geometry")
+    @classmethod
+    def validate_geometry(cls, v: str | None) -> str | None:
+        """Validate solid phase geometry."""
+        if v is not None:
+            valid = ["CARTESIAN", "CYLINDRICAL", "SPHERICAL", "INNER CYLINDRICAL"]
+            if v.upper() not in valid:
+                raise ValueError(f"GEOMETRY must be one of {valid}, got '{v}'")
+            return v.upper()
+        return v
+
+    @field_validator("heat_transfer_model")
+    @classmethod
+    def validate_heat_transfer_model(cls, v: str | None) -> str | None:
+        """Validate heat transfer model."""
+        if v is not None:
+            valid = ["LOGLAW", "IMPINGING JET"]
+            if v.upper() not in valid:
+                raise ValueError(f"HEAT_TRANSFER_MODEL must be one of {valid}, got '{v}'")
+            return v.upper()
         return v
 
     @model_validator(mode="after")
@@ -544,5 +664,119 @@ class Surface(NamelistBase):
             params["ramp_ef"] = self.ramp_ef
         if self.tau_ef is not None:
             params["tau_ef"] = self.tau_ef
+
+        # === TEMPERATURE BOUNDARY CONDITIONS (Phase 3) ===
+        if self.tmp_front_initial is not None:
+            params["tmp_front_initial"] = self.tmp_front_initial
+        if self.tmp_inner is not None:
+            params["tmp_inner"] = self.tmp_inner
+        if self.tmp_back is not None:
+            params["tmp_back"] = self.tmp_back
+        if self.tmp_gas_back is not None:
+            params["tmp_gas_back"] = self.tmp_gas_back
+
+        # Temperature ramps
+        if self.ramp_t is not None:
+            params["ramp_t"] = self.ramp_t
+        if self.ramp_tmp_back is not None:
+            params["ramp_tmp_back"] = self.ramp_tmp_back
+        if self.ramp_tmp_gas_front is not None:
+            params["ramp_tmp_gas_front"] = self.ramp_tmp_gas_front
+        if self.ramp_tmp_gas_back is not None:
+            params["ramp_tmp_gas_back"] = self.ramp_tmp_gas_back
+        if self.ramp_t_i is not None:
+            params["ramp_t_i"] = self.ramp_t_i
+
+        # === HEAT TRANSFER (Phase 3) ===
+        if self.adiabatic:
+            params["adiabatic"] = self.adiabatic
+        if self.heat_transfer_coefficient_back is not None:
+            params["heat_transfer_coefficient_back"] = self.heat_transfer_coefficient_back
+        if self.heat_transfer_model is not None:
+            params["heat_transfer_model"] = self.heat_transfer_model
+        if self.convection_length_scale != 1.0:
+            params["convection_length_scale"] = self.convection_length_scale
+        if self.ramp_heat_transfer_coefficient is not None:
+            params["ramp_heat_transfer_coefficient"] = self.ramp_heat_transfer_coefficient
+        if self.ramp_heat_transfer_coefficient_back is not None:
+            params["ramp_heat_transfer_coefficient_back"] = self.ramp_heat_transfer_coefficient_back
+        if self.blowing:
+            params["blowing"] = self.blowing
+
+        # Custom Nusselt correlation
+        if self.nusselt_c0 is not None:
+            params["nusselt_c0"] = self.nusselt_c0
+        if self.nusselt_c1 is not None:
+            params["nusselt_c1"] = self.nusselt_c1
+        if self.nusselt_c2 is not None:
+            params["nusselt_c2"] = self.nusselt_c2
+        if self.nusselt_m is not None:
+            params["nusselt_m"] = self.nusselt_m
+
+        # Impinging jet parameters
+        if self.heat_transfer_coefficient_sigma is not None:
+            params["heat_transfer_coefficient_sigma"] = self.heat_transfer_coefficient_sigma
+
+        # === EMISSIVITY (Phase 3) ===
+        if self.emissivity_back is not None:
+            params["emissivity_back"] = self.emissivity_back
+
+        # === SOLID PHASE GEOMETRY (Phase 3) ===
+        if self.geometry is not None:
+            params["geometry"] = self.geometry
+        if self.inner_radius is not None:
+            params["inner_radius"] = self.inner_radius
+        if self.length is not None:
+            params["length"] = self.length
+        if self.radius is not None:
+            params["radius"] = self.radius
+        if self.width is not None:
+            params["width"] = self.width
+        if self.horizontal:
+            params["horizontal"] = self.horizontal
+
+        # === 3D HEAT CONDUCTION (Phase 3) ===
+        if self.ht3d:
+            params["ht3d"] = self.ht3d
+        if self.variable_thickness:
+            params["variable_thickness"] = self.variable_thickness
+
+        # === NUMERICAL PARAMETERS (Phase 3) ===
+        if self.stretch_factor is not None:
+            params["stretch_factor"] = self.stretch_factor
+        if self.cell_size_factor is not None:
+            params["cell_size_factor"] = self.cell_size_factor
+        if self.cell_size is not None:
+            params["cell_size"] = self.cell_size
+        if self.n_layer_cells_max is not None:
+            params["n_layer_cells_max"] = self.n_layer_cells_max
+        if self.time_step_factor != 10.0:
+            params["time_step_factor"] = self.time_step_factor
+        if self.delta_tmp_max != 10.0:
+            params["delta_tmp_max"] = self.delta_tmp_max
+        if self.minimum_layer_thickness is not None:
+            params["minimum_layer_thickness"] = self.minimum_layer_thickness
+        if self.minimum_layer_mass_fraction is not None:
+            params["minimum_layer_mass_fraction"] = self.minimum_layer_mass_fraction
+        if self.remesh_ratio != 0.15:
+            params["remesh_ratio"] = self.remesh_ratio
+
+        # === INTERNAL HEAT SOURCE (Phase 3) ===
+        if self.internal_heat_source is not None:
+            params["internal_heat_source"] = self.internal_heat_source
+        if self.ramp_ihs is not None:
+            params["ramp_ihs"] = self.ramp_ihs
+
+        # === VISUALIZATION (Phase 3) ===
+        if self.default:
+            params["default"] = self.default
+        if self.texture_map is not None:
+            params["texture_map"] = self.texture_map
+        if self.texture_width != 1.0:
+            params["texture_width"] = self.texture_width
+        if self.texture_height != 1.0:
+            params["texture_height"] = self.texture_height
+        if self.transparency != 1.0:
+            params["transparency"] = self.transparency
 
         return self._build_namelist("SURF", params)

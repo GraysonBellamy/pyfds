@@ -15,9 +15,8 @@ This showcases the advanced combustion features added in Stage 1.3 (REAC enhance
 
 from pathlib import Path
 
-from pyfds.builders import DevcBuilder, MeshBuilder, ReactionBuilder, SurfBuilder
-from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
-from pyfds.core.namelists import Time
+from pyfds.builders import DevcBuilder, ReactionBuilder, SurfBuilder
+from pyfds.core.geometry import Bounds3D, Point3D
 from pyfds.core.simulation import Simulation
 
 
@@ -36,18 +35,13 @@ def create_advanced_combustion_fire():
     sim = Simulation(
         chid="advanced_combustion", title="Advanced Combustion Modeling - PyFDS Stage 1 Example"
     )
-    sim.add(Time(t_end=400.0))
+    sim.time(t_end=400.0)
 
     # Computational mesh
-    mesh = (
-        MeshBuilder()
-        .with_id("BURN_ROOM")
-        .with_bounds(Bounds3D(0, 6, 0, 6, 0, 3))
-        .with_grid(Grid3D(60, 60, 30))
-        .with_stability_control(cfl_max=0.95)
-        .build()
-    )
-    sim.add(mesh)
+    sim.mesh(id="BURN_ROOM", xb=(0, 6, 0, 6, 0, 3), ijk=(60, 60, 30))
+
+    # Stability control
+    sim.set_misc(cfl_max=0.95)
 
     # Advanced reaction with all Stage 1.3 features
     reaction = (
@@ -78,7 +72,7 @@ def create_advanced_combustion_fire():
         .auto_ignition_temperature(220.0)
         .build()
     )
-    sim.add(reaction)
+    sim.add_reaction(reaction)
 
     # Fire surface with mass flux
     fire_surf = (
@@ -89,7 +83,7 @@ def create_advanced_combustion_fire():
         .with_heat_of_combustion(44600.0)
         .build()
     )
-    sim.add(fire_surf)
+    sim.add_surface(fire_surf)
 
     # Temperature monitoring - detailed grid
     x_positions = [1.5, 3.0, 4.5]
@@ -106,7 +100,7 @@ def create_advanced_combustion_fire():
                     .at_point(Point3D(x, y, z))
                     .build()
                 )
-                sim.add(temp_sensor)
+                sim.add_device(temp_sensor)
 
     # Species concentration measurements (CO2, O2, CO)
     species_quantities = ["VOLUME FRACTION CO2", "VOLUME FRACTION O2", "VOLUME FRACTION CO"]
@@ -121,17 +115,11 @@ def create_advanced_combustion_fire():
             .with_time_history(True)
             .build()
         )
-        sim.add(species_sensor)
-
-    # Heat release rate measurement
+        sim.add_device(species_sensor)
     hrr_sensor = (
-        DevcBuilder("HRR_TOTAL")
-        .with_quantity("HRR")
-        .in_bounds(Bounds3D(0, 6, 0, 6, 0, 3))
-        .with_statistics("SUM")
-        .build()
+        DevcBuilder("HRR_TOTAL").with_quantity("HRR").in_bounds(Bounds3D(0, 6, 0, 6, 0, 3)).build()
     )
-    sim.add(hrr_sensor)
+    sim.add_device(hrr_sensor)
 
     # Extinction indicator - monitors flame temperature
     flame_temp = (
@@ -141,7 +129,7 @@ def create_advanced_combustion_fire():
         .with_time_history(True)
         .build()
     )
-    sim.add(flame_temp)
+    sim.add_device(flame_temp)
 
     # Average upper layer temperature
     upper_layer = (
@@ -151,7 +139,7 @@ def create_advanced_combustion_fire():
         .in_bounds(Bounds3D(0, 6, 0, 6, 2.0, 3.0))
         .build()
     )
-    sim.add(upper_layer)
+    sim.add_device(upper_layer)
 
     # Suppression effectiveness monitor
     suppression_monitor = (
@@ -161,7 +149,7 @@ def create_advanced_combustion_fire():
         .with_time_history(True)
         .build()
     )
-    sim.add(suppression_monitor)
+    sim.add_device(suppression_monitor)
 
     return sim
 

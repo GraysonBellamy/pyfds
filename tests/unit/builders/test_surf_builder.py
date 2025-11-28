@@ -461,3 +461,188 @@ class TestSurfBuilderFDSOutputIntegration:
         assert "0.01" in fds_output
         assert "0.001" in fds_output
         assert "5" in fds_output or "5.0" in fds_output
+
+
+class TestSurfBuilderPhase3ThermalEnhancements:
+    """Test Phase 3 SURF thermal enhancements."""
+
+    def test_with_initial_temperature(self):
+        """Test temperature boundary conditions."""
+        surf = (
+            SurfBuilder("THERMAL")
+            .with_initial_temperature(
+                tmp_front_initial=300.0, tmp_inner=400.0, tmp_back=500.0, tmp_gas_back=350.0
+            )
+            .build()
+        )
+        assert surf.tmp_front_initial == 300.0
+        assert surf.tmp_inner == 400.0
+        assert surf.tmp_back == 500.0
+        assert surf.tmp_gas_back == 350.0
+
+    def test_with_temperature_ramps(self):
+        """Test temperature ramps."""
+        surf = (
+            SurfBuilder("RAMPED")
+            .with_temperature_ramps(
+                ramp_t="TEMP_RAMP",
+                ramp_tmp_back="BACK_RAMP",
+                ramp_tmp_gas_front="FRONT_RAMP",
+                ramp_tmp_gas_back="GAS_BACK_RAMP",
+                ramp_t_i="INIT_RAMP",
+            )
+            .build()
+        )
+        assert surf.ramp_t == "TEMP_RAMP"
+        assert surf.ramp_tmp_back == "BACK_RAMP"
+        assert surf.ramp_tmp_gas_front == "FRONT_RAMP"
+        assert surf.ramp_tmp_gas_back == "GAS_BACK_RAMP"
+        assert surf.ramp_t_i == "INIT_RAMP"
+
+    def test_with_adiabatic(self):
+        """Test adiabatic surface."""
+        surf = SurfBuilder("ADIABATIC").with_adiabatic().build()
+        assert surf.adiabatic is True
+
+    def test_with_heat_transfer_coefficient_back(self):
+        """Test back side heat transfer coefficient."""
+        surf = SurfBuilder("HTC_BACK").with_heat_transfer_coefficient_back(25.0, "HTC_RAMP").build()
+        assert surf.heat_transfer_coefficient_back == 25.0
+        assert surf.ramp_heat_transfer_coefficient_back == "HTC_RAMP"
+
+    def test_with_heat_transfer_model(self):
+        """Test heat transfer model configuration."""
+        surf = (
+            SurfBuilder("HT_MODEL")
+            .with_heat_transfer_model(
+                model="LOGLAW", length_scale=2.0, ramp_htc="HTC_RAMP", blowing=True
+            )
+            .build()
+        )
+        assert surf.heat_transfer_model == "LOGLAW"
+        assert surf.convection_length_scale == 2.0
+        assert surf.ramp_heat_transfer_coefficient == "HTC_RAMP"
+        assert surf.blowing is True
+
+    def test_with_nusselt_correlation(self):
+        """Test custom Nusselt correlation."""
+        surf = (
+            SurfBuilder("NUSSELT").with_nusselt_correlation(c0=1.0, c1=2.0, c2=3.0, m=4.0).build()
+        )
+        assert surf.nusselt_c0 == 1.0
+        assert surf.nusselt_c1 == 2.0
+        assert surf.nusselt_c2 == 3.0
+        assert surf.nusselt_m == 4.0
+
+    def test_with_impinging_jet(self):
+        """Test impinging jet configuration."""
+        surf = SurfBuilder("JET").with_impinging_jet(sigma=0.5).build()
+        assert surf.heat_transfer_coefficient_sigma == 0.5
+
+    def test_with_emissivity_back(self):
+        """Test back surface emissivity."""
+        surf = SurfBuilder("EMISSIVE").with_emissivity_back(0.8).build()
+        assert surf.emissivity_back == 0.8
+
+    def test_with_geometry(self):
+        """Test solid phase geometry."""
+        surf = (
+            SurfBuilder("GEOMETRY")
+            .with_geometry(
+                geometry="CYLINDRICAL",
+                inner_radius=0.1,
+                length=2.0,
+                radius=0.5,
+                width=1.0,
+                horizontal=True,
+            )
+            .build()
+        )
+        assert surf.geometry == "CYLINDRICAL"
+        assert surf.inner_radius == 0.1
+        assert surf.length == 2.0
+        assert surf.radius == 0.5
+        assert surf.width == 1.0
+        assert surf.horizontal is True
+
+    def test_with_3d_heat_conduction(self):
+        """Test 3D heat conduction."""
+        surf = SurfBuilder("3D_HT").with_3d_heat_conduction(variable_thickness=True).build()
+        assert surf.ht3d is True
+        assert surf.variable_thickness is True
+
+    def test_with_numerical_params(self):
+        """Test numerical parameters."""
+        surf = (
+            SurfBuilder("NUMERICAL")
+            .with_numerical_params(
+                stretch_factor=[1.1, 1.2, 1.3],
+                cell_size_factor=[0.1, 0.2, 0.3],
+                cell_size=[0.01, 0.02, 0.03],
+                n_layer_cells_max=[10, 20, 30],
+                time_step_factor=15.0,
+                delta_tmp_max=15.0,
+                minimum_layer_thickness=[0.001, 0.002, 0.003],
+                minimum_layer_mass_fraction=[0.01, 0.02, 0.03],
+                remesh_ratio=0.2,
+            )
+            .build()
+        )
+        assert surf.stretch_factor == [1.1, 1.2, 1.3]
+        assert surf.cell_size_factor == [0.1, 0.2, 0.3]
+        assert surf.cell_size == [0.01, 0.02, 0.03]
+        assert surf.n_layer_cells_max == [10, 20, 30]
+        assert surf.time_step_factor == 15.0
+        assert surf.delta_tmp_max == 15.0
+        assert surf.minimum_layer_thickness == [0.001, 0.002, 0.003]
+        assert surf.minimum_layer_mass_fraction == [0.01, 0.02, 0.03]
+        assert surf.remesh_ratio == 0.2
+
+    def test_with_internal_heat_source(self):
+        """Test internal heat source."""
+        surf = (
+            SurfBuilder("HEAT_SOURCE")
+            .with_internal_heat_source([1000.0, 2000.0, 3000.0], "IHS_RAMP")
+            .build()
+        )
+        assert surf.internal_heat_source == [1000.0, 2000.0, 3000.0]
+        assert surf.ramp_ihs == "IHS_RAMP"
+
+    def test_as_default(self):
+        """Test default surface flag."""
+        surf = SurfBuilder("DEFAULT").as_default().build()
+        assert surf.default is True
+
+    def test_with_texture(self):
+        """Test texture mapping."""
+        surf = (
+            SurfBuilder("TEXTURED")
+            .with_texture(texture_map="wall.png", width=2.0, height=3.0, transparency=0.9)
+            .build()
+        )
+        assert surf.texture_map == "wall.png"
+        assert surf.texture_width == 2.0
+        assert surf.texture_height == 3.0
+        assert surf.transparency == 0.9
+
+    def test_phase3_fds_output(self):
+        """Test Phase 3 parameters in FDS output."""
+        surf = (
+            SurfBuilder("PHASE3_SURF")
+            .with_initial_temperature(tmp_front_initial=300.0, tmp_back=400.0)
+            .with_adiabatic()
+            .with_geometry("CARTESIAN")
+            .with_3d_heat_conduction()
+            .with_internal_heat_source([500.0])
+            .as_default()
+            .build()
+        )
+        fds_output = surf.to_fds()
+        assert "&SURF" in fds_output
+        assert "TMP_FRONT_INITIAL=300.0" in fds_output
+        assert "TMP_BACK=400.0" in fds_output
+        assert "ADIABATIC=.TRUE." in fds_output
+        assert "GEOMETRY='CARTESIAN'" in fds_output
+        assert "HT3D=.TRUE." in fds_output
+        assert "INTERNAL_HEAT_SOURCE=500.0" in fds_output
+        assert "DEFAULT=.TRUE." in fds_output

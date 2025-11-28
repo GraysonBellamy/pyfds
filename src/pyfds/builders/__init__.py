@@ -31,8 +31,12 @@ Examples
 from .base import Builder
 from .control import ControlBuilder
 from .devc import DevcBuilder
+from .geom import GeomBuilder
+from .hole import HoleBuilder
 from .material import MaterialBuilder
 from .mesh import MeshBuilder
+from .move import MoveBuilder
+from .mult import MultBuilder
 from .part import PartBuilder
 from .prop import PropBuilder
 from .ramp import RampBuilder
@@ -44,8 +48,12 @@ __all__ = [
     "Builder",
     "ControlBuilder",
     "DevcBuilder",
+    "GeomBuilder",
+    "HoleBuilder",
     "MaterialBuilder",
     "MeshBuilder",
+    "MoveBuilder",
+    "MultBuilder",
     "PartBuilder",
     "PropBuilder",
     "RampBuilder",

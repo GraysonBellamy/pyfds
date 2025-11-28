@@ -93,6 +93,10 @@ The API Reference provides detailed technical documentation auto-generated from 
 | SURF | [`Surface`](namelists/materials.md) | Surface properties |
 | OBST | [`Obstruction`](namelists/geometry.md) | Solid obstructions |
 | VENT | [`Vent`](namelists/geometry.md) | Boundaries and vents |
+| HOLE | [`Hole`](namelists/geometry.md) | Openings in obstructions |
+| MULT | [`Mult`](namelists/geometry.md) | Array replication |
+| GEOM | [`Geom`](namelists/geometry.md) | Unstructured geometry (beta) |
+| MOVE | [`Move`](namelists/geometry.md) | Geometry transformations |
 | DEVC | [`Device`](namelists/devices.md) | Measurement devices |
 | MATL | [`Material`](namelists/materials.md) | Material definitions |
 | RAMP | [`Ramp`](namelists/complex.md) | Time-varying properties |

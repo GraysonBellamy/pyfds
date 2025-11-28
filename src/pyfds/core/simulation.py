@@ -25,10 +25,12 @@ from .namelists import (
     Ctrl,
     Device,
     Head,
+    Hole,
     Init,
     Material,
     Mesh,
     Misc,
+    Mult,
     Obstruction,
     Prop,
     Ramp,
@@ -357,6 +359,7 @@ class Simulation:
         surf_id_bottom: str | None = None,
         surf_id_sides: str | None = None,
         color: str | None = None,
+        mult_id: str | None = None,
     ) -> "Simulation":
         """
         Add an obstruction to the simulation.
@@ -378,6 +381,8 @@ class Simulation:
             Surface ID for side faces
         color : str, optional
             Named color
+        mult_id : str, optional
+            Multiplier ID for array replication
 
         Returns
         -------
@@ -400,6 +405,7 @@ class Simulation:
             surf_id_bottom=surf_id_bottom,
             surf_id_sides=surf_id_sides,
             color=color,
+            mult_id=mult_id,
         )
         self._geometry.add_obstruction(obst_obj)
         return self
@@ -1188,6 +1194,239 @@ class Simulation:
         """
         vent_obj = Vent(xb=xb, mb=mb, surf_id=surf_id, **kwargs)
         self._geometry.add_vent(vent_obj)
+        return self
+
+    def hole(
+        self,
+        xb: tuple[float, float, float, float, float, float] | Bounds3D,
+        id: str | None = None,
+        ctrl_id: str | None = None,
+        devc_id: str | None = None,
+        color: str | None = None,
+        rgb: tuple[int, int, int] | None = None,
+        transparency: float | None = None,
+        mult_id: str | None = None,
+    ) -> "Simulation":
+        """
+        Add a hole to the simulation.
+
+        Holes create openings in obstructions such as doors, windows, and vents.
+        They can be controlled to open/close during the simulation.
+
+        Parameters
+        ----------
+        xb : tuple[float, float, float, float, float, float] or Bounds3D
+            Hole bounds (xmin, xmax, ymin, ymax, zmin, zmax)
+        id : str, optional
+            Hole identifier
+        ctrl_id : str, optional
+            Control ID for activation/deactivation
+        devc_id : str, optional
+            Device ID for activation/deactivation
+        color : str, optional
+            Color when hole is closed
+        rgb : tuple[int, int, int], optional
+            RGB color when closed (0-255)
+        transparency : float, optional
+            Transparency when closed (0-1)
+        mult_id : str, optional
+            Multiplier ID for array replication
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Simple door
+        >>> sim.hole(xb=(5, 5.1, 2, 4, 0, 2.1), id='DOOR')
+
+        >>> # Controlled window
+        >>> sim.hole(xb=(5, 5.1, 2, 4, 0, 2.1), id='WINDOW', ctrl_id='WINDOW_CTRL')
+
+        See Also
+        --------
+        add_hole : Advanced API for pre-constructed Hole objects
+        """
+        hole_obj = Hole(
+            xb=xb,
+            id=id,
+            ctrl_id=ctrl_id,
+            devc_id=devc_id,
+            color=color,
+            rgb=rgb,
+            transparency=transparency,
+            mult_id=mult_id,
+        )
+        self._geometry.add_hole(hole_obj)
+        return self
+
+    def add_hole(self, hole: Hole) -> "Simulation":
+        """
+        Add a Hole object to the simulation (advanced API).
+
+        Parameters
+        ----------
+        hole : Hole
+            Hole object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> hole = Hole(xb=(5, 5.1, 2, 4, 0, 2.1), id='DOOR')
+        >>> sim.add_hole(hole)
+
+        See Also
+        --------
+        hole : Primary API for creating holes
+        """
+        self._geometry.add_hole(hole)
+        return self
+
+    def mult(
+        self,
+        id: str,
+        dx: float | None = None,
+        dy: float | None = None,
+        dz: float | None = None,
+        dx0: float = 0.0,
+        dy0: float = 0.0,
+        dz0: float = 0.0,
+        i_lower: int = 0,
+        i_upper: int = 0,
+        j_lower: int = 0,
+        j_upper: int = 0,
+        k_lower: int = 0,
+        k_upper: int = 0,
+        n_lower: int | None = None,
+        n_upper: int | None = None,
+        i_lower_skip: int | None = None,
+        i_upper_skip: int | None = None,
+        j_lower_skip: int | None = None,
+        j_upper_skip: int | None = None,
+        k_lower_skip: int | None = None,
+        k_upper_skip: int | None = None,
+        n_lower_skip: int | None = None,
+        n_upper_skip: int | None = None,
+        dxb: tuple[float, float, float, float, float, float] | None = None,
+    ) -> "Simulation":
+        """
+        Add a multiplier for creating arrays of repeated objects.
+
+        Multipliers allow creating regular arrays of meshes, obstructions,
+        vents, holes, and other objects without specifying each one individually.
+
+        Parameters
+        ----------
+        id : str
+            Multiplier identifier (referenced by MULT_ID on other namelists)
+        dx, dy, dz : float, optional
+            Spacing in each direction [m]
+        dx0, dy0, dz0 : float, optional
+            Initial offset [m] (default: 0.0)
+        i_lower, i_upper : int, optional
+            X-direction array bounds (default: 0)
+        j_lower, j_upper : int, optional
+            Y-direction array bounds (default: 0)
+        k_lower, k_upper : int, optional
+            Z-direction array bounds (default: 0)
+        n_lower, n_upper : int, optional
+            Sequential range (alternative to i,j,k bounds)
+        i_lower_skip, i_upper_skip : int, optional
+            X-direction skip ranges (for creating gaps)
+        j_lower_skip, j_upper_skip : int, optional
+            Y-direction skip ranges (for creating gaps)
+        k_lower_skip, k_upper_skip : int, optional
+            Z-direction skip ranges (for creating gaps)
+        n_lower_skip, n_upper_skip : int, optional
+            Sequential skip ranges (for creating gaps)
+        dxb : tuple[float, float, float, float, float, float], optional
+            Incremental XB offsets (xmin, xmax, ymin, ymax, zmin, zmax)
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # 3x3 array of objects spaced 2m apart
+        >>> sim.mult(id='ARRAY_3X3', dx=2.0, dy=2.0,
+        ...          i_lower=0, i_upper=2, j_lower=0, j_upper=2)
+
+        >>> # Linear array of 10 objects
+        >>> sim.mult(id='ROW_10', dx=1.0, n_lower=0, n_upper=9)
+
+        >>> # Array with gaps (skip indices 2-3)
+        >>> sim.mult(id='ARRAY_WITH_GAPS', dx=1.0,
+        ...          n_lower=0, n_upper=9,
+        ...          n_lower_skip=2, n_upper_skip=3)
+
+        See Also
+        --------
+        add_multiplier : Advanced API for pre-constructed Mult objects
+        """
+        mult_obj = Mult(
+            id=id,
+            dx=dx,
+            dy=dy,
+            dz=dz,
+            dx0=dx0,
+            dy0=dy0,
+            dz0=dz0,
+            i_lower=i_lower,
+            i_upper=i_upper,
+            j_lower=j_lower,
+            j_upper=j_upper,
+            k_lower=k_lower,
+            k_upper=k_upper,
+            n_lower=n_lower,
+            n_upper=n_upper,
+            i_lower_skip=i_lower_skip,
+            i_upper_skip=i_upper_skip,
+            j_lower_skip=j_lower_skip,
+            j_upper_skip=j_upper_skip,
+            k_lower_skip=k_lower_skip,
+            k_upper_skip=k_upper_skip,
+            n_lower_skip=n_lower_skip,
+            n_upper_skip=n_upper_skip,
+            dxb=dxb,
+        )
+        self._geometry.add_multiplier(mult_obj)
+        return self
+
+    def add_multiplier(self, multiplier: Mult) -> "Simulation":
+        """
+        Add a Mult object to the simulation (advanced API).
+
+        For most use cases, prefer the mult() builder method.
+
+        Parameters
+        ----------
+        multiplier : Mult
+            Multiplier object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> mult = Mult(id='ARRAY_3X3', dx=2.0, dy=2.0,
+        ...              i_lower=0, i_upper=2, j_lower=0, j_upper=2)
+        >>> sim.add_multiplier(mult)
+
+        See Also
+        --------
+        mult : Primary API for creating multipliers
+        """
+        self._geometry.add_multiplier(multiplier)
         return self
 
     def to_fds(self) -> str:

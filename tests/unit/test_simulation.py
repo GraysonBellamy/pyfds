@@ -215,6 +215,23 @@ class TestSimulation:
         warning_strs = [str(w) for w in warnings]
         assert any("cubic" in w.lower() or "aspect" in w.lower() for w in warning_strs)
 
+    def test_mult_method(self):
+        """Test mult() method."""
+        sim = Simulation(chid="test")
+        result = sim.mult(
+            id="ARRAY_3X3", dx=2.0, dy=2.0, i_lower=0, i_upper=2, j_lower=0, j_upper=2
+        )
+
+        assert result is sim  # Check method chaining
+        assert len(sim.geometry.multipliers) == 1
+        assert sim.geometry.multipliers[0].id == "ARRAY_3X3"
+        assert sim.geometry.multipliers[0].dx == 2.0
+        assert sim.geometry.multipliers[0].dy == 2.0
+        assert sim.geometry.multipliers[0].i_lower == 0
+        assert sim.geometry.multipliers[0].i_upper == 2
+        assert sim.geometry.multipliers[0].j_lower == 0
+        assert sim.geometry.multipliers[0].j_upper == 2
+
     def test_method_chaining(self):
         """Test method chaining works for fluid API."""
         sim = (

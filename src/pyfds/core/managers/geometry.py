@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from .base import BaseManager
 
 if TYPE_CHECKING:
-    from ..namelists import Mesh, Obstruction, Vent
+    from ..namelists import Hole, Mesh, Mult, Obstruction, Vent
 
 
 class GeometryManager(BaseManager):
@@ -26,6 +26,8 @@ class GeometryManager(BaseManager):
         self._meshes: list[Mesh] = []
         self._obstructions: list[Obstruction] = []
         self._vents: list[Vent] = []
+        self._holes: list[Hole] = []
+        self._multipliers: list[Mult] = []
 
     @property
     def meshes(self) -> list[Mesh]:
@@ -41,6 +43,16 @@ class GeometryManager(BaseManager):
     def vents(self) -> list[Vent]:
         """Get the list of vents."""
         return self._vents
+
+    @property
+    def holes(self) -> list[Hole]:
+        """Get the list of holes."""
+        return self._holes
+
+    @property
+    def multipliers(self) -> list[Mult]:
+        """Get the list of multipliers."""
+        return self._multipliers
 
     def add_mesh(self, mesh: Mesh) -> None:
         """
@@ -74,6 +86,28 @@ class GeometryManager(BaseManager):
             Vent object to add
         """
         self._vents.append(vent)
+
+    def add_hole(self, hole: Hole) -> None:
+        """
+        Add a Hole object to the simulation.
+
+        Parameters
+        ----------
+        hole : Hole
+            Hole object to add
+        """
+        self._holes.append(hole)
+
+    def add_multiplier(self, multiplier: Mult) -> None:
+        """
+        Add a Mult object to the simulation.
+
+        Parameters
+        ----------
+        multiplier : Mult
+            Multiplier object to add
+        """
+        self._multipliers.append(multiplier)
 
     def validate(self) -> list[str]:
         """

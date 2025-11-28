@@ -9,11 +9,15 @@ from pyfds.core.namelists.base import NamelistBase
 from pyfds.core.namelists.ctrl import ControlFunction, Ctrl
 from pyfds.core.namelists.devc import Device
 from pyfds.core.namelists.factory import NamelistFactory
+from pyfds.core.namelists.geom import Geom
 from pyfds.core.namelists.head import Head
+from pyfds.core.namelists.hole import Hole
 from pyfds.core.namelists.init import Init
 from pyfds.core.namelists.matl import Material
 from pyfds.core.namelists.mesh import Mesh
 from pyfds.core.namelists.misc import Misc, TurbulenceModel
+from pyfds.core.namelists.move import Move
+from pyfds.core.namelists.mult import Mult
 from pyfds.core.namelists.obst import Obstruction
 from pyfds.core.namelists.part import Part
 from pyfds.core.namelists.prop import Prop
@@ -28,11 +32,15 @@ __all__ = [
     "ControlFunction",
     "Ctrl",
     "Device",
+    "Geom",
     "Head",
+    "Hole",
     "Init",
     "Material",
     "Mesh",
     "Misc",
+    "Move",
+    "Mult",
     "NamelistBase",
     "NamelistFactory",
     "Obstruction",

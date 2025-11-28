@@ -50,6 +50,29 @@ class TestGeometryManager:
         assert len(sim.geometry.vents) == 1
         assert sim.geometry.vents[0].surf_id == "OPEN"
 
+    def test_holes_property(self):
+        """Test holes property."""
+        mgr = GeometryManager()
+        assert mgr.holes == []
+
+    def test_add_hole_via_simulation(self):
+        """Test adding a hole via simulation."""
+        sim = Simulation(chid="test")
+        sim.hole(xb=(5, 5.1, 2, 4, 0, 2.1), id="DOOR")
+
+        assert len(sim.geometry.holes) == 1
+        assert sim.geometry.holes[0].id == "DOOR"
+
+    def test_add_multiple_holes_via_simulation(self):
+        """Test adding multiple holes."""
+        sim = Simulation(chid="test")
+        sim.hole(xb=(5, 5.1, 2, 4, 0, 2.1), id="DOOR")
+        sim.hole(xb=(5, 5.1, 2, 4, 2.5, 4.5), id="WINDOW")
+
+        assert len(sim.geometry.holes) == 2
+        assert sim.geometry.holes[0].id == "DOOR"
+        assert sim.geometry.holes[1].id == "WINDOW"
+
     def test_validate_no_meshes(self):
         """Test validation fails when no meshes are defined."""
         mgr = GeometryManager()

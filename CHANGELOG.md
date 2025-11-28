@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phase 3: SURF Thermal Enhancements** - Complete thermal boundary condition capabilities
+  - Temperature boundary conditions (TMP_FRONT_INITIAL, TMP_INNER, TMP_BACK, TMP_GAS_BACK)
+  - Time-varying temperature ramps (RAMP_T, RAMP_TMP_BACK, RAMP_TMP_GAS_FRONT, RAMP_TMP_GAS_BACK, RAMP_T_I)
+  - Heat transfer parameters (ADIABATIC, HEAT_TRANSFER_COEFFICIENT_BACK, RAMP_HEAT_TRANSFER_COEFFICIENT_BACK)
+  - Heat transfer models (HEAT_TRANSFER_MODEL, CONVECTION_LENGTH_SCALE, BLOWING)
+  - Custom Nusselt correlations (NUSSELT_C0, NUSSELT_C1, NUSSELT_C2, NUSSELT_M)
+  - Impinging jet heat transfer (HEAT_TRANSFER_COEFFICIENT_SIGMA)
+  - Back surface emissivity (EMISSIVITY_BACK)
+  - Solid phase geometry (GEOMETRY, INNER_RADIUS, LENGTH, RADIUS, WIDTH, HORIZONTAL)
+  - 3D heat conduction (HT3D, VARIABLE_THICKNESS)
+  - Numerical parameters (STRETCH_FACTOR, CELL_SIZE_FACTOR, CELL_SIZE, N_LAYER_CELLS_MAX, TIME_STEP_FACTOR, DELTA_TMP_MAX, MINIMUM_LAYER_THICKNESS, MINIMUM_LAYER_MASS_FRACTION, REMESH_RATIO)
+  - Internal heat sources (INTERNAL_HEAT_SOURCE, RAMP_IHS)
+  - Visualization parameters (DEFAULT, TEXTURE_MAP, TEXTURE_WIDTH, TEXTURE_HEIGHT, TRANSPARENCY)
+  - Comprehensive SurfBuilder fluent API methods for all thermal parameters
+  - Full FDS output generation with conditional parameter inclusion
+  - Complete unit test coverage for all new thermal surface capabilities
+  - Phase 3 thermal boundary conditions example demonstrating all features
 - **Manager-based architecture** following Single Responsibility Principle
   - GeometryManager for meshes, obstructions, and vents
   - MaterialManager for materials and surfaces
@@ -18,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - OutputManager for FDS file generation
 - Dedicated RampManager separating RAMPs from MaterialManager
 - Manager-specific validation methods
+- **MULT namelist support** for creating arrays of repeated geometry objects
+  - Complete Mult class with all FDS MULT parameters (spacing, bounds, offsets, skip ranges)
+  - MultBuilder fluent API for intuitive MULT configuration
+  - mult() convenience method on Simulation class
+  - MULT_ID support added to obstructions for array replication
+  - Comprehensive validation and FDS output generation
+  - Integration tests and examples demonstrating MULT usage
 - Comprehensive manager test suite (42+ tests)
 - Manager architecture documentation
 - Migration guide for manager API
@@ -27,6 +51,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive CONTRIBUTING.md with development guidelines
 - CHANGELOG.md for tracking project changes
 - Improved type annotations throughout codebase
+- **Phase 1 FDS Chapters 6-7 Implementation** ✅
+  - Complete HOLE namelist implementation with all FDS Chapter 6 parameters
+  - Comprehensive OBST namelist extensions with 20+ new parameters:
+    - Identification (ID)
+    - Visualization (RGB, TRANSPARENCY, OUTLINE)
+    - Geometry control (THICKEN, OVERLAY, PERMIT_HOLE, REMOVABLE, ALLOW_VENT)
+    - Control/activation (CTRL_ID, DEVC_ID)
+    - Array replication (MULT_ID)
+    - Texture mapping (TEXTURE_ORIGIN)
+    - 3D heat transfer (HT3D, MATL_ID, CELL_SIZE, etc.)
+    - Shape-based geometry (SHAPE, XYZ, RADIUS, HEIGHT, etc.)
+  - HoleBuilder fluent API for creating HOLE namelists
+  - Factory methods for common hole patterns (door, window)
+  - Comprehensive validation for all new parameters
+  - Complete test coverage (25 OBST tests, 20 HoleBuilder tests)
+  - Updated documentation and examples
 
 ### Changed
 - **BREAKING**: Refactored Simulation class to use manager delegation
