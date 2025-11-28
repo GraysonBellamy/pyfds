@@ -11,6 +11,8 @@ This example demonstrates a basic room fire simulation using PyFDS Stage 1 featu
 This uses the Simulation class convenience methods.
 """
 
+from pathlib import Path
+
 from pyfds import Simulation
 
 
@@ -58,11 +60,15 @@ if __name__ == "__main__":
     # Create simulation
     simulation = create_simple_room_fire()
 
+    # Create output directory
+    output_dir = Path(__file__).parent / "fds"
+    output_dir.mkdir(exist_ok=True)
+
     # Write FDS input file
-    simulation.write("simple_room_fire.fds")
+    output_file = simulation.write(output_dir / "simple_room_fire.fds")
 
     print("Simple room fire simulation created!")
-    print("Output file: simple_room_fire.fds")
+    print(f"Output file: {output_file}")
     print("\nSimulation parameters:")
     print("  - Room size: 5m x 4m x 3m")
     print("  - Fire HRR: 500 kW (constant)")

@@ -217,15 +217,42 @@ results.plot_device('TEMP_1', 'temp_plot.png')
 
 ### Parallel Execution
 
+PyFDS automatically validates parallel configuration and provides helpful warnings to optimize your simulations.
+
 ```python
-# OpenMP threading (single machine)
+# OpenMP threading (single machine, single mesh)
 results = sim.run(n_threads=8)
 
-# MPI processes (multi-core or cluster)
-results = sim.run(n_mpi=4)
+# MPI processes (multi-mesh simulations)
+results = sim.run(n_mpi=4)  # Validates mesh count matches MPI processes
 
 # Combine MPI and OpenMP
 results = sim.run(n_mpi=2, n_threads=4)  # 2 MPI ranks, 4 threads each
+
+# Get optimal configuration recommendation
+from pyfds.execution import ParallelValidator
+validator = ParallelValidator()
+config = validator.recommend_configuration(sim)
+print(f"Recommended: {config['n_mpi']} MPI, {config['n_threads']} threads")
+print(f"Rationale: {config['rationale']}")
+```
+
+### Graceful Stopping
+
+Request FDS to stop gracefully during execution:
+
+```python
+# Start simulation in background
+job = sim.run(wait=False)
+
+# Monitor progress
+while job.is_running():
+    print(f"Progress: {job.progress:.1f}%")
+    if some_condition:
+        job.request_stop()  # Creates CHID.stop file for graceful shutdown
+        break
+
+results = job.get_results()
 ```
 
 ## Usage Examples

@@ -12,6 +12,8 @@ This example demonstrates parallel processing capabilities:
 This showcases the parallel computing features added in Stage 1.4 (MESH enhancements).
 """
 
+from pathlib import Path
+
 from pyfds.builders import DevcBuilder, MeshBuilder, ReactionBuilder, SurfBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Time
@@ -143,10 +145,16 @@ def create_multi_mesh_fire():
 
 if __name__ == "__main__":
     simulation = create_multi_mesh_fire()
-    simulation.write("multi_mesh_parallel.fds")
+
+    # Create output directory
+    output_dir = Path(__file__).parent / "fds"
+    output_dir.mkdir(exist_ok=True)
+
+    # Write FDS input file
+    output_file = simulation.write(output_dir / "multi_mesh_parallel.fds")
 
     print("Multi-mesh parallel simulation created!")
-    print("Output file: multi_mesh_parallel.fds")
+    print(f"Output file: {output_file}")
     print("\nMesh configuration:")
     print("  - Total domain: 40m x 4m x 3m")
     print("  - Number of meshes: 4")

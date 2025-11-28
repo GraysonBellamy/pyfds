@@ -13,6 +13,8 @@ This example demonstrates advanced combustion features:
 This showcases the advanced combustion features added in Stage 1.3 (REAC enhancements).
 """
 
+from pathlib import Path
+
 from pyfds.builders import DevcBuilder, MeshBuilder, ReactionBuilder, SurfBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Time
@@ -166,10 +168,16 @@ def create_advanced_combustion_fire():
 
 if __name__ == "__main__":
     simulation = create_advanced_combustion_fire()
-    simulation.write("advanced_combustion.fds")
+
+    # Create output directory
+    output_dir = Path(__file__).parent / "fds"
+    output_dir.mkdir(exist_ok=True)
+
+    # Write FDS input file
+    output_file = simulation.write(output_dir / "advanced_combustion.fds")
 
     print("Advanced combustion simulation created!")
-    print("Output file: advanced_combustion.fds")
+    print(f"Output file: {output_file}")
     print("\nFuel properties:")
     print("  - Custom hydrocarbon: C7H16 (heptane-like)")
     print("  - Heat of combustion: 44,600 kJ/kg (non-ideal)")

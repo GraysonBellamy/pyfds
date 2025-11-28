@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
+
+from pathlib import Path
 Cone Calorimeter Simulation
 
 Demonstrates bench-scale test setup using SOLID_PHASE_ONLY.
 This example shows how to model cone calorimeter experiments
 for material flammability testing.
 """
+
+from pathlib import Path
 
 from pyfds.core.namelists import Material, Mesh, Obstacle, Reaction, Surface, Time
 from pyfds.core.simulation import Simulation
@@ -80,11 +84,15 @@ def main():
     sim.geometry.add_obstacle(sample_holder)
     sim.physics.add_reaction(combustion)
 
-    # Write input file
-    sim.write_input_file()
+    # Create output directory
+    output_dir = Path(__file__).parent.parent / "fds"
+    output_dir.mkdir(exist_ok=True)
 
-    print("Cone calorimeter example input file written: cone_calorimeter.fds")
-    print("Run with: fds cone_calorimeter.fds")
+    # Write input file
+    output_file = sim.write(output_dir / "cone_calorimeter.fds")
+
+    print(f"Cone calorimeter example input file written: {output_file}")
+    print(f"Run with: fds {output_file}")
     print("")
     print("This example demonstrates:")
     print("- Bench-scale material testing")

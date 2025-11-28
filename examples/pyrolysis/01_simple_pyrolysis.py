@@ -7,6 +7,8 @@ This example shows the basic setup for a material that decomposes
 in a single pyrolysis reaction producing gaseous and solid products.
 """
 
+from pathlib import Path
+
 from pyfds.core.namelists import Material, Mesh, Reaction, Time
 from pyfds.core.simulation import Simulation
 
@@ -51,11 +53,15 @@ def main():
     sim.material_mgr.add_material(char)
     sim.physics.add_reaction(combustion)
 
-    # Write input file
-    sim.write_input_file()
+    # Create output directory
+    output_dir = Path(__file__).parent.parent / "fds"
+    output_dir.mkdir(exist_ok=True)
 
-    print("Simple pyrolysis example input file written: simple_pyrolysis.fds")
-    print("Run with: fds simple_pyrolysis.fds")
+    # Write input file
+    output_file = sim.write(output_dir / "simple_pyrolysis.fds")
+
+    print(f"Simple pyrolysis example input file written: {output_file}")
+    print(f"Run with: fds {output_file}")
 
 
 if __name__ == "__main__":

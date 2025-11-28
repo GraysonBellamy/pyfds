@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
+
+from pathlib import Path
 Multi-Layer Composite Example
 
 Demonstrates a wall with multiple material layers.
 This example shows how to model composite structures with
 different materials that pyrolyze at different rates.
 """
+
+from pathlib import Path
 
 from pyfds.core.namelists import Material, Mesh, Obstacle, Reaction, Surface, Time
 from pyfds.core.simulation import Simulation
@@ -121,11 +125,15 @@ def main():
     sim.physics.add_reaction(wood_combustion)
     sim.physics.add_reaction(insulation_combustion)
 
-    # Write input file
-    sim.write_input_file()
+    # Create output directory
+    output_dir = Path(__file__).parent.parent / "fds"
+    output_dir.mkdir(exist_ok=True)
 
-    print("Multi-layer composite example input file written: multi_layer_composite.fds")
-    print("Run with: fds multi_layer_composite.fds")
+    # Write input file
+    output_file = sim.write(output_dir / "multi_layer_composite.fds")
+
+    print(f"Multi-layer composite example input file written: {output_file}")
+    print(f"Run with: fds {output_file}")
     print("")
     print("This example demonstrates:")
     print("- Multi-layer material construction")

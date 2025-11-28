@@ -11,6 +11,8 @@ This example demonstrates a fire scenario with sprinkler activation:
 This shows the control features added in Stage 1.2 (DEVC enhancements).
 """
 
+from pathlib import Path
+
 from pyfds.builders import DevcBuilder, MeshBuilder, ReactionBuilder, SurfBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Ramp, Time
@@ -140,10 +142,16 @@ def create_fire_with_sprinkler():
 
 if __name__ == "__main__":
     simulation = create_fire_with_sprinkler()
-    simulation.write("fire_with_sprinkler.fds")
+
+    # Create output directory
+    output_dir = Path(__file__).parent / "fds"
+    output_dir.mkdir(exist_ok=True)
+
+    # Write FDS input file
+    output_file = simulation.write(output_dir / "fire_with_sprinkler.fds")
 
     print("Fire with sprinkler simulation created!")
-    print("Output file: fire_with_sprinkler.fds")
+    print(f"Output file: {output_file}")
     print("\nSimulation features:")
     print("  - Growing fire (t² MEDIUM)")
     print("  - Peak HRR: 2500 kW at 300s")

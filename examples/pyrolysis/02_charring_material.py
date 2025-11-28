@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
+
+from pathlib import Path
 Charring Material Example
 
 Demonstrates wood pyrolysis with char formation.
 This example shows how to model materials that form a char residue
 during pyrolysis, which affects heat transfer and burning behavior.
 """
+
+from pathlib import Path
 
 from pyfds.core.namelists import Material, Mesh, Reaction, Surface, Time
 from pyfds.core.simulation import Simulation
@@ -73,11 +77,15 @@ def main():
     sim.material_mgr.add_surface(wood_surface)
     sim.physics.add_reaction(combustion)
 
-    # Write input file
-    sim.write_input_file()
+    # Create output directory
+    output_dir = Path(__file__).parent.parent / "fds"
+    output_dir.mkdir(exist_ok=True)
 
-    print("Charring material example input file written: charring_material.fds")
-    print("Run with: fds charring_material.fds")
+    # Write input file
+    output_file = sim.write(output_dir / "charring_material.fds")
+
+    print(f"Charring material example input file written: {output_file}")
+    print(f"Run with: fds {output_file}")
     print("")
     print("This example demonstrates:")
     print("- Char formation during pyrolysis")

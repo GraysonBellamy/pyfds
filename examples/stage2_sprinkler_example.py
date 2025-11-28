@@ -191,9 +191,13 @@ if __name__ == "__main__":
     # Create simulation
     sim = create_sprinkler_simulation()
 
+    # Create output directory
+    output_dir = Path(__file__).parent / "fds"
+    output_dir.mkdir(exist_ok=True)
+
     # Write to FDS input file
-    output_file = "sprinkler_demo.fds"
-    with Path(output_file).open("w") as f:
+    output_file = output_dir / "sprinkler_demo.fds"
+    with output_file.open("w") as f:
         f.write(sim.to_fds())
 
     print(f"Simulation file written to: {output_file}")

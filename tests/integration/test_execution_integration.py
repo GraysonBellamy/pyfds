@@ -94,6 +94,40 @@ class TestFDSExecution:
         assert results.output_dir == tmp_path
         assert results.hrr_file.exists()
 
+    def test_job_graceful_stop(self, tmp_path: Path) -> None:
+        """Test graceful stopping of FDS simulation via CHID.stop file."""
+        # Create a longer simulation to allow time for stop
+        sim = Simulation(chid="integration_test_stop", title="Graceful Stop Test")
+        sim.time(t_end=30.0)  # Longer simulation
+        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+
+        # Run in non-blocking mode
+        job = sim.run(
+            n_threads=1,
+            output_dir=tmp_path,
+            monitor=True,
+            wait=False,
+        )
+
+        # Wait a moment for simulation to start
+        time.sleep(2)
+
+        # Request graceful stop
+        job.request_stop()
+
+        # Verify stop file was created
+        stop_file = tmp_path / f"{job.chid}.stop"
+        assert stop_file.exists()
+
+        # Wait for FDS to stop (with timeout)
+        max_wait = 30
+        start_time = time.time()
+        while job.is_running() and (time.time() - start_time) < max_wait:
+            time.sleep(1)
+
+        # Job should have stopped
+        assert not job.is_running()
+
     def test_simulation_with_devices(self, tmp_path: Path) -> None:
         """Test simulation with device outputs."""
         # Create simulation with devices

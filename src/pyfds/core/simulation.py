@@ -1385,4 +1385,5 @@ class Simulation:
             monitor=monitor,
             wait=wait,
             timeout=timeout,
+            simulation=self,  # Pass simulation for parallel validation
         )

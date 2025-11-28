@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
+
+from pathlib import Path
 Burn-Away Furniture Example
 
 Demonstrates combustible furniture with BULK_DENSITY.
 This example shows how to model furniture that burns away
 during a fire, exposing interior materials and changing geometry.
 """
+
+from pathlib import Path
 
 from pyfds.core.namelists import Material, Mesh, Obstacle, Reaction, Surface, Time, Vent
 from pyfds.core.simulation import Simulation
@@ -120,11 +124,15 @@ def main():
     sim.physics.add_reaction(foam_combustion)
     sim.physics.add_reaction(wood_combustion)
 
-    # Write input file
-    sim.write_input_file()
+    # Create output directory
+    output_dir = Path(__file__).parent.parent / "fds"
+    output_dir.mkdir(exist_ok=True)
 
-    print("Burn-away furniture example input file written: burn_away_furniture.fds")
-    print("Run with: fds burn_away_furniture.fds")
+    # Write input file
+    output_file = sim.write(output_dir / "burn_away_furniture.fds")
+
+    print(f"Burn-away furniture example input file written: {output_file}")
+    print(f"Run with: fds {output_file}")
     print("")
     print("This example demonstrates:")
     print("- Burn-away of combustible furniture")

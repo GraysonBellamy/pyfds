@@ -1,8 +1,12 @@
 """
-Execution Demo - Phase 2 Features
+Execution Demo - Phase 2 + Priority 1 Features
 
 This example demonstrates the complete workflow of creating, executing,
-and analyzing FDS simulations using PyFDS Phase 2 features.
+and analyzing FDS simulations using PyFDS Phase 2 features plus Priority 1
+enhancements:
+- Parallel execution validation
+- Platform-specific execution
+- Graceful stopping with CHID.stop
 """
 
 import time
@@ -10,6 +14,7 @@ from pathlib import Path
 
 from pyfds import Simulation
 from pyfds.core.geometry import Point3D
+from pyfds.execution import ParallelValidator
 
 # Create output directory
 output_dir = Path(__file__).parent / "fds"
@@ -241,6 +246,120 @@ def validation_demo():
         print("✅ No validation warnings!")
 
 
+def parallel_validation_demo():
+    """
+    Demo 5: Parallel execution validation (Priority 1 Feature).
+
+    Demonstrates automatic validation of parallel configuration and
+    recommendations for optimal performance.
+    """
+    print("\n" + "=" * 60)
+    print("DEMO 5: Parallel Execution Validation (Priority 1)")
+    print("=" * 60)
+
+    # Create validator
+    validator = ParallelValidator()
+
+    # Example 1: Single mesh simulation
+    print("\n📊 Scenario 1: Single Mesh Simulation")
+    sim1 = Simulation(chid="single_mesh")
+    sim1.mesh(ijk=(50, 50, 50), xb=(0, 5, 0, 5, 0, 5))
+
+    config1 = validator.recommend_configuration(sim1)
+    print("  Mesh count: 1")
+    print(f"  ✅ Recommended: {config1['n_mpi']} MPI, {config1['n_threads']} threads")
+    print(f"  📝 Rationale: {config1['rationale']}")
+
+    # Check what happens with bad configuration
+    warnings = validator.validate_all(sim1, n_mpi=4, n_threads=2)
+    if warnings:
+        print("\n  ⚠️  Using n_mpi=4 with 1 mesh would trigger warnings:")
+        for w in warnings:
+            print(f"     - {w[:80]}...")
+
+    # Example 2: Multi-mesh simulation
+    print("\n📊 Scenario 2: Multi-Mesh Simulation (4 meshes)")
+    sim2 = Simulation(chid="multi_mesh")
+    for i in range(4):
+        sim2.mesh(ijk=(25, 25, 25), xb=(i * 2.5, (i + 1) * 2.5, 0, 2.5, 0, 2.5))
+
+    config2 = validator.recommend_configuration(sim2)
+    print("  Mesh count: 4")
+    print(f"  ✅ Recommended: {config2['n_mpi']} MPI, {config2['n_threads']} threads")
+    print(f"  📝 Rationale: {config2['rationale']}")
+
+    # Example 3: Validation catches issues
+    print("\n📊 Scenario 3: Catching Configuration Issues")
+    print("  Testing: 2 MPI processes with 4 meshes")
+    warnings = validator.validate_mpi_mesh_count(sim2, n_mpi=2)
+    if warnings:
+        print(f"  ⚠️  Warning: {warnings[0][:100]}...")
+
+    print("\n💡 Tip: PyFDS automatically validates parallel config when you run sim.run()")
+
+
+def graceful_stop_demo():
+    """
+    Demo 6: Graceful stopping with CHID.stop (Priority 1 Feature).
+
+    Demonstrates requesting FDS to stop gracefully by creating a CHID.stop file.
+    """
+    print("\n" + "=" * 60)
+    print("DEMO 6: Graceful Stopping (Priority 1)")
+    print("=" * 60)
+
+    # Create a longer simulation that we can stop
+    sim = Simulation(chid="graceful_stop_demo", title="Graceful Stop Demo")
+    sim.time(t_end=60.0)  # 60 second simulation
+    sim.mesh(ijk=(20, 20, 20), xb=(0, 2, 0, 2, 0, 2))
+    sim.surface(id="FIRE", hrrpua=500.0)
+    sim.obstruction(xb=(0.8, 1.2, 0.8, 1.2, 0, 0.1), surf_id="FIRE")
+
+    print("\n🔥 Starting simulation in background...")
+    print("   Will request graceful stop after a few seconds")
+
+    # Run in non-blocking mode
+    job = sim.run(
+        n_threads=1,
+        output_dir=output_dir,
+        wait=False,
+        monitor=True,
+    )
+
+    # Wait a bit for simulation to start
+    print("\n⏱️  Letting simulation run for 5 seconds...")
+    time.sleep(5)
+
+    # Check progress
+    if job.is_running():
+        progress = job.progress
+        print(f"   Current progress: {progress:.1f}%")
+
+        # Request graceful stop
+        print("\n🛑 Requesting graceful stop...")
+        job.request_stop()
+        print("   ✅ CHID.stop file created")
+        print("   📝 FDS will stop after completing current timestep")
+
+        # Wait for FDS to stop (with timeout)
+        print("\n⏳ Waiting for FDS to stop gracefully...")
+        max_wait = 30
+        start = time.time()
+        while job.is_running() and (time.time() - start) < max_wait:
+            time.sleep(1)
+
+        if not job.is_running():
+            print("   ✅ Simulation stopped gracefully!")
+            print(f"   📊 Final progress: {job.progress:.1f}%")
+        else:
+            print("   ⚠️  Simulation still running after timeout")
+            job.kill()  # Force kill if needed
+    else:
+        print("   i  Simulation completed before stop was requested")
+
+    print("\n💡 Tip: Use job.request_stop() instead of job.kill() for clean shutdown")
+
+
 def main():
     """Run all demos."""
     print("\n" + "=" * 60)
@@ -268,6 +387,14 @@ def main():
         print(f"Demo 3 skipped: {e}")
 
     validation_demo()  # This one doesn't need FDS
+
+    # New Priority 1 demos
+    parallel_validation_demo()
+
+    try:
+        graceful_stop_demo()
+    except Exception as e:
+        print(f"Graceful stop demo skipped: {e}")
 
     print("\n" + "=" * 60)
     print("Demos complete!")

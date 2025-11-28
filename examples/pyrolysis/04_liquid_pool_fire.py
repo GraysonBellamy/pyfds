@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
+
+from pathlib import Path
 Liquid Pool Fire Example
 
 Demonstrates liquid fuel evaporation and combustion.
 This example shows how to model pool fires with liquid fuels
 that evaporate and burn according to their physical properties.
 """
+
+from pathlib import Path
 
 from pyfds.core.namelists import Material, Mesh, Obstacle, Reaction, Surface, Time, Vent
 from pyfds.core.simulation import Simulation
@@ -98,11 +102,15 @@ def main():
     sim.geometry.add_vent(vent_west)
     sim.physics.add_reaction(methanol_combustion)
 
-    # Write input file
-    sim.write_input_file()
+    # Create output directory
+    output_dir = Path(__file__).parent.parent / "fds"
+    output_dir.mkdir(exist_ok=True)
 
-    print("Liquid pool fire example input file written: liquid_pool_fire.fds")
-    print("Run with: fds liquid_pool_fire.fds")
+    # Write input file
+    output_file = sim.write(output_dir / "liquid_pool_fire.fds")
+
+    print(f"Liquid pool fire example input file written: {output_file}")
+    print(f"Run with: fds {output_file}")
     print("")
     print("This example demonstrates:")
     print("- Liquid fuel evaporation modeling")

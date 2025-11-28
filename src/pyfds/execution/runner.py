@@ -9,15 +9,13 @@ from typing import TYPE_CHECKING
 from ..utils import get_logger
 from .exceptions import FDSExecutionError, FDSTimeoutError
 from .monitor import ProgressInfo, ProgressMonitor, parse_out_file_for_errors
-from .process import (
-    build_fds_command,
-    find_fds_executable,
-    get_environment_for_execution,
-    validate_fds_executable,
-)
+from .platform import PlatformExecutor
+from .process import get_environment_for_execution, validate_fds_executable
+from .validation import ParallelValidator
 
 if TYPE_CHECKING:
     from ..analysis.results import Results
+    from ..core.simulation import Simulation
 
 logger = get_logger(__name__)
 
@@ -212,6 +210,34 @@ class Job:
             if self._monitor is not None:
                 self._monitor.stop()
 
+    def request_stop(self) -> None:
+        """
+        Request graceful shutdown by creating CHID.stop file.
+
+        From FDS User Guide §3.4:
+        "To stop a calculation before its scheduled time, create a file in
+        the same directory as the output files called CHID.stop. The existence
+        of this file stops the program gracefully, causing it to dump out the
+        latest flow variables for viewing in Smokeview."
+
+        This method creates the stop file and logs the action. FDS will check
+        for the file and stop gracefully after completing the current timestep.
+
+        Examples
+        --------
+        >>> job = sim.run(wait=False)
+        >>> # ... simulation running ...
+        >>> job.request_stop()  # Ask FDS to stop gracefully
+        >>> job.wait()  # Wait for graceful shutdown
+        """
+        stop_file = self.output_dir / f"{self.chid}.stop"
+        stop_file.touch()
+        logger.info(f"Created stop file: {stop_file}")
+        logger.info(
+            "FDS will stop gracefully after current timestep completes. "
+            "Use wait() or get_results() to wait for shutdown."
+        )
+
     def get_results(self) -> "Results":
         """
         Get results (waits for completion if still running).
@@ -246,13 +272,30 @@ class FDSRunner:
     >>> results = job.get_results()
     """
 
-    def __init__(self, fds_executable: Path | None = None):
-        if fds_executable is None:
-            self.fds_executable = find_fds_executable()
-            logger.debug(f"Auto-detected FDS executable: {self.fds_executable}")
-        else:
-            self.fds_executable = Path(fds_executable)
-            logger.debug(f"Using specified FDS executable: {self.fds_executable}")
+    def __init__(
+        self,
+        fds_executable: Path | None = None,
+        validate_parallel: bool = True,
+    ):
+        """
+        Initialize FDS runner.
+
+        Parameters
+        ----------
+        fds_executable : Path, optional
+            Path to FDS executable (auto-detected if not provided)
+        validate_parallel : bool
+            Enable parallel configuration validation (default: True)
+        """
+        # Initialize platform executor
+        self.platform_executor = PlatformExecutor(fds_executable)
+        self.fds_executable = self.platform_executor.fds_command
+
+        logger.debug(f"FDS executable: {self.fds_executable}")
+        logger.debug(
+            f"Platform: {self.platform_executor.platform}, "
+            f"Wrapper: {self.platform_executor.uses_wrapper}"
+        )
 
         # Validate FDS executable
         is_valid, version = validate_fds_executable(self.fds_executable)
@@ -262,6 +305,10 @@ class FDSRunner:
 
         self.fds_version = version
         logger.info(f"Initialized FDS runner with version: {version}")
+
+        # Initialize validators
+        self.parallel_validator = ParallelValidator()
+        self.validate_parallel = validate_parallel
 
     def run(
         self,
@@ -273,6 +320,7 @@ class FDSRunner:
         monitor: bool = True,
         wait: bool = True,
         timeout: float | None = None,
+        simulation: "Simulation | None" = None,
     ) -> "Results | Job":
         """
         Run an FDS simulation.
@@ -295,6 +343,8 @@ class FDSRunner:
             Wait for completion (default: True)
         timeout : float, optional
             Timeout in seconds (only used if wait=True)
+        simulation : Simulation, optional
+            Simulation object for validation (if available)
 
         Returns
         -------
@@ -316,6 +366,9 @@ class FDSRunner:
         >>> # Non-blocking
         >>> job = runner.run("test.fds", wait=False)
         >>> results = job.wait()
+
+        >>> # With validation
+        >>> results = runner.run("test.fds", simulation=sim, n_mpi=4)
         """
         fds_file = Path(fds_file)
         if not fds_file.exists():
@@ -337,12 +390,17 @@ class FDSRunner:
         logger.debug(f"  Output directory: {output_dir}")
         logger.debug(f"  Threads: {n_threads}, MPI processes: {n_mpi}")
 
-        # Build command
-        cmd = build_fds_command(
+        # Validate parallel configuration
+        if self.validate_parallel and simulation is not None:
+            warnings = self.parallel_validator.validate_all(simulation, n_mpi, n_threads)
+            for warning in warnings:
+                logger.warning(warning)
+
+        # Build command using platform executor
+        cmd = self.platform_executor.build_command(
             fds_file=fds_file,
-            fds_executable=self.fds_executable,
-            n_threads=n_threads,
             n_mpi=n_mpi,
+            n_threads=n_threads,
             mpiexec_path=mpiexec_path,
         )
         logger.debug(f"  Command: {' '.join(str(c) for c in cmd)}")
