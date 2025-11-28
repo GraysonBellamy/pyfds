@@ -75,7 +75,63 @@ composite = Material(
 
 ## Using the MaterialBuilder
 
-The `MaterialBuilder` provides a fluent API for creating materials:
+The `MaterialBuilder` provides a fluent API for creating materials with pyrolysis reactions. PyFDS supports two approaches:
+
+### Structured Pyrolysis API (Recommended)
+
+The structured API uses dedicated classes for better type safety and validation:
+
+```python
+from pyfds.builders import MaterialBuilder
+from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+
+# Single-step pyrolysis
+wood = MaterialBuilder("WOOD") \
+    .density(500) \
+    .thermal_conductivity(0.13) \
+    .specific_heat(2.5) \
+    .add_reaction(
+        PyrolysisReaction(
+            a=1e10,                    # Pre-exponential factor [1/s]
+            e=100000,                  # Activation energy [kJ/kmol]
+            heat_of_reaction=500,      # Endothermic [kJ/kg]
+            products=[
+                PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
+            ]
+        )
+    ) \
+    .build()
+
+# Multi-step pyrolysis
+polyurethane = MaterialBuilder("POLYURETHANE") \
+    .density(40) \
+    .thermal_conductivity(0.04) \
+    .specific_heat(1.5) \
+    .add_reaction(
+        PyrolysisReaction(
+            reference_temperature=100,  # Moisture evaporation
+            pyrolysis_range=20,
+            heat_of_reaction=2260,      # Heat of vaporization
+            products=[PyrolysisProduct(spec_id="WATER_VAPOR", nu_spec=0.05)]
+        )
+    ) \
+    .add_reaction(
+        PyrolysisReaction(
+            a=1e12, e=150000,          # Primary pyrolysis
+            heat_of_reaction=800,
+            products=[
+                PyrolysisProduct(spec_id="FUEL_GAS", nu_spec=0.70),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.15),
+            ]
+        )
+    ) \
+    .build()
+```
+
+### Legacy Array-Based API
+
+For backward compatibility, the original array-based API is still supported:
 
 ```python
 from pyfds.builders import MaterialBuilder

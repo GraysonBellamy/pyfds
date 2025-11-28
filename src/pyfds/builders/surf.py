@@ -181,6 +181,97 @@ class SurfBuilder(Builder[Surface]):
         self._params["thickness"] = thickness
         return self
 
+    def with_multi_layer_material(
+        self,
+        layers: list[dict],
+        backing: str = "EXPOSED",
+    ) -> "SurfBuilder":
+        """
+        Configure multi-layer material stack.
+
+        Parameters
+        ----------
+        layers : list[dict]
+            List of layer definitions. Each dict should contain:
+            - 'matl_id': str or list[str] - Material ID(s) for this layer
+            - 'thickness': float - Layer thickness in meters
+            - 'mass_fraction': list[float], optional - Mass fractions for multi-component
+        backing : str, optional
+            Backing condition: 'VOID', 'INSULATED', or 'EXPOSED' (default)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> wall = SurfBuilder("COMPOSITE_WALL").with_multi_layer_material(
+        ...     layers=[
+        ...         {"matl_id": "GYPSUM", "thickness": 0.013},
+        ...         {"matl_id": "INSULATION", "thickness": 0.1},
+        ...         {"matl_id": "GYPSUM", "thickness": 0.013},
+        ...     ],
+        ...     backing="EXPOSED"
+        ... ).build()
+
+        >>> # Multi-component layer
+        >>> composite = SurfBuilder("MULTI_COMP").with_multi_layer_material(
+        ...     layers=[
+        ...         {
+        ...             "matl_id": ["CALCIUM_SILICATE", "ITE"],
+        ...             "thickness": 0.025,
+        ...             "mass_fraction": [0.68, 0.32]
+        ...         },
+        ...     ]
+        ... ).build()
+        """
+        if not layers:
+            raise ValueError("At least one layer must be specified")
+
+        matl_ids = []
+        thicknesses = []
+        mass_fractions = []
+        has_multi_component = False
+
+        for i, layer in enumerate(layers):
+            if "matl_id" not in layer:
+                raise ValueError(f"Layer {i + 1}: 'matl_id' is required")
+            if "thickness" not in layer:
+                raise ValueError(f"Layer {i + 1}: 'thickness' is required")
+
+            matl_id = layer["matl_id"]
+            thickness = layer["thickness"]
+            mass_frac = layer.get("mass_fraction")
+
+            if isinstance(matl_id, list):
+                has_multi_component = True
+                matl_ids.append(matl_id)
+                if mass_frac is None:
+                    raise ValueError(
+                        f"Layer {i + 1}: 'mass_fraction' required for multi-component layer"
+                    )
+                if len(mass_frac) != len(matl_id):
+                    raise ValueError(
+                        f"Layer {i + 1}: mass_fraction length must match matl_id length"
+                    )
+                mass_fractions.append(mass_frac)
+            else:
+                matl_ids.append(matl_id)
+                if mass_frac:
+                    mass_fractions.append(mass_frac)
+
+            thicknesses.append(thickness)
+
+        self._params["matl_id"] = matl_ids
+        self._params["thickness"] = thicknesses
+        self._params["backing"] = backing
+
+        if has_multi_component:
+            self._params["matl_mass_fraction"] = mass_fractions
+
+        return self
+
     def with_ignition(self, temperature: float, burn_away: bool = False) -> "SurfBuilder":
         """
         Set ignition properties.
@@ -864,6 +955,85 @@ class SurfBuilder(Builder[Surface]):
         self._params["texture_width"] = width
         self._params["texture_height"] = height
         self._params["transparency"] = transparency
+        return self
+
+    def with_spyro_model(
+        self,
+        reference_heat_flux: float | list[float],
+        ramp_q: str,
+        reference_thickness: float | list[float] | None = None,
+        inert_q_ref: bool = False,
+        maximum_scaling_heat_flux: float = 1500.0,
+        minimum_scaling_heat_flux: float = 0.0,
+        reference_heat_flux_time_interval: float = 1.0,
+    ) -> "SurfBuilder":
+        """
+        Configure SPyro (Scaling Pyrolysis) model from cone calorimeter data.
+
+        SPyro scales experimental HRR data from cone calorimeter tests to
+        different heat flux conditions. The RAMP_Q should contain normalized
+        HRR data from the reference test.
+
+        Parameters
+        ----------
+        reference_heat_flux : float or list[float]
+            Heat flux in cone calorimeter test [kW/m²]
+            Use list for multiple experiments at different fluxes
+        ramp_q : str
+            RAMP ID containing normalized HRR(t) from test
+        reference_thickness : float or list[float], optional
+            Sample thickness in experiment [m]. Defaults to surface THICKNESS.
+        inert_q_ref : bool, optional
+            True if test data is from inert pyrolysis (no combustion)
+        maximum_scaling_heat_flux : float, optional
+            Upper limit on scaling heat flux [kW/m²] (default: 1500)
+        minimum_scaling_heat_flux : float, optional
+            Lower limit on scaling heat flux [kW/m²] (default: 0)
+        reference_heat_flux_time_interval : float, optional
+            Smoothing window for heat flux [s] (default: 1.0)
+
+        Returns
+        -------
+        SurfBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Using cone calorimeter data at 50 kW/m²
+        >>> plywood = SurfBuilder("PLYWOOD") \\
+        ...     .with_material("WOOD", thickness=0.012) \\
+        ...     .with_spyro_model(
+        ...         reference_heat_flux=50.0,
+        ...         ramp_q="PLYWOOD_HRR_50",
+        ...         reference_thickness=0.012
+        ...     ) \\
+        ...     .with_ignition(temperature=300) \\
+        ...     .build()
+
+        >>> # Multiple experiments at different heat fluxes
+        >>> composite = SurfBuilder("COMPOSITE") \\
+        ...     .with_multi_layer_material([...]) \\
+        ...     .with_spyro_model(
+        ...         reference_heat_flux=[35.0, 50.0, 75.0],
+        ...         ramp_q="COMPOSITE_HRR",
+        ...         reference_thickness=[0.01, 0.01, 0.01]
+        ...     ) \\
+        ...     .build()
+        """
+        self._params["reference_heat_flux"] = reference_heat_flux
+        self._params["ramp_q"] = ramp_q
+
+        if reference_thickness is not None:
+            self._params["reference_thickness"] = reference_thickness
+        if inert_q_ref:
+            self._params["inert_q_ref"] = inert_q_ref
+        if maximum_scaling_heat_flux != 1500.0:
+            self._params["maximum_scaling_heat_flux"] = maximum_scaling_heat_flux
+        if minimum_scaling_heat_flux != 0.0:
+            self._params["minimum_scaling_heat_flux"] = minimum_scaling_heat_flux
+        if reference_heat_flux_time_interval != 1.0:
+            self._params["reference_heat_flux_time_interval"] = reference_heat_flux_time_interval
+
         return self
 
     def build(self) -> Surface:

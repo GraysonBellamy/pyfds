@@ -1,7 +1,12 @@
 """Builder for creating MATL namelists with thermal and pyrolysis properties."""
 
+from typing import TYPE_CHECKING
+
 from ..core.namelists import Material
 from .base import Builder
+
+if TYPE_CHECKING:
+    from ..core.namelists.pyrolysis import PyrolysisReaction
 
 
 class MaterialBuilder(Builder[Material]):
@@ -74,11 +79,16 @@ class MaterialBuilder(Builder[Material]):
         self._absorption_coefficient: float = 50000.0
         self._reference_temperature: float | None = None
         self._reactions: list[dict] = []
+        self._structured_reactions: list[PyrolysisReaction] = []
         # Stage 2.4 enhancements
         self._spec_id: str | None = None
         self._yield_fraction: float | None = None
         self._heat_of_combustion: float | None = None
         self._reference_rate: float | None = None
+        # Liquid fuel parameters
+        self._boiling_temperature: float | None = None
+        self._mw: float | None = None
+        self._heat_of_vaporization: float | None = None
 
     def density(self, value: float) -> "MaterialBuilder":
         """
@@ -367,6 +377,106 @@ class MaterialBuilder(Builder[Material]):
         )
         return self
 
+    def add_reaction(self, reaction: "PyrolysisReaction") -> "MaterialBuilder":
+        """
+        Add a structured pyrolysis reaction to the material.
+
+        Parameters
+        ----------
+        reaction : PyrolysisReaction
+            The structured pyrolysis reaction to add
+
+        Returns
+        -------
+        MaterialBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+        >>> reaction = PyrolysisReaction(
+        ...     a=1e10, e=1.5e5, heat_of_reaction=500,
+        ...     products=[PyrolysisProduct(species="GAS", mass_fraction=0.8)]
+        ... )
+        >>> mat = MaterialBuilder('WOOD').add_reaction(reaction).build()
+        """
+        self._structured_reactions.append(reaction)
+        return self
+
+    def as_liquid_fuel(
+        self,
+        boiling_temperature: float,
+        spec_id: str,
+        mw: float | None = None,
+        heat_of_vaporization: float | None = None,
+        absorption_coefficient: float | None = None,
+        nu_spec: float = 1.0,
+    ) -> "MaterialBuilder":
+        """
+        Configure as liquid fuel with evaporation properties.
+
+        Liquid fuels in FDS evaporate at their boiling temperature
+        and produce gaseous fuel species for combustion.
+
+        Parameters
+        ----------
+        boiling_temperature : float
+            Boiling point in °C (triggers liquid model in FDS)
+        spec_id : str
+            Gaseous species ID produced by evaporation
+        mw : float, optional
+            Molecular weight in g/mol
+        heat_of_vaporization : float, optional
+            Heat of vaporization in kJ/kg
+        absorption_coefficient : float, optional
+            Radiation absorption coefficient in 1/m
+        nu_spec : float, optional
+            Yield fraction (default: 1.0 for pure liquid)
+
+        Returns
+        -------
+        MaterialBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> ethanol = MaterialBuilder("ETHANOL_LIQUID") \\
+        ...     .density(794) \\
+        ...     .thermal_conductivity(0.17) \\
+        ...     .specific_heat(2.44) \\
+        ...     .as_liquid_fuel(
+        ...         boiling_temperature=78.5,
+        ...         spec_id="ETHANOL",
+        ...         mw=46.07,
+        ...         heat_of_vaporization=837,
+        ...         absorption_coefficient=1140
+        ...     ) \\
+        ...     .build()
+
+        >>> methanol = MaterialBuilder("METHANOL_LIQUID") \\
+        ...     .density(792) \\
+        ...     .thermal_conductivity(0.2) \\
+        ...     .specific_heat(2.51) \\
+        ...     .as_liquid_fuel(
+        ...         boiling_temperature=64.7,
+        ...         spec_id="METHANOL",
+        ...         mw=32.04
+        ...     ) \\
+        ...     .build()
+        """
+        self._boiling_temperature = boiling_temperature
+        self._spec_id = spec_id
+        self._yield_fraction = nu_spec
+
+        if mw is not None:
+            self._mw = mw
+        if heat_of_vaporization is not None:
+            self._heat_of_vaporization = heat_of_vaporization
+        if absorption_coefficient is not None:
+            self._absorption_coefficient = absorption_coefficient
+
+        return self
+
     def build(self) -> Material:
         """
         Build the Material object.
@@ -388,6 +498,13 @@ class MaterialBuilder(Builder[Material]):
         # Validate required parameters
         if self._density is None:
             raise ValueError(f"MaterialBuilder '{self._id}': density is required")
+
+        # Validate reaction API consistency
+        if self._structured_reactions and self._reactions:
+            raise ValueError(
+                f"MaterialBuilder '{self._id}': Cannot mix structured reactions "
+                "(add_reaction()) with legacy reactions (add_pyrolysis_reaction())"
+            )
 
         # Build parameter dict
         params: dict = {
@@ -421,8 +538,20 @@ class MaterialBuilder(Builder[Material]):
         if self._reference_rate is not None:
             params["reference_rate"] = self._reference_rate
 
+        # Liquid fuel parameters
+        if self._boiling_temperature is not None:
+            params["boiling_temperature"] = self._boiling_temperature
+        if self._mw is not None:
+            params["mw"] = self._mw
+        if self._heat_of_vaporization is not None:
+            params["heat_of_vaporization"] = self._heat_of_vaporization
+
         # Pyrolysis reactions
-        if self._reactions:
+        if self._structured_reactions:
+            # Use structured PyrolysisReaction objects
+            params["reactions"] = self._structured_reactions
+        elif self._reactions:
+            # Use legacy array-based parameters
             params["n_reactions"] = len(self._reactions)
             params["a"] = [r["a"] for r in self._reactions]
             params["e"] = [r["e"] for r in self._reactions]

@@ -160,6 +160,68 @@ polymer = Material(
 )
 ```
 
+### Structured Pyrolysis API
+
+pyfds provides a structured API for defining pyrolysis reactions that is cleaner and less error-prone than using parallel arrays.
+
+#### PyrolysisReaction Class
+
+The `PyrolysisReaction` class represents a single decomposition reaction with validation for kinetic parameters and product yields.
+
+```python
+from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+
+# Arrhenius kinetics with gas and char products
+reaction = PyrolysisReaction(
+    a=1e10,                    # Pre-exponential factor [1/s]
+    e=100000,                  # Activation energy [kJ/kmol]
+    heat_of_reaction=500,      # Endothermic [kJ/kg]
+    products=[
+        PyrolysisProduct(spec_id="FUEL_GAS", nu_spec=0.8),
+        PyrolysisProduct(matl_id="CHAR", nu_matl=0.2),
+    ]
+)
+
+# Simplified kinetics with reference temperature
+reaction = PyrolysisReaction(
+    reference_temperature=350,  # Peak temperature [°C]
+    pyrolysis_range=80,        # Temperature width [°C]
+    heat_of_reaction=1000,
+    products=[
+        PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
+        PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
+    ]
+)
+```
+
+#### Using with Material Class
+
+You can use `PyrolysisReaction` directly with the `Material` class:
+
+```python
+from pyfds.core.namelists import Material
+from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+
+material = Material(
+    id="WOOD",
+    density=500,
+    conductivity=0.13,
+    specific_heat=2.5,
+    reactions=[
+        PyrolysisReaction(
+            reference_temperature=350,
+            heat_of_reaction=500,
+            products=[
+                PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
+            ]
+        )
+    ]
+)
+```
+
+> **Note:** You cannot mix the `reactions` list with the legacy array parameters (`a`, `e`, `nu_spec`, etc.). Use one format or the other.
+
 ### Advanced Material Properties
 
 ```python

@@ -25,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full FDS output generation with conditional parameter inclusion
   - Complete unit test coverage for all new thermal surface capabilities
   - Phase 3 thermal boundary conditions example demonstrating all features
+- **Structured Pyrolysis API** - Modern, type-safe pyrolysis modeling
+  - `PyrolysisReaction` class for structured reaction definitions with validation
+  - `PyrolysisProduct` class for gas/solid/particle products with yield validation
+  - `MaterialBuilder.add_reaction()` method for structured pyrolysis reactions
+  - Automatic yield validation and cross-reference checking
+  - Backward compatibility with legacy array-based API
+  - Comprehensive examples demonstrating structured pyrolysis
+  - Updated documentation with structured API as preferred method
 - **Manager-based architecture** following Single Responsibility Principle
   - GeometryManager for meshes, obstructions, and vents
   - MaterialManager for materials and surfaces

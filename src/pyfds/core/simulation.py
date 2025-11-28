@@ -1479,6 +1479,19 @@ class Simulation:
         >>> sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
         >>> sim.write('test.fds')
         """
+        # Run cross-reference validation before generating output
+        from pyfds.core.validators.cross_references import CrossReferenceValidator
+
+        validator = CrossReferenceValidator(self)
+        errors, warnings = validator.validate_all()
+
+        for warning in warnings:
+            logger.warning(warning)
+
+        if errors:
+            error_msg = "\n".join(errors)
+            raise ValueError(f"Cross-reference validation failed:\n{error_msg}")
+
         content = self.to_fds()
 
         # Create output manager for file writing

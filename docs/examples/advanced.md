@@ -472,6 +472,89 @@ sim.write('pool_fire.fds')
 - Radiation to downwind structure
 - Heat flux measurements
 
+## Pyrolysis Material Example
+
+Simulate a charring wood fire with detailed pyrolysis kinetics.
+
+```python
+from pyfds import Simulation
+from pyfds.builders import MaterialBuilder
+from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+
+sim = Simulation(chid='pyrolysis_fire', title='Wood Pyrolysis Fire')
+sim.time(t_end=600.0)
+
+# Domain: 4m × 4m × 2m room
+sim.mesh(ijk=(40, 40, 20), xb=(0, 4, 0, 4, 0, 2))
+
+# Define char residue first (referenced by pyrolysis)
+char = MaterialBuilder("CHAR") \
+    .density(150) \
+    .thermal_conductivity(0.1) \
+    .specific_heat(1.0) \
+    .build()
+
+# Wood with structured pyrolysis reactions
+wood = MaterialBuilder("WOOD") \
+    .density(500) \
+    .thermal_conductivity(0.13) \
+    .specific_heat(2.5) \
+    .add_reaction(
+        PyrolysisReaction(
+            a=1e10,                    # Pre-exponential factor [1/s]
+            e=100000,                  # Activation energy [kJ/kmol]
+            heat_of_reaction=500,      # Endothermic [kJ/kg]
+            products=[
+                PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
+            ]
+        )
+    ) \
+    .build()
+
+# Add materials to simulation
+sim.add_material(char)
+sim.add_material(wood)
+
+# Wood surface (pyrolyzing)
+sim.surface(id='WOOD_SURF', matl_id='WOOD', thickness=0.02, color='BROWN')
+
+# Concrete floor
+sim.material(id='CONCRETE', conductivity=1.8, specific_heat=0.88, density=2400)
+sim.surface(id='CONCRETE_SURF', matl_id='CONCRETE', thickness=0.1, color='GRAY')
+
+# Room boundaries
+sim.obstruction(xb=(0, 4, 0, 4, 0, 0.1), surf_id='CONCRETE_SURF')  # Floor
+sim.obstruction(xb=(0, 4, 0, 4, 1.9, 2), surf_id='WOOD_SURF')      # Ceiling
+sim.obstruction(xb=(0, 0.1, 0, 4, 0, 2), surf_id='WOOD_SURF')      # Walls
+sim.obstruction(xb=(3.9, 4, 0, 4, 0, 2), surf_id='WOOD_SURF')
+sim.obstruction(xb=(0, 4, 0, 0.1, 0, 2), surf_id='WOOD_SURF')
+sim.obstruction(xb=(0, 4, 3.9, 4, 0, 2), surf_id='WOOD_SURF')
+
+# Ignition source (small fire to start pyrolysis)
+sim.surface(id='IGNITER', hrrpua=50.0, color='RED')
+sim.obstruction(xb=(1.9, 2.1, 1.9, 2.1, 0, 0.05), surf_id='IGNITER')
+
+# Measurements
+sim.device(id='TEMP_CENTER', quantity='TEMPERATURE', xyz=(2, 2, 1.5))
+sim.device(id='MLRPUA', quantity='MLRPUA', xyz=(2, 2, 0.01))  # Mass loss rate
+
+sim.write('pyrolysis_fire.fds')
+```
+
+**Features Demonstrated:**
+- Structured pyrolysis API with `PyrolysisReaction` and `PyrolysisProduct`
+- Multi-step material decomposition (wood → char + gases)
+- Material cross-references (wood references char)
+- Pyrolysis-driven fire spread
+- Mass loss rate measurement
+
+**Expected Results:**
+- Initial ignition followed by pyrolysis-driven fire growth
+- Char layer formation on wood surfaces
+- Peak temperatures: 800-1000°C
+- Total mass loss: ~25% (char residue)
+
 ## Best Practices for Advanced Simulations
 
 ### 1. Multi-Mesh Alignment

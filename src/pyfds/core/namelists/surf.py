@@ -8,6 +8,7 @@ from typing import Any
 
 from pydantic import Field, field_validator, model_validator
 
+from pyfds.core.enums import BackingCondition, HeatTransferModel, SolidGeometry
 from pyfds.core.namelists.base import NamelistBase
 
 
@@ -80,7 +81,9 @@ class Surface(NamelistBase):
     heat_of_combustion: float | None = Field(None, gt=0, description="Heat of combustion (kJ/kg)")
     ignition_temperature: float | None = Field(None, description="Ignition temperature (°C)")
     burn_away: bool = Field(False, description="Remove surface when material burns away")
-    backing: str | None = Field(None, description="Backing condition: VOID, INSULATED, or EXPOSED")
+    backing: BackingCondition | str | None = Field(
+        None, description="Backing condition: VOID, INSULATED, or EXPOSED"
+    )
 
     # Radiation Properties (Stage 1.1)
     emissivity: float | None = Field(None, ge=0, le=1, description="Surface emissivity")
@@ -204,7 +207,7 @@ class Surface(NamelistBase):
     heat_transfer_coefficient_back: float | None = Field(
         None, gt=0, description="Back side convection coefficient [W/(m²·K)]"
     )
-    heat_transfer_model: str | None = Field(
+    heat_transfer_model: HeatTransferModel | str | None = Field(
         None, description="Heat transfer model: LOGLAW, IMPINGING JET"
     )
     convection_length_scale: float = Field(
@@ -231,7 +234,7 @@ class Surface(NamelistBase):
     emissivity_back: float | None = Field(None, ge=0, le=1, description="Back surface emissivity")
 
     # === SOLID PHASE GEOMETRY (Phase 3) ===
-    geometry: str | None = Field(
+    geometry: SolidGeometry | str | None = Field(
         None, description="Solid geometry: CARTESIAN, CYLINDRICAL, SPHERICAL, INNER CYLINDRICAL"
     )
     inner_radius: float | None = Field(

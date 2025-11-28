@@ -195,6 +195,104 @@ sim.add_reaction(reac)
 sim.surface(id='FOAM', matl_id='POLYMER', thickness=0.05)
 ```
 
+### Structured Pyrolysis API
+
+The `MaterialBuilder` provides a cleaner, more maintainable API for defining pyrolysis reactions using structured data classes.
+
+#### Single-Step Pyrolysis
+
+```python
+from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+
+# Simple pyrolysis with structured API
+wood = (
+    MaterialBuilder('WOOD')
+    .density(500)
+    .thermal_conductivity(0.13)
+    .specific_heat(2.5)
+    .add_reaction(
+        PyrolysisReaction(
+            a=1e10,                    # Pre-exponential factor [1/s]
+            e=100000,                  # Activation energy [kJ/kmol]
+            heat_of_reaction=500,      # Endothermic [kJ/kg]
+            products=[
+                PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
+            ]
+        )
+    )
+    .build()
+)
+```
+
+#### Multi-Step Pyrolysis
+
+```python
+# Complex material with multiple decomposition pathways
+polyurethane = (
+    MaterialBuilder('POLYURETHANE')
+    .density(40)
+    .thermal_conductivity(0.04)
+    .specific_heat(1.5)
+    .add_reaction(
+        PyrolysisReaction(
+            reference_temperature=100,  # Moisture evaporation
+            pyrolysis_range=20,
+            heat_of_reaction=2260,      # Heat of vaporization
+            products=[PyrolysisProduct(spec_id="WATER_VAPOR", nu_spec=0.05)]
+        )
+    )
+    .add_reaction(
+        PyrolysisReaction(
+            a=1e12, e=150000,          # Primary pyrolysis
+            heat_of_reaction=800,
+            products=[
+                PyrolysisProduct(spec_id="FUEL_GAS", nu_spec=0.70),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.15),
+            ]
+        )
+    )
+    .add_reaction(
+        PyrolysisReaction(
+            a=1e8, e=120000,           # Char oxidation
+            n_o2=1.0,                  # Heterogeneous oxidation
+            heat_of_reaction=-30000,   # Exothermic
+            products=[
+                PyrolysisProduct(spec_id="CARBON_DIOXIDE", nu_spec=0.08),
+                PyrolysisProduct(matl_id="ASH", nu_matl=0.02),
+            ]
+        )
+    )
+    .build()
+)
+```
+
+#### Advanced Reaction Parameters
+
+```python
+# Reaction with custom kinetics and advanced parameters
+plywood = (
+    MaterialBuilder('PLYWOOD')
+    .density(545)
+    .thermal_conductivity(0.12)
+    .specific_heat(1.2)
+    .add_reaction(
+        a=2.5e11,
+        e=148000,
+        n_s=0.9,                    # Reaction order (slightly less than 1)
+        n_t=0.5,                    # Temperature exponent
+        gas_diffusion_depth=0.001,  # Gas diffusion length scale [m]
+        max_reaction_rate=100.0,    # Maximum reaction rate [kg/(m³·s)]
+        heat_of_reaction=420,
+        products=[
+            {"spec_id": "CELLULOSE", "nu_spec": 0.82},
+            {"matl_id": "PLYWOOD_CHAR", "nu_matl": 0.18},
+        ]
+    )
+    .build()
+)
+```
+
 ## Pyrolysis Kinetics
 
 ### Arrhenius Equation

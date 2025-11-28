@@ -94,6 +94,59 @@ class TestMaterialBuilder:
         assert mat.matl_id_products == ["", "CHAR"]  # None values replaced with empty strings
         assert mat.nu_matl == [0.0, 1.0]  # Default yields for residue materials, 0.0 for no residue
 
+    def test_structured_pyrolysis_reaction(self):
+        """Test material with structured PyrolysisReaction."""
+        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        reaction = PyrolysisReaction(
+            a=1e10,
+            e=150000,
+            heat_of_reaction=500,
+            products=[
+                PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.8),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.2),
+            ],
+        )
+
+        mat = (
+            MaterialBuilder("WOOD")
+            .density(500)
+            .thermal_conductivity(0.13)
+            .specific_heat(2.5)
+            .add_reaction(reaction)
+            .build()
+        )
+
+        assert mat.reactions == [reaction]
+        assert mat.n_reactions == 1
+        # Should not have old-style array parameters when using structured reactions
+        assert mat.a is None
+        assert mat.e is None
+
+    def test_mixed_reaction_apis_error(self):
+        """Test error when mixing structured and legacy reaction APIs."""
+        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        reaction = PyrolysisReaction(
+            a=1e10,
+            e=150000,
+            heat_of_reaction=500,
+            products=[PyrolysisProduct(spec_id="GAS", nu_spec=1.0)],
+        )
+
+        with pytest.raises(ValueError, match=r"Cannot mix structured reactions.*legacy reactions"):
+            (
+                MaterialBuilder("WOOD")
+                .density(500)
+                .thermal_conductivity(0.13)
+                .specific_heat(2.5)
+                .add_reaction(reaction)
+                .add_pyrolysis_reaction(
+                    a=5e8, e=120000, heat_of_reaction=600, product_species="GAS2"
+                )
+                .build()
+            )
+
     def test_missing_density_error(self):
         """Test error when density not specified."""
         with pytest.raises(ValueError, match="density is required"):
@@ -211,3 +264,43 @@ class TestMaterialBuilder:
         )
 
         assert mat.absorption_coefficient == 10000.0
+
+
+class TestLiquidFuelBuilder:
+    """Test liquid fuel material building."""
+
+    def test_basic_liquid_fuel(self):
+        """Test basic liquid fuel configuration."""
+        matl = (
+            MaterialBuilder("ETHANOL")
+            .density(794)
+            .thermal_conductivity(0.17)
+            .specific_heat(2.44)
+            .as_liquid_fuel(boiling_temperature=78.5, spec_id="ETHANOL")
+            .build()
+        )
+
+        assert matl.boiling_temperature == 78.5
+        assert matl.spec_id == "ETHANOL"
+
+    def test_liquid_fuel_with_all_params(self):
+        """Test liquid fuel with all optional parameters."""
+        matl = (
+            MaterialBuilder("METHANOL")
+            .thermal_conductivity(0.2)
+            .specific_heat(2.51)
+            .density(792)
+            .as_liquid_fuel(
+                boiling_temperature=64.7,
+                spec_id="METHANOL",
+                mw=32.04,
+                heat_of_vaporization=1100,
+                absorption_coefficient=140,
+            )
+            .build()
+        )
+
+        assert matl.boiling_temperature == 64.7
+        assert matl.mw == 32.04
+        assert matl.heat_of_vaporization == 1100
+        assert matl.absorption_coefficient == 140

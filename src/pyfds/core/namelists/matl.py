@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import Field, model_validator
 
 from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.pyrolysis import PyrolysisReaction
 
 
 class Material(NamelistBase):
@@ -104,7 +105,9 @@ class Material(NamelistBase):
 
     # Pyrolysis properties
     n_reactions: int = Field(1, ge=1, description="Number of reactions")
-    reference_temperature: float | None = Field(None, description="Reference temperature [°C]")
+    reference_temperature: list[float] | float | None = Field(
+        None, description="Reference temperature(s) for pyrolysis reactions [°C]"
+    )
     heat_of_reaction: list[float] | float | None = Field(
         None, description="Heat of reaction [kJ/kg]"
     )
@@ -114,6 +117,7 @@ class Material(NamelistBase):
     e: list[float] | None = Field(None, description="Activation energies [kJ/kmol]")
     n_s: list[float] | None = Field(None, description="Reaction orders")
     reference_rate: float | None = Field(None, gt=0, description="Reference reaction rate [1/s]")
+    reac_rate_delta: float | None = Field(None, description="Reaction rate delta parameter")
 
     # Product specification (multi-reaction)
     spec_id: list[list[str]] | list[str] | str | None = Field(
@@ -183,12 +187,9 @@ class Material(NamelistBase):
         None, ge=0, le=1, description="Oxygen concentration for kinetics (volume fraction)"
     )
 
-    # Delamination (Priority 1)
-    delamination_tmp: float | None = Field(
-        None, gt=0, description="Temperature for delamination (°C)"
-    )
-    delamination_density: float | None = Field(
-        None, gt=0, description="Density for delamination (kg/m³)"
+    # NEW: Structured reactions (preferred)
+    reactions: list[PyrolysisReaction] | None = Field(
+        None, description="Pyrolysis reactions (structured format, preferred over parallel arrays)"
     )
 
     @model_validator(mode="after")
@@ -245,6 +246,17 @@ class Material(NamelistBase):
                         f"{self.n_reactions} values for N_REACTIONS={self.n_reactions}"
                     )
 
+            # Validate REFERENCE_TEMPERATURE array
+            if (
+                self.reference_temperature is not None
+                and isinstance(self.reference_temperature, list)
+                and len(self.reference_temperature) != self.n_reactions
+            ):
+                raise ValueError(
+                    f"Material '{self.id}': REFERENCE_TEMPERATURE must have "
+                    f"{self.n_reactions} values for N_REACTIONS={self.n_reactions}"
+                )
+
         # Validate liquid fuel model
         if self.boiling_temperature is not None:
             # BOILING_TEMPERATURE triggers liquid pyrolysis model
@@ -277,6 +289,18 @@ class Material(NamelistBase):
         if self.reference_enthalpy is not None and self.reference_enthalpy_temperature is None:
             raise ValueError(
                 f"Material '{self.id}': REFERENCE_ENTHALPY requires REFERENCE_ENTHALPY_TEMPERATURE"
+            )
+
+        # Validate single reaction REFERENCE_TEMPERATURE list length
+        if (
+            self.n_reactions == 1
+            and self.reference_temperature is not None
+            and isinstance(self.reference_temperature, list)
+            and len(self.reference_temperature) != 1
+        ):
+            raise ValueError(
+                f"Material '{self.id}': REFERENCE_TEMPERATURE list must have length 1 "
+                f"for single reaction, got {len(self.reference_temperature)}"
             )
 
         # Validate yield sums for each reaction
@@ -326,10 +350,37 @@ class Material(NamelistBase):
                     # This would be a warning in a real implementation
                     pass
 
+        # Validate that user doesn't mix structured and array formats
+        has_structured = self.reactions is not None and len(self.reactions) > 0
+        has_arrays = any(
+            [
+                self.a is not None,
+                self.e is not None,
+                self.reference_temperature is not None,
+            ]
+        )
+
+        if has_structured and has_arrays:
+            raise ValueError(
+                f"Material '{self.id}': Cannot mix 'reactions' list with "
+                f"array parameters (a, e, reference_temperature, etc.). "
+                f"Use one format or the other."
+            )
+
+        # If using structured format, set n_reactions
+        if has_structured:
+            assert self.reactions is not None  # Guaranteed by has_structured check
+            object.__setattr__(self, "n_reactions", len(self.reactions))
+
         return self
 
     def to_fds(self) -> str:
         """Generate FDS MATL namelist."""
+        # If using structured reactions, convert to arrays for FDS output
+        if self.reactions:
+            return self._reactions_to_fds()
+
+        # ... existing to_fds logic for array format ...
         params: dict[str, Any] = {"id": self.id, "density": self.density}
 
         # Thermal conductivity
@@ -391,6 +442,9 @@ class Material(NamelistBase):
             if self.n_s and isinstance(self.n_s, list):
                 for i, val in enumerate(self.n_s, 1):
                     result_parts.append(f"N_S({i})={val}")
+            if self.reference_temperature and isinstance(self.reference_temperature, list):
+                for i, val in enumerate(self.reference_temperature, 1):
+                    result_parts.append(f"REFERENCE_TEMPERATURE({i})={val}")
 
             # Handle 2D arrays for products
             # SPEC_ID(i,j) where i=species index, j=reaction index
@@ -516,7 +570,11 @@ class Material(NamelistBase):
             return ", ".join(result_parts) + " /\n"
         # Single reaction or no reactions - use standard format
         if self.reference_temperature is not None:
-            params["reference_temperature"] = self.reference_temperature
+            if isinstance(self.reference_temperature, list):
+                # Single reaction with list (should be length 1, validated above)
+                params["reference_temperature"] = self.reference_temperature[0]
+            else:
+                params["reference_temperature"] = self.reference_temperature
         if self.heat_of_reaction:
             params["heat_of_reaction"] = self.heat_of_reaction
         if self.a:
@@ -527,6 +585,8 @@ class Material(NamelistBase):
             params["n_s"] = self.n_s
         if self.reference_rate is not None:
             params["reference_rate"] = self.reference_rate
+        if self.reac_rate_delta is not None:
+            params["reac_rate_delta"] = self.reac_rate_delta
         if self.nu_spec:
             params["nu_spec"] = self.nu_spec
         if self.nu_matl:
@@ -593,10 +653,103 @@ class Material(NamelistBase):
         if self.x_o2_pyro is not None:
             params["x_o2_pyro"] = self.x_o2_pyro
 
-        # Delamination (Priority 1)
-        if self.delamination_tmp is not None:
-            params["delamination_tmp"] = self.delamination_tmp
-        if self.delamination_density is not None:
-            params["delamination_density"] = self.delamination_density
-
         return self._build_namelist("MATL", params)
+
+    def _reactions_to_fds(self) -> str:
+        """Convert structured reactions to FDS output."""
+        assert self.reactions is not None  # Only called when reactions is not None
+        params = {"id": self.id, "density": self.density}
+
+        # Thermal properties
+        if self.conductivity is not None:
+            params["conductivity"] = self.conductivity
+        elif self.conductivity_ramp:
+            params["conductivity_ramp"] = self.conductivity_ramp
+
+        if self.specific_heat is not None:
+            params["specific_heat"] = self.specific_heat
+        elif self.specific_heat_ramp:
+            params["specific_heat_ramp"] = self.specific_heat_ramp
+
+        if self.emissivity != 0.9:
+            params["emissivity"] = self.emissivity
+        if self.absorption_coefficient != 50000.0:
+            params["absorption_coefficient"] = self.absorption_coefficient
+
+        n_reactions = len(self.reactions)
+        if n_reactions > 1:
+            params["n_reactions"] = n_reactions
+
+        # Build indexed reaction parameters
+        result_parts = [f"&MATL ID='{self.id}', DENSITY={self.density}"]
+
+        # Add thermal properties
+        for key, val in params.items():
+            if key not in ["id", "density"]:
+                if isinstance(val, str):
+                    result_parts.append(f"{key.upper()}='{val}'")
+                else:
+                    result_parts.append(f"{key.upper()}={val}")
+
+        if n_reactions > 1:
+            result_parts.append(f"N_REACTIONS={n_reactions}")
+
+        # Convert each reaction
+        for j, rxn in enumerate(self.reactions, 1):
+            idx = f"({j})" if n_reactions > 1 else ""
+
+            # Kinetic parameters
+            if rxn.a is not None:
+                result_parts.append(f"A{idx}={rxn.a}")
+            if rxn.e is not None:
+                result_parts.append(f"E{idx}={rxn.e}")
+            if rxn.reference_temperature is not None:
+                result_parts.append(f"REFERENCE_TEMPERATURE{idx}={rxn.reference_temperature}")
+            if rxn.pyrolysis_range is not None:
+                result_parts.append(f"PYROLYSIS_RANGE{idx}={rxn.pyrolysis_range}")
+
+            result_parts.append(f"HEAT_OF_REACTION{idx}={rxn.heat_of_reaction}")
+
+            if rxn.n_s != 1.0:
+                result_parts.append(f"N_S{idx}={rxn.n_s}")
+            if rxn.n_t != 0.0:
+                result_parts.append(f"N_T{idx}={rxn.n_t}")
+            if rxn.n_o2 != 0.0:
+                result_parts.append(f"N_O2{idx}={rxn.n_o2}")
+
+            # Gas products
+            gas_products = rxn.get_gas_products()
+            if gas_products:
+                for i, p in enumerate(gas_products, 1):
+                    if n_reactions > 1 or len(gas_products) > 1:
+                        result_parts.append(f"SPEC_ID({i},{j})='{p.spec_id}'")
+                        result_parts.append(f"NU_SPEC({i},{j})={p.nu_spec}")
+                    else:
+                        result_parts.append(f"SPEC_ID='{p.spec_id}'")
+                        result_parts.append(f"NU_SPEC={p.nu_spec}")
+                    if p.heat_of_combustion is not None:
+                        result_parts.append(f"HEAT_OF_COMBUSTION({i},{j})={p.heat_of_combustion}")
+
+            # Solid residue products
+            solid_products = rxn.get_solid_products()
+            if solid_products:
+                for i, p in enumerate(solid_products, 1):
+                    if n_reactions > 1 or len(solid_products) > 1:
+                        result_parts.append(f"MATL_ID({i},{j})='{p.matl_id}'")
+                        result_parts.append(f"NU_MATL({i},{j})={p.nu_matl}")
+                    else:
+                        result_parts.append(f"MATL_ID='{p.matl_id}'")
+                        result_parts.append(f"NU_MATL={p.nu_matl}")
+
+            # Particle products
+            particle_products = rxn.get_particle_products()
+            if particle_products:
+                for i, p in enumerate(particle_products, 1):
+                    if n_reactions > 1 or len(particle_products) > 1:
+                        result_parts.append(f"PART_ID({i},{j})='{p.part_id}'")
+                        result_parts.append(f"NU_PART({i},{j})={p.nu_part}")
+                    else:
+                        result_parts.append(f"PART_ID='{p.part_id}'")
+                        result_parts.append(f"NU_PART={p.nu_part}")
+
+        return ", ".join(result_parts) + " /\n"

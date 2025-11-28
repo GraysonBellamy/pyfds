@@ -646,3 +646,92 @@ class TestSurfBuilderPhase3ThermalEnhancements:
         assert "HT3D=.TRUE." in fds_output
         assert "INTERNAL_HEAT_SOURCE=500.0" in fds_output
         assert "DEFAULT=.TRUE." in fds_output
+
+
+class TestMultiLayerBuilder:
+    """Test multi-layer surface building."""
+
+    def test_simple_multi_layer(self):
+        """Test simple multi-layer wall."""
+        surf = (
+            SurfBuilder("WALL")
+            .with_multi_layer_material(
+                layers=[
+                    {"matl_id": "GYPSUM", "thickness": 0.013},
+                    {"matl_id": "INSULATION", "thickness": 0.1},
+                    {"matl_id": "GYPSUM", "thickness": 0.013},
+                ]
+            )
+            .build()
+        )
+
+        assert surf.matl_id == ["GYPSUM", "INSULATION", "GYPSUM"]
+        assert surf.thickness == [0.013, 0.1, 0.013]
+        assert surf.backing == "EXPOSED"
+
+    def test_multi_component_layer(self):
+        """Test layer with multiple material components."""
+        surf = (
+            SurfBuilder("COMPOSITE")
+            .with_multi_layer_material(
+                layers=[
+                    {
+                        "matl_id": ["CALCIUM_SILICATE", "ITE"],
+                        "thickness": 0.025,
+                        "mass_fraction": [0.68, 0.32],
+                    },
+                ]
+            )
+            .build()
+        )
+
+        assert surf.matl_id == [["CALCIUM_SILICATE", "ITE"]]
+        assert surf.matl_mass_fraction == [[0.68, 0.32]]
+
+    def test_missing_thickness_error(self):
+        """Test error when thickness is missing."""
+        with pytest.raises(ValueError, match="thickness"):
+            SurfBuilder("BAD").with_multi_layer_material(layers=[{"matl_id": "GYPSUM"}]).build()
+
+    def test_mass_fraction_mismatch_error(self):
+        """Test error when mass_fraction length mismatches."""
+        with pytest.raises(ValueError, match="mass_fraction length"):
+            SurfBuilder("BAD").with_multi_layer_material(
+                layers=[
+                    {
+                        "matl_id": ["A", "B", "C"],
+                        "thickness": 0.01,
+                        "mass_fraction": [0.5, 0.5],  # Should be 3 values
+                    }
+                ]
+            ).build()
+
+
+class TestSpyroBuilder:
+    """Test SPyro model building."""
+
+    def test_simple_spyro(self):
+        """Test basic SPyro configuration."""
+        surf = (
+            SurfBuilder("PLYWOOD")
+            .with_spyro_model(reference_heat_flux=50.0, ramp_q="PLYWOOD_HRR")
+            .build()
+        )
+
+        assert surf.reference_heat_flux == 50.0
+        assert surf.ramp_q == "PLYWOOD_HRR"
+
+    def test_multi_flux_spyro(self):
+        """Test SPyro with multiple heat flux experiments."""
+        surf = (
+            SurfBuilder("MATERIAL")
+            .with_spyro_model(
+                reference_heat_flux=[35.0, 50.0, 75.0],
+                ramp_q="MAT_HRR",
+                reference_thickness=[0.01, 0.01, 0.01],
+            )
+            .build()
+        )
+
+        assert surf.reference_heat_flux == [35.0, 50.0, 75.0]
+        assert surf.reference_thickness == [0.01, 0.01, 0.01]

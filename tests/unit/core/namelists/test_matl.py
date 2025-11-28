@@ -167,31 +167,226 @@ class TestMaterialLiquidFuel:
         assert "HEAT_OF_VAPORIZATION=1100" in fds
 
 
-class TestMaterialDelamination:
-    """Tests for delamination parameters."""
+class TestMaterialReferenceTemperature:
+    """Tests for REFERENCE_TEMPERATURE array support."""
 
-    def test_delamination_temperature(self):
-        """Test temperature-based delamination."""
+    def test_reference_temperature_single(self):
+        """Test single reference temperature (backward compatibility)."""
         mat = Material(
-            id="CLT_PANEL",
+            id="WOOD",
             density=500.0,
             conductivity=0.13,
             specific_heat=2.5,
-            delamination_tmp=200.0,
+            reference_temperature=300.0,
         )
-        assert mat.delamination_tmp == 200.0
+        assert mat.reference_temperature == 300.0
         fds = mat.to_fds()
-        assert "DELAMINATION_TMP=200" in fds
+        assert "REFERENCE_TEMPERATURE=300" in fds
 
-    def test_delamination_density(self):
-        """Test density-based delamination."""
+    def test_reference_temperature_array(self):
+        """Test multi-reaction with array of reference temperatures."""
         mat = Material(
-            id="COMPOSITE",
-            density=800.0,
-            conductivity=0.15,
-            specific_heat=1.8,
-            delamination_density=300.0,
+            id="MULTI_PYRO",
+            density=500,
+            conductivity=0.1,
+            specific_heat=1.5,
+            n_reactions=2,
+            reference_temperature=[300.0, 450.0],
+            heat_of_reaction=[500.0, 800.0],
+            nu_spec=[0.8, 0.2],
+            spec_id=["FUEL1", "FUEL2"],
         )
-        assert mat.delamination_density == 300.0
+        assert len(mat.reference_temperature) == 2
         fds = mat.to_fds()
-        assert "DELAMINATION_DENSITY=300" in fds
+        assert "REFERENCE_TEMPERATURE(1)=300" in fds
+        assert "REFERENCE_TEMPERATURE(2)=450" in fds
+
+    def test_reference_temperature_array_mismatch(self):
+        """Test error when reference_temperature array length mismatches n_reactions."""
+        with pytest.raises(ValidationError, match="must have 2 values"):
+            Material(
+                id="BAD_PYRO",
+                density=500,
+                conductivity=0.1,
+                specific_heat=1.5,
+                n_reactions=2,
+                reference_temperature=[300.0],  # Should be 2 values
+                heat_of_reaction=[500.0, 800.0],
+            )
+
+    def test_reference_temperature_single_reaction_list_error(self):
+        """Test error when single reaction has list with wrong length."""
+        with pytest.raises(ValidationError, match="must have length 1"):
+            mat = Material(
+                id="BAD",
+                density=500,
+                conductivity=0.1,
+                specific_heat=1.5,
+                reference_temperature=[300.0, 400.0],  # Should be length 1 for single reaction
+            )
+            mat.to_fds()  # Error occurs during FDS generation
+
+
+class TestMaterialDelaminationRemoved:
+    """Verify delamination parameters are not on Material."""
+
+    def test_delamination_not_on_material(self):
+        """Verify delamination parameters are not on Material."""
+        mat = Material(id="TEST", density=1000, conductivity=1.0, specific_heat=1.0)
+        assert not hasattr(mat, "delamination_tmp")
+        assert not hasattr(mat, "delamination_density")
+
+
+class TestMaterialReacRateDelta:
+    """Tests for REAC_RATE_DELTA parameter."""
+
+    def test_reac_rate_delta_field_exists(self):
+        """Test that reac_rate_delta field exists on Material."""
+        mat = Material(id="WOOD", density=500.0, conductivity=0.13, specific_heat=2.5)
+        assert hasattr(mat, "reac_rate_delta")
+        assert mat.reac_rate_delta is None
+
+    def test_reac_rate_delta_assignment(self):
+        """Test assigning reac_rate_delta value."""
+        mat = Material(
+            id="WOOD",
+            density=500.0,
+            conductivity=0.13,
+            specific_heat=2.5,
+            reac_rate_delta=0.1,
+        )
+        assert mat.reac_rate_delta == 0.1
+
+    def test_reac_rate_delta_in_fds_output(self):
+        """Test that reac_rate_delta appears in FDS output."""
+        mat = Material(
+            id="WOOD",
+            density=500.0,
+            conductivity=0.13,
+            specific_heat=2.5,
+            reac_rate_delta=0.05,
+        )
+        fds_str = mat.to_fds()
+        assert "REAC_RATE_DELTA=0.05" in fds_str
+
+    def test_reac_rate_delta_not_in_fds_when_none(self):
+        """Test that reac_rate_delta is not included when None."""
+        mat = Material(id="WOOD", density=500.0, conductivity=0.13, specific_heat=2.5)
+        fds_str = mat.to_fds()
+        assert "REAC_RATE_DELTA" not in fds_str
+
+
+class TestMaterialStructuredReactions:
+    """Tests for structured reactions support."""
+
+    def test_reactions_field_exists(self):
+        """Test that reactions field exists on Material."""
+        mat = Material(id="WOOD", density=500.0, conductivity=0.13, specific_heat=2.5)
+        assert hasattr(mat, "reactions")
+        assert mat.reactions is None
+
+    def test_structured_reactions_creation(self):
+        """Test creating Material with structured reactions."""
+        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        products = [PyrolysisProduct(spec_id="CO2", nu_spec=0.3)]
+        reaction = PyrolysisReaction(heat_of_reaction=500.0, products=products, a=1e6, e=80000.0)
+        mat = Material(
+            id="WOOD",
+            density=500.0,
+            conductivity=0.13,
+            specific_heat=2.5,
+            reactions=[reaction],
+        )
+        assert len(mat.reactions) == 1
+        assert mat.reactions[0].heat_of_reaction == 500.0
+
+    def test_structured_reactions_fds_output(self):
+        """Test FDS output for structured reactions."""
+        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        products = [
+            PyrolysisProduct(spec_id="CO2", nu_spec=0.3),
+            PyrolysisProduct(matl_id="CHAR", nu_matl=0.2),
+        ]
+        reaction = PyrolysisReaction(
+            heat_of_reaction=500.0,
+            products=products,
+            a=1e6,
+            e=80000.0,
+        )
+        mat = Material(
+            id="WOOD",
+            density=500.0,
+            conductivity=0.13,
+            specific_heat=2.5,
+            reactions=[reaction],
+        )
+        fds_str = mat.to_fds()
+        assert "&MATL ID='WOOD'" in fds_str
+        assert "HEAT_OF_REACTION=500" in fds_str
+        assert "A=1000000" in fds_str
+        assert "E=80000" in fds_str
+        assert "SPEC_ID='CO2'" in fds_str
+        assert "NU_SPEC=0.3" in fds_str
+        assert "MATL_ID='CHAR'" in fds_str
+        assert "NU_MATL=0.2" in fds_str
+
+    def test_validation_mixed_formats_not_allowed(self):
+        """Test that mixing structured and array formats raises error."""
+        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        products = [PyrolysisProduct(spec_id="CO2", nu_spec=0.3)]
+        reaction = PyrolysisReaction(heat_of_reaction=500.0, products=products, a=1e6, e=80000.0)
+
+        with pytest.raises(
+            ValidationError, match=r"Cannot mix 'reactions' list with array parameters"
+        ):
+            Material(
+                id="WOOD",
+                density=500.0,
+                conductivity=0.13,
+                specific_heat=2.5,
+                reactions=[reaction],
+                a=[1e6],  # Array format
+            )
+
+    def test_multiple_structured_reactions(self):
+        """Test multiple structured reactions."""
+        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        # First reaction: moisture evaporation
+        moisture_products = [PyrolysisProduct(spec_id="H2O", nu_spec=0.1)]
+        moisture_rxn = PyrolysisReaction(
+            heat_of_reaction=2260.0,
+            products=moisture_products,
+            reference_temperature=100.0,
+            pyrolysis_range=20.0,
+        )
+
+        # Second reaction: pyrolysis
+        pyrolysis_products = [
+            PyrolysisProduct(spec_id="CO2", nu_spec=0.3),
+            PyrolysisProduct(matl_id="CHAR", nu_matl=0.2),
+        ]
+        pyrolysis_rxn = PyrolysisReaction(
+            heat_of_reaction=500.0,
+            products=pyrolysis_products,
+            a=1e8,
+            e=100000.0,
+        )
+
+        mat = Material(
+            id="WOOD",
+            density=500.0,
+            conductivity=0.13,
+            specific_heat=2.5,
+            reactions=[moisture_rxn, pyrolysis_rxn],
+        )
+
+        fds_str = mat.to_fds()
+        assert "N_REACTIONS=2" in fds_str
+        assert "HEAT_OF_REACTION(1)=2260" in fds_str
+        assert "REFERENCE_TEMPERATURE(1)=100" in fds_str
+        assert "HEAT_OF_REACTION(2)=500" in fds_str
+        assert "A(2)=100000000" in fds_str
