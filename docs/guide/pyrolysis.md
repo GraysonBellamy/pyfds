@@ -79,13 +79,18 @@ The `MaterialBuilder` provides a fluent API for creating materials with pyrolysi
 
 ### Structured Pyrolysis API (Recommended)
 
-The structured API uses dedicated classes for better type safety and validation:
+The structured API uses dedicated classes for better type safety and validation. PyFDS supports four mutually exclusive kinetic specification methods:
+
+1. **Arrhenius kinetics**: Explicit A and E parameters
+2. **Simplified with REFERENCE_RATE**: TGA peak rate
+3. **Simplified with PYROLYSIS_RANGE**: Temperature width
+4. **Auto-derive**: FDS calculates A and E from REFERENCE_TEMPERATURE
 
 ```python
 from pyfds.builders import MaterialBuilder
 from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
 
-# Single-step pyrolysis
+# Method 1: Arrhenius kinetics (explicit A and E)
 wood = MaterialBuilder("WOOD") \
     .density(500) \
     .thermal_conductivity(0.13) \
@@ -94,7 +99,7 @@ wood = MaterialBuilder("WOOD") \
         PyrolysisReaction(
             a=1e10,                    # Pre-exponential factor [1/s]
             e=100000,                  # Activation energy [kJ/kmol]
-            heat_of_reaction=500,      # Endothermic [kJ/kg]
+            heat_of_reaction=500,      # Endothermic [kJ/kg] (optional, default 0.0)
             products=[
                 PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
                 PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
@@ -103,22 +108,23 @@ wood = MaterialBuilder("WOOD") \
     ) \
     .build()
 
-# Multi-step pyrolysis
+# Method 2: Simplified with REFERENCE_TEMPERATURE and PYROLYSIS_RANGE
 polyurethane = MaterialBuilder("POLYURETHANE") \
     .density(40) \
     .thermal_conductivity(0.04) \
     .specific_heat(1.5) \
     .add_reaction(
         PyrolysisReaction(
-            reference_temperature=100,  # Moisture evaporation
-            pyrolysis_range=20,
-            heat_of_reaction=2260,      # Heat of vaporization
+            reference_temperature=100,  # Peak reaction temperature [°C]
+            pyrolysis_range=20,         # Width of reaction [°C]
+            heat_of_reaction=2260,      # Heat of vaporization [kJ/kg]
             products=[PyrolysisProduct(spec_id="WATER_VAPOR", nu_spec=0.05)]
         )
     ) \
     .add_reaction(
         PyrolysisReaction(
-            a=1e12, e=150000,          # Primary pyrolysis
+            reference_temperature=350,  # Primary pyrolysis peak [°C]
+            pyrolysis_range=80,         # Default width
             heat_of_reaction=800,
             products=[
                 PyrolysisProduct(spec_id="FUEL_GAS", nu_spec=0.70),
@@ -127,7 +133,44 @@ polyurethane = MaterialBuilder("POLYURETHANE") \
         )
     ) \
     .build()
+
+# Method 3: Simplified with REFERENCE_TEMPERATURE and REFERENCE_RATE
+# (From TGA experiments with known mass loss rate)
+tga_material = MaterialBuilder("TGA_SAMPLE") \
+    .density(600) \
+    .thermal_conductivity(0.15) \
+    .specific_heat(2.0) \
+    .add_reaction(
+        PyrolysisReaction(
+            reference_temperature=300,  # Peak reaction temperature [°C]
+            reference_rate=0.002,       # Normalized mass loss rate [1/s]
+            heating_rate=5.0,           # TGA heating rate [K/min]
+            products=[
+                PyrolysisProduct(spec_id="GAS", nu_spec=0.8),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.2),
+            ]
+        )
+    ) \
+    .build()
+
+# Method 4: Auto-derive (FDS calculates A and E)
+simple = MaterialBuilder("SIMPLE") \
+    .density(500) \
+    .thermal_conductivity(0.13) \
+    .specific_heat(2.5) \
+    .add_reaction(
+        PyrolysisReaction(
+            reference_temperature=320,  # Only specify peak temperature
+            products=[PyrolysisProduct(spec_id="FUEL", nu_spec=1.0)]
+        )
+    ) \
+    .build()
 ```
+
+!!! warning "Mutual Exclusivity"
+    - Do not specify both Arrhenius (A, E) and simplified (REFERENCE_TEMPERATURE)
+    - Do not specify both REFERENCE_RATE and PYROLYSIS_RANGE
+    - REFERENCE_RATE and PYROLYSIS_RANGE require REFERENCE_TEMPERATURE
 
 ### Legacy Array-Based API
 
@@ -174,43 +217,89 @@ wood = Material(
 
 ### Kinetic Parameter Estimation
 
-For TGA-derived parameters:
+PyFDS supports multiple ways to specify reaction kinetics based on available data:
+
+#### From TGA Data (Recommended)
+
+When you have thermogravimetric analysis (TGA) data:
 
 ```python
-material = Material(
-    id="SAMPLE",
-    density=600.0,
-    conductivity=0.18,
-    specific_heat=2.3,
-    # TGA parameters
-    pyrolysis_range=50.0,      # Width of mass loss curve (°C)
-    heating_rate=10.0,         # TGA heating rate (K/min)
-    reference_temperature=300.0,  # Reference temperature (°C)
-    # ... other parameters
+from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+
+# Option 1: With known peak mass loss rate
+reaction_with_rate = PyrolysisReaction(
+    reference_temperature=300.0,   # Peak reaction temperature [°C]
+    reference_rate=0.002,          # Normalized mass loss rate [1/s]
+    heating_rate=10.0,             # TGA heating rate [K/min]
+    heat_of_reaction=1800,
+    products=[PyrolysisProduct(spec_id="GAS", nu_spec=0.8)]
+)
+
+# Option 2: With estimated temperature range
+reaction_with_range = PyrolysisReaction(
+    reference_temperature=300.0,   # Peak reaction temperature [°C]
+    pyrolysis_range=50.0,          # Width of mass loss curve [°C]
+    heating_rate=10.0,             # TGA heating rate [K/min]
+    heat_of_reaction=1800,
+    products=[PyrolysisProduct(spec_id="GAS", nu_spec=0.8)]
+)
+
+# Option 3: Let FDS auto-derive (when only temperature is known)
+reaction_auto = PyrolysisReaction(
+    reference_temperature=300.0,   # Peak reaction temperature [°C]
+    heat_of_reaction=1800,         # Optional, defaults to 0.0
+    products=[PyrolysisProduct(spec_id="GAS", nu_spec=0.8)]
 )
 ```
+
+!!! note "Parameter Selection"
+    - Use `REFERENCE_RATE` when you have measured TGA mass loss rates
+    - Use `PYROLYSIS_RANGE` when you can estimate the temperature width
+    - Use auto-derive when only the peak temperature is known
+    - Never specify both `REFERENCE_RATE` and `PYROLYSIS_RANGE`
 
 ### Advanced Reaction Kinetics
 
+For complex materials requiring advanced reaction order parameters and rate limits:
+
 ```python
-advanced_material = Material(
-    id="ADVANCED",
-    density=1000.0,
-    conductivity=0.5,
-    specific_heat=1.5,
-    n_reactions=1,
-    a=[1e8],
-    e=[80000],
-    heat_of_reaction=[1500],
-    # Advanced kinetics
-    n_t=[1.5],                 # Temperature exponent
-    n_o2=[0.5],                # Oxygen order
-    gas_diffusion_depth=[1e-4], # Gas diffusion length (m)
-    max_reaction_rate=[0.01],   # Maximum rate (kg/m³/s)
-    # Environmental effects
-    x_o2_pyro=0.1,             # Oxygen concentration for kinetics
+from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+
+# Structured API with advanced parameters
+advanced_reaction = PyrolysisReaction(
+    a=1e8,
+    e=80000,
+    heat_of_reaction=1500,
+    # Reaction order parameters
+    n_s=1.0,                    # Reaction order (default 1.0)
+    n_t=1.5,                    # Temperature exponent
+    n_o2=0.5,                   # Oxygen reaction order
+    # Advanced control
+    gas_diffusion_depth=1e-4,   # Gas diffusion length scale [m]
+    max_reaction_rate=0.01,     # Maximum rate limit [kg/m³/s]
+    products=[
+        PyrolysisProduct(spec_id="FUEL", nu_spec=0.85),
+        PyrolysisProduct(matl_id="CHAR", nu_matl=0.15)
+    ]
 )
+
+# Using with MaterialBuilder
+from pyfds.builders import MaterialBuilder
+
+advanced_material = MaterialBuilder("ADVANCED") \
+    .density(1000) \
+    .thermal_conductivity(0.5) \
+    .specific_heat(1.5) \
+    .add_reaction(advanced_reaction) \
+    .build()
 ```
+
+!!! tip "Advanced Parameters"
+    - `n_s`: Reaction order with respect to solid mass fraction
+    - `n_t`: Temperature exponent in rate expression
+    - `n_o2`: Oxygen concentration dependence (for oxidation reactions)
+    - `gas_diffusion_depth`: Controls in-depth gas diffusion
+    - `max_reaction_rate`: Limits maximum reaction rate for stability
 
 ## Material Behavior Control
 

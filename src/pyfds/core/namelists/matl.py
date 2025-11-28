@@ -705,17 +705,29 @@ class Material(NamelistBase):
                 result_parts.append(f"E{idx}={rxn.e}")
             if rxn.reference_temperature is not None:
                 result_parts.append(f"REFERENCE_TEMPERATURE{idx}={rxn.reference_temperature}")
+            if rxn.reference_rate is not None:
+                result_parts.append(f"REFERENCE_RATE{idx}={rxn.reference_rate}")
             if rxn.pyrolysis_range is not None:
                 result_parts.append(f"PYROLYSIS_RANGE{idx}={rxn.pyrolysis_range}")
+            if rxn.heating_rate != 5.0:  # Only write if not default
+                result_parts.append(f"HEATING_RATE{idx}={rxn.heating_rate}")
 
+            # Heat of reaction (write even if 0.0 for clarity)
             result_parts.append(f"HEAT_OF_REACTION{idx}={rxn.heat_of_reaction}")
 
+            # Reaction order parameters
             if rxn.n_s != 1.0:
                 result_parts.append(f"N_S{idx}={rxn.n_s}")
             if rxn.n_t != 0.0:
                 result_parts.append(f"N_T{idx}={rxn.n_t}")
             if rxn.n_o2 != 0.0:
                 result_parts.append(f"N_O2{idx}={rxn.n_o2}")
+
+            # Advanced parameters
+            if rxn.gas_diffusion_depth is not None:
+                result_parts.append(f"GAS_DIFFUSION_DEPTH{idx}={rxn.gas_diffusion_depth}")
+            if rxn.max_reaction_rate is not None:
+                result_parts.append(f"MAX_REACTION_RATE{idx}={rxn.max_reaction_rate}")
 
             # Gas products
             gas_products = rxn.get_gas_products()

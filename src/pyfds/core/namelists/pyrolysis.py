@@ -52,20 +52,29 @@ class PyrolysisReaction(BaseModel):
     Represents one decomposition reaction for a material. A material
     can have multiple reactions (e.g., moisture evaporation,
     primary pyrolysis, char oxidation).
+
+    Kinetic Specification Methods (mutually exclusive):
+    1. Arrhenius: Specify both A and E
+    2. Simplified with rate: Specify REFERENCE_TEMPERATURE and REFERENCE_RATE
+    3. Simplified with range: Specify REFERENCE_TEMPERATURE and PYROLYSIS_RANGE
+    4. Auto-derive: Specify only REFERENCE_TEMPERATURE (FDS derives A and E)
     """
 
-    # Reaction enthalpy (required)
-    heat_of_reaction: float = Field(..., description="Heat of reaction [kJ/kg]")
+    # Reaction enthalpy (optional, default 0.0)
+    heat_of_reaction: float = Field(0.0, description="Heat of reaction [kJ/kg]")
 
     # Products (required)
     products: list[PyrolysisProduct] = Field(..., min_length=1, description="Reaction products")
 
-    # Arrhenius kinetics
+    # Arrhenius kinetics (Method 1)
     a: float | None = Field(None, gt=0, description="Pre-exponential factor [1/s]")
     e: float | None = Field(None, gt=0, description="Activation energy [kJ/kmol]")
 
-    # Simplified kinetics (alternative to A, E)
+    # Simplified kinetics (Methods 2-4, alternative to A, E)
     reference_temperature: float | None = Field(None, description="Peak reaction temperature [°C]")
+    reference_rate: float | None = Field(
+        None, gt=0, description="Normalized mass loss rate at reference temperature [1/s]"
+    )
     pyrolysis_range: float | None = Field(
         None, gt=0, description="Temperature width of reaction [°C]"
     )
@@ -86,18 +95,41 @@ class PyrolysisReaction(BaseModel):
 
     @model_validator(mode="after")
     def validate_kinetics(self) -> "PyrolysisReaction":
-        """Validate kinetic parameter combinations."""
+        """
+        Validate kinetic parameter combinations.
+
+        FDS User Guide states:
+        - Do not specify A and E if you specify REFERENCE_TEMPERATURE
+        - Do not specify PYROLYSIS_RANGE if you specify REFERENCE_RATE
+        """
         has_arrhenius = self.a is not None or self.e is not None
         has_simplified = self.reference_temperature is not None
+        has_reference_rate = self.reference_rate is not None
+        has_pyrolysis_range = self.pyrolysis_range is not None
 
+        # Cannot mix Arrhenius and simplified kinetics
         if has_arrhenius and has_simplified:
             raise ValueError(
                 "Cannot specify both Arrhenius (A, E) and simplified "
                 "(REFERENCE_TEMPERATURE) kinetics"
             )
 
+        # If using Arrhenius, both A and E required
         if has_arrhenius and (self.a is None or self.e is None):
             raise ValueError("Arrhenius kinetics requires both A and E")
+
+        # Cannot specify both REFERENCE_RATE and PYROLYSIS_RANGE
+        if has_reference_rate and has_pyrolysis_range:
+            raise ValueError(
+                "Cannot specify both REFERENCE_RATE and PYROLYSIS_RANGE. "
+                "Use REFERENCE_RATE for known rates, or PYROLYSIS_RANGE to estimate from temperature range."
+            )
+
+        # REFERENCE_RATE and PYROLYSIS_RANGE only valid with REFERENCE_TEMPERATURE
+        if (has_reference_rate or has_pyrolysis_range) and not has_simplified:
+            raise ValueError(
+                "REFERENCE_RATE and PYROLYSIS_RANGE require REFERENCE_TEMPERATURE to be specified"
+            )
 
         # Validate total yield
         total_yield = sum(

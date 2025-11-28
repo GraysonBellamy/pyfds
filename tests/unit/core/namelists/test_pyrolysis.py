@@ -89,12 +89,19 @@ class TestPyrolysisReaction:
         assert reaction.a == 1e6
         assert reaction.e == 80000.0
         assert reaction.reference_temperature is None
+        assert reaction.reference_rate is None
         assert reaction.n_s == 1.0
         assert reaction.n_t == 0.0
         assert reaction.n_o2 == 0.0
 
-    def test_simplified_kinetics_creation(self):
-        """Test reaction creation with simplified kinetics."""
+    def test_default_heat_of_reaction(self):
+        """Test that heat_of_reaction defaults to 0.0."""
+        products = [PyrolysisProduct(spec_id="CO2", nu_spec=0.3)]
+        reaction = PyrolysisReaction(products=products, a=1e6, e=80000.0)
+        assert reaction.heat_of_reaction == 0.0
+
+    def test_simplified_kinetics_with_range(self):
+        """Test reaction creation with simplified kinetics using PYROLYSIS_RANGE."""
         products = [PyrolysisProduct(spec_id="H2O", nu_spec=0.1)]
         reaction = PyrolysisReaction(
             heat_of_reaction=2260.0,
@@ -104,6 +111,37 @@ class TestPyrolysisReaction:
         )
         assert reaction.reference_temperature == 100.0
         assert reaction.pyrolysis_range == 50.0
+        assert reaction.reference_rate is None
+        assert reaction.a is None
+        assert reaction.e is None
+
+    def test_simplified_kinetics_with_rate(self):
+        """Test reaction creation with simplified kinetics using REFERENCE_RATE."""
+        products = [PyrolysisProduct(spec_id="FUEL", nu_spec=0.8)]
+        reaction = PyrolysisReaction(
+            heat_of_reaction=1800.0,
+            products=products,
+            reference_temperature=300.0,
+            reference_rate=0.002,
+            heating_rate=5.0,
+        )
+        assert reaction.reference_temperature == 300.0
+        assert reaction.reference_rate == 0.002
+        assert reaction.pyrolysis_range is None
+        assert reaction.heating_rate == 5.0
+        assert reaction.a is None
+        assert reaction.e is None
+
+    def test_simplified_kinetics_temperature_only(self):
+        """Test reaction with only REFERENCE_TEMPERATURE (FDS auto-derives A and E)."""
+        products = [PyrolysisProduct(spec_id="FUEL", nu_spec=1.0)]
+        reaction = PyrolysisReaction(
+            products=products,
+            reference_temperature=350.0,
+        )
+        assert reaction.reference_temperature == 350.0
+        assert reaction.reference_rate is None
+        assert reaction.pyrolysis_range is None
         assert reaction.a is None
         assert reaction.e is None
 
@@ -132,6 +170,43 @@ class TestPyrolysisReaction:
                 a=1e6,
                 e=80000.0,
                 reference_temperature=100.0,
+            )
+
+    def test_validation_reference_rate_and_pyrolysis_range(self):
+        """Test validation fails when both REFERENCE_RATE and PYROLYSIS_RANGE specified."""
+        products = [PyrolysisProduct(spec_id="CO2", nu_spec=0.3)]
+        with pytest.raises(
+            ValidationError, match="Cannot specify both REFERENCE_RATE and PYROLYSIS_RANGE"
+        ):
+            PyrolysisReaction(
+                products=products,
+                reference_temperature=300.0,
+                reference_rate=0.002,
+                pyrolysis_range=80.0,
+            )
+
+    def test_validation_reference_rate_without_temperature(self):
+        """Test validation fails when REFERENCE_RATE specified without REFERENCE_TEMPERATURE."""
+        products = [PyrolysisProduct(spec_id="CO2", nu_spec=0.3)]
+        with pytest.raises(
+            ValidationError,
+            match="REFERENCE_RATE and PYROLYSIS_RANGE require REFERENCE_TEMPERATURE",
+        ):
+            PyrolysisReaction(
+                products=products,
+                reference_rate=0.002,
+            )
+
+    def test_validation_pyrolysis_range_without_temperature(self):
+        """Test validation fails when PYROLYSIS_RANGE specified without REFERENCE_TEMPERATURE."""
+        products = [PyrolysisProduct(spec_id="CO2", nu_spec=0.3)]
+        with pytest.raises(
+            ValidationError,
+            match="REFERENCE_RATE and PYROLYSIS_RANGE require REFERENCE_TEMPERATURE",
+        ):
+            PyrolysisReaction(
+                products=products,
+                pyrolysis_range=80.0,
             )
 
     def test_validation_total_yield_exceeds_one(self):

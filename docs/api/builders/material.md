@@ -204,7 +204,7 @@ The `MaterialBuilder` provides a cleaner, more maintainable API for defining pyr
 ```python
 from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
 
-# Simple pyrolysis with structured API
+# Method 1: Arrhenius kinetics (explicit A and E)
 wood = (
     MaterialBuilder('WOOD')
     .density(500)
@@ -214,7 +214,48 @@ wood = (
         PyrolysisReaction(
             a=1e10,                    # Pre-exponential factor [1/s]
             e=100000,                  # Activation energy [kJ/kmol]
-            heat_of_reaction=500,      # Endothermic [kJ/kg]
+            heat_of_reaction=500,      # Optional, defaults to 0.0 [kJ/kg]
+            products=[
+                PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
+            ]
+        )
+    )
+    .build()
+)
+
+# Method 2: Simplified with REFERENCE_TEMPERATURE and PYROLYSIS_RANGE
+wood_simple = (
+    MaterialBuilder('WOOD_SIMPLE')
+    .density(500)
+    .thermal_conductivity(0.13)
+    .specific_heat(2.5)
+    .add_reaction(
+        PyrolysisReaction(
+            reference_temperature=300,  # Peak reaction temperature [°C]
+            pyrolysis_range=80,         # Temperature width [°C]
+            heat_of_reaction=500,
+            products=[
+                PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
+                PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
+            ]
+        )
+    )
+    .build()
+)
+
+# Method 3: From TGA with known mass loss rate
+tga_wood = (
+    MaterialBuilder('TGA_WOOD')
+    .density(500)
+    .thermal_conductivity(0.13)
+    .specific_heat(2.5)
+    .add_reaction(
+        PyrolysisReaction(
+            reference_temperature=300,  # Peak temperature [°C]
+            reference_rate=0.002,       # Normalized mass loss rate [1/s]
+            heating_rate=5.0,           # TGA heating rate [K/min]
+            heat_of_reaction=500,
             products=[
                 PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
                 PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
@@ -311,13 +352,36 @@ where:
 
 ### Parameters
 
-When adding pyrolysis reactions:
+When adding pyrolysis reactions with `PyrolysisReaction`:
 
-- **`a`**: Pre-exponential factor (1/s) - typically 10⁸ to 10¹² for polymers
-- **`e`**: Activation energy (J/mol) - typically 80,000 to 200,000 for polymers
-- **`heat_of_reaction`**: Heat absorbed (+) or released (-) during reaction (kJ/kg)
-- **`product_species`**: Gas species produced (links to `&SPEC`)
-- **`residue_material`**: Solid residue produced (links to another `&MATL`)
+#### Kinetic Parameters (Mutually Exclusive)
+
+**Method 1: Arrhenius Kinetics**
+- **`a`**: Pre-exponential factor [1/s] - typically 10⁸ to 10¹² for polymers
+- **`e`**: Activation energy [kJ/kmol] - typically 80,000 to 200,000 for polymers
+
+**Method 2: Simplified with Reference Rate**
+- **`reference_temperature`**: Peak reaction temperature [°C]
+- **`reference_rate`**: Normalized mass loss rate at peak [1/s]
+- **`heating_rate`**: TGA heating rate [K/min] (default: 5.0)
+
+**Method 3: Simplified with Temperature Range**
+- **`reference_temperature`**: Peak reaction temperature [°C]
+- **`pyrolysis_range`**: Temperature width of reaction [°C] (default: 80.0)
+- **`heating_rate`**: TGA heating rate [K/min] (default: 5.0)
+
+**Method 4: Auto-Derive**
+- **`reference_temperature`**: Peak reaction temperature [°C] only
+
+#### Other Parameters
+
+- **`heat_of_reaction`**: Heat absorbed (+) or released (-) [kJ/kg] (optional, default: 0.0)
+- **`n_s`**: Reaction order (default: 1.0)
+- **`n_t`**: Temperature exponent (default: 0.0)
+- **`n_o2`**: Oxygen reaction order (default: 0.0)
+- **`gas_diffusion_depth`**: Gas diffusion length scale [m] (optional)
+- **`max_reaction_rate`**: Maximum reaction rate limit [kg/(m³·s)] (optional)
+- **`products`**: List of `PyrolysisProduct` objects
 
 ### Typical Values
 
