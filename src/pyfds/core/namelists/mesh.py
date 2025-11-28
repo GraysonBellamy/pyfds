@@ -26,6 +26,16 @@ class Mesh(NamelistBase):
         Mesh identifier for multi-mesh simulations
     mpi_process : int, optional
         MPI process number for this mesh
+    cfl_max : float, optional
+        Maximum CFL number
+    cfl_min : float, optional
+        Minimum CFL number
+    vn_max : float, optional
+        Maximum Von Neumann number
+    check_vn : bool, optional
+        Enable Von Neumann check
+    restrict_time_step : bool, optional
+        Restrict time step
 
     Examples
     --------
@@ -52,14 +62,16 @@ class Mesh(NamelistBase):
 
     # Performance Parameters (Stage 1.4)
     maximum_internal_iterations: int = Field(10, ge=1, description="Max pressure iterations")
-    check_vn: bool = Field(True, description="Check Von Neumann number")
-    restrict_time_step: bool = Field(True, description="Restrict time step for stability")
-    vn_max: float = Field(1.0, gt=0, description="Maximum Von Neumann number")
-    cfl_max: float = Field(1.0, gt=0, description="Maximum CFL number")
-    cfl_min: float = Field(0.8, gt=0, description="Minimum CFL number")
 
     # Cylindrical Coordinates (Stage 1.4)
     cylindrical: bool = Field(False, description="Use cylindrical coordinates")
+
+    # Stability Controls (MISC parameters, but can be set on MESH for convenience)
+    cfl_max: float | None = Field(None, gt=0.1, le=10, description="Maximum CFL number")
+    cfl_min: float | None = Field(None, gt=0, description="Minimum CFL number")
+    vn_max: float | None = Field(None, gt=0, description="Maximum Von Neumann number")
+    check_vn: bool | None = Field(None, description="Enable Von Neumann check")
+    restrict_time_step: bool | None = Field(None, description="Restrict time step")
 
     @field_validator("ijk", mode="before")
     @classmethod
@@ -100,16 +112,6 @@ class Mesh(NamelistBase):
         # Performance Parameters (only output if not default)
         if self.maximum_internal_iterations != 10:
             params["maximum_internal_iterations"] = self.maximum_internal_iterations
-        if not self.check_vn:
-            params["check_vn"] = self.check_vn
-        if not self.restrict_time_step:
-            params["restrict_time_step"] = self.restrict_time_step
-        if self.vn_max != 1.0:
-            params["vn_max"] = self.vn_max
-        if self.cfl_max != 1.0:
-            params["cfl_max"] = self.cfl_max
-        if self.cfl_min != 0.8:
-            params["cfl_min"] = self.cfl_min
 
         # Cylindrical Coordinates
         if self.cylindrical:

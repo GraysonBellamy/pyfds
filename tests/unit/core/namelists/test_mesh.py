@@ -52,3 +52,24 @@ class TestMesh:
         assert dx == pytest.approx(1.0)
         assert dy == pytest.approx(0.5)
         assert dz == pytest.approx(1.0)
+
+    def test_no_vn_cfl_parameters(self):
+        """Test that MESH has VN/CFL parameters as None by default."""
+        mesh = Mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        # These attributes exist but are None by default
+        assert hasattr(mesh, "vn_max")
+        assert hasattr(mesh, "cfl_max")
+        assert mesh.vn_max is None
+        assert mesh.cfl_max is None
+
+    def test_no_vn_cfl_in_output(self):
+        """Test that MESH output does not contain VN or CFL parameters."""
+        mesh = Mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        fds_str = mesh.to_fds()
+        # VN and CFL parameters should not appear in MESH output
+        assert "VN_MAX" not in fds_str
+        assert "VN_MIN" not in fds_str
+        assert "CFL_MAX" not in fds_str
+        assert "CFL_MIN" not in fds_str
+        # But the MESH should still be valid
+        assert "&MESH" in fds_str

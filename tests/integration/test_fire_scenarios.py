@@ -154,8 +154,8 @@ class TestMultiMeshParallelSimulation:
         assert mesh.maximum_internal_iterations == 20
 
         fds_output = mesh.to_fds()
-        assert "0.9" in fds_output
-        assert "20" in fds_output
+        assert "20" in fds_output  # max_iterations
+        # Stability parameters are not output in MESH (they belong in MISC)
 
 
 class TestStatisticalTemperatureMonitoring:

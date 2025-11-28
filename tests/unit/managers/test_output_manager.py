@@ -10,6 +10,7 @@ from pyfds.core.managers import (
     OutputManager,
     PhysicsManager,
     RampManager,
+    SpeciesManager,
 )
 from pyfds.core.namelists import Head, Time
 from pyfds.core.simulation import Simulation
@@ -23,18 +24,20 @@ class TestOutputManager:
         geom = GeometryManager()
         mat = MaterialManager()
         phys = PhysicsManager()
+        species = SpeciesManager()
         inst = InstrumentationManager()
         ctrl = ControlManager()
         ramps = RampManager()
         head = Head(chid="test")
         time = Time(t_end=100.0)
 
-        mgr = OutputManager(geom, mat, phys, inst, ctrl, ramps, head, time)
+        mgr = OutputManager(geom, mat, phys, species, inst, ctrl, ramps, head, time)
 
         # Verify manager references are stored correctly
         assert mgr.geometry is geom
         assert mgr.material_mgr is mat
         assert mgr.physics is phys
+        assert mgr.species_mgr is species
         assert mgr.instrumentation is inst
         assert mgr.controls is ctrl
         assert mgr.ramps is ramps
@@ -214,6 +217,7 @@ class TestOutputManager:
             sim.geometry,
             sim.material_mgr,
             sim.physics,
+            sim.species_mgr,
             sim.instrumentation,
             sim.controls,
             sim.ramps,

@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from .material import MaterialManager
     from .physics import PhysicsManager
     from .ramp import RampManager
+    from .species import SpeciesManager
 
 logger = get_logger(__name__)
 
@@ -35,6 +36,7 @@ class OutputManager(BaseManager):
         geometry: GeometryManager,
         material_mgr: MaterialManager,
         physics: PhysicsManager,
+        species_mgr: SpeciesManager,
         instrumentation: InstrumentationManager,
         controls: ControlManager,
         ramps: RampManager,
@@ -46,6 +48,7 @@ class OutputManager(BaseManager):
         self.geometry = geometry
         self.material_mgr = material_mgr
         self.physics = physics
+        self.species_mgr = species_mgr
         self.instrumentation = instrumentation
         self.controls = controls
         self.ramps = ramps
@@ -93,11 +96,22 @@ class OutputManager(BaseManager):
             for ramp in self.ramps.ramps:
                 lines.append(ramp.to_fds())
 
+        # SPEC namelists (after RAMP, before REAC)
+        if self.species_mgr.species:
+            lines.append("! --- Species ---")
+            for spec in self.species_mgr.species:
+                lines.append(spec.to_fds())
+
         # REAC namelist
         if self.physics.reactions:
             lines.append("! --- Reactions ---")
             for reaction in self.physics.reactions:
                 lines.append(reaction.to_fds())
+
+        # COMB namelist (after REAC)
+        if self.species_mgr.combustion:
+            lines.append("! --- Combustion Parameters ---")
+            lines.append(self.species_mgr.combustion.to_fds())
 
         # MATL namelists
         if self.material_mgr.materials:

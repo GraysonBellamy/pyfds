@@ -418,6 +418,7 @@ class BasicValidationStrategy:
         warnings.extend(simulation.instrumentation.validate())
         warnings.extend(simulation.controls.validate())
         warnings.extend(simulation.ramps.validate())
+        warnings.extend(simulation.species_mgr.validate())
 
         # Cross-manager validation: Check surface ID references
         referenced_surf_ids = set()

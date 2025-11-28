@@ -56,6 +56,10 @@ class Misc(NamelistBase):
         Maximum CFL number, default: 1.0
     cfl_min : float, optional
         Minimum CFL number, default: 0.8
+    vn_max : float, optional
+        Maximum Von Neumann number, default: 1.0
+    vn_min : float, optional
+        Minimum Von Neumann number, default: 0.8
 
     Solver Options
     -------------
@@ -121,6 +125,8 @@ class Misc(NamelistBase):
     # Numerical parameters
     cfl_max: float = Field(1.0, gt=0.1, le=10, description="Maximum CFL number")
     cfl_min: float = Field(0.8, gt=0.1, le=10, description="Minimum CFL number")
+    vn_max: float = Field(1.0, gt=0.1, le=10, description="Maximum Von Neumann number")
+    vn_min: float = Field(0.8, gt=0.1, le=10, description="Minimum Von Neumann number")
 
     # Solver options
     solid_phase_only: bool = Field(False, description="Solid phase only")
@@ -147,6 +153,12 @@ class Misc(NamelistBase):
         if self.cfl_min > self.cfl_max:
             raise ValueError(
                 f"CFL_MIN ({self.cfl_min}) must be less than or equal to CFL_MAX ({self.cfl_max})"
+            )
+
+        # VN validation
+        if self.vn_min > self.vn_max:
+            raise ValueError(
+                f"VN_MIN ({self.vn_min}) must be less than or equal to VN_MAX ({self.vn_max})"
             )
 
         # Mode conflicts
@@ -188,6 +200,12 @@ class Misc(NamelistBase):
             params["cfl_max"] = self.cfl_max
         if self.cfl_min != 0.8:
             params["cfl_min"] = self.cfl_min
+
+        # VN parameters
+        if self.vn_max != 1.0:
+            params["vn_max"] = self.vn_max
+        if self.vn_min != 0.8:
+            params["vn_min"] = self.vn_min
 
         # Solver options
         if self.solid_phase_only:

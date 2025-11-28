@@ -17,10 +17,12 @@ from pyfds.core.managers import (
     OutputManager,
     PhysicsManager,
     RampManager,
+    SpeciesManager,
 )
 
 from ..utils import get_logger, validate_chid
 from .namelists import (
+    Combustion,
     ControlFunction,
     Ctrl,
     Device,
@@ -35,6 +37,7 @@ from .namelists import (
     Prop,
     Ramp,
     Reaction,
+    Species,
     Surface,
     Time,
     Vent,
@@ -84,6 +87,8 @@ class Simulation:
         Manager for materials, surfaces, and ramps
     physics : PhysicsManager
         Manager for reactions and misc parameters
+    species_mgr : SpeciesManager
+        Manager for species definitions and combustion parameters
     instrumentation : InstrumentationManager
         Manager for devices and props
     controls : ControlManager
@@ -112,6 +117,7 @@ class Simulation:
         self._geometry = GeometryManager()
         self._material_mgr = MaterialManager()
         self._physics = PhysicsManager()
+        self._species_mgr = SpeciesManager()
         self._instrumentation = InstrumentationManager()
         self._controls = ControlManager()
         self._ramps = RampManager()
@@ -130,6 +136,11 @@ class Simulation:
     def physics(self) -> PhysicsManager:
         """Get the physics manager."""
         return self._physics
+
+    @property
+    def species_mgr(self) -> SpeciesManager:
+        """Get the species manager."""
+        return self._species_mgr
 
     @property
     def instrumentation(self) -> InstrumentationManager:
@@ -681,6 +692,130 @@ class Simulation:
         self._physics.add_reaction(reaction)
         return self
 
+    def species(
+        self,
+        id: str,
+        formula: str | None = None,
+        mw: float | None = None,
+        background: bool = False,
+        lumped_component_only: bool = False,
+        **kwargs: Any,
+    ) -> "Simulation":
+        """
+        Add a species definition to the simulation.
+
+        This is the primary API for creating species. For advanced use cases,
+        use add_species() with a pre-constructed Species object.
+
+        Parameters
+        ----------
+        id : str
+            Unique species identifier
+        formula : str, optional
+            Chemical formula (e.g., 'C2H6O2')
+        mw : float, optional
+            Molecular weight [g/mol]
+        background : bool, optional
+            Use as background species, default: False
+        lumped_component_only : bool, optional
+            Treat as lumped component only, default: False
+        **kwargs
+            Additional Species parameters
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Simple species
+        >>> sim.species(id='PROPANE', formula='C3H8', mw=44.0)
+
+        >>> # Background species (air)
+        >>> sim.species(id='AIR', background=True)
+
+        See Also
+        --------
+        add_species : Advanced API for pre-constructed Species objects
+        """
+        species_obj = Species(
+            id=id,
+            formula=formula,
+            mw=mw,
+            background=background,
+            lumped_component_only=lumped_component_only,
+            **kwargs,
+        )
+        self._species_mgr.add_species(species_obj)
+        return self
+
+    def add_species(self, species: Species) -> "Simulation":
+        """
+        Add a Species object to the simulation (advanced API).
+
+        For most use cases, prefer the species() builder method.
+
+        Parameters
+        ----------
+        species : Species
+            Species object to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> spec = Species(id='PROPANE', formula='C3H8', mw=44.0)
+        >>> sim.add_species(spec)
+
+        See Also
+        --------
+        species : Primary API for creating species
+        """
+        self._species_mgr.add_species(species)
+        return self
+
+    def combustion(self, **kwargs: Any) -> "Simulation":
+        """
+        Set combustion parameters for the simulation.
+
+        This is the primary API for setting combustion parameters. For advanced use cases,
+        use set_combustion() with a pre-constructed Combustion object.
+
+        Parameters
+        ----------
+        **kwargs
+            Combustion parameters (extinction_model, suppression, etc.)
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Enable extinction model 2
+        >>> sim.combustion(extinction_model='EXTINCTION 2')
+
+        >>> # Premixed combustion
+        >>> sim.combustion(initial_unmixed_fraction=0.0)
+
+        >>> # Finite-rate chemistry settings
+        >>> sim.combustion(
+        ...     finite_rate_min_temp=100.0,
+        ...     zz_min_global=1e-8
+        ... )
+
+        See Also
+        --------
+        set_combustion : Advanced API for pre-constructed Combustion objects
+        """
+        self._species_mgr.set_combustion(**kwargs)
+        return self
+
     def material(
         self,
         id: str,
@@ -1109,6 +1244,46 @@ class Simulation:
         self._physics.set_misc(misc, **kwargs)
         return self
 
+    def set_combustion(self, combustion: Combustion | None = None, **kwargs: Any) -> "Simulation":
+        """
+        Set COMB parameters for the simulation.
+
+        Can be called with a Combustion object or with keyword arguments to create one.
+
+        Parameters
+        ----------
+        combustion : Combustion, optional
+            Combustion object to set (if None, kwargs are used to create one)
+        **kwargs
+            Keyword arguments to pass to Combustion constructor
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Enable extinction model 2
+        >>> sim.set_combustion(extinction_model='EXTINCTION 2')
+
+        >>> # Premixed combustion
+        >>> sim.set_combustion(initial_unmixed_fraction=0.0)
+
+        >>> # Finite-rate chemistry settings
+        >>> sim.set_combustion(
+        ...     finite_rate_min_temp=100.0,
+        ...     zz_min_global=1e-8
+        ... )
+
+        Notes
+        -----
+        Only one COMB namelist is allowed per simulation. Calling this method
+        multiple times will overwrite the previous settings.
+        """
+        self._species_mgr.set_combustion(combustion, **kwargs)
+        return self
+
     def add_vent(self, vent: Vent) -> "Simulation":
         """
         Add a Vent object to the simulation (advanced API).
@@ -1450,6 +1625,7 @@ class Simulation:
             self._geometry,
             self._material_mgr,
             self._physics,
+            self._species_mgr,
             self._instrumentation,
             self._controls,
             self._ramps,
@@ -1499,6 +1675,7 @@ class Simulation:
             self._geometry,
             self._material_mgr,
             self._physics,
+            self._species_mgr,
             self._instrumentation,
             self._controls,
             self._ramps,

@@ -15,7 +15,7 @@ from pathlib import Path
 
 from pyfds.builders import DevcBuilder, MeshBuilder, ReactionBuilder, SurfBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
-from pyfds.core.namelists import Ramp, Time
+from pyfds.core.namelists import Ramp
 from pyfds.core.simulation import Simulation
 
 
@@ -33,7 +33,7 @@ def create_fire_with_sprinkler():
     sim = Simulation(
         chid="fire_with_sprinkler", title="Fire with Sprinkler Activation - PyFDS Stage 1 Example"
     )
-    sim.add(Time(t_end=600.0))
+    sim.time(t_end=600.0)
 
     # Computational mesh - finer grid for better accuracy
     mesh = (
@@ -41,42 +41,37 @@ def create_fire_with_sprinkler():
         .with_id("COMPARTMENT")
         .with_bounds(Bounds3D(0, 8, 0, 6, 0, 3))
         .with_grid(Grid3D(80, 60, 30))
-        .with_stability_control(cfl_max=0.95, vn_max=0.95)
         .build()
     )
-    sim.add(mesh)
+    sim.add_mesh(mesh)
 
     # Fire growth ramp - t-squared MEDIUM
     # t² = Q/a, where a_medium = 0.01172 kW/s²
     # Peak HRR = 2500 kW at t=300s
     fire_ramp = Ramp(
         id="T2_MEDIUM",
-        t=[0, 60, 120, 180, 240, 300],
-        f=[0, 42, 170, 380, 675, 1055],
+        points=[(0, 0), (60, 42), (120, 170), (180, 380), (240, 675), (300, 1055)],
     )
-    sim.add(fire_ramp)
+    sim.add_ramp(fire_ramp)
 
     # Fire surface with ramped HRR and suppression
     fire_surf = (
         SurfBuilder("GROWING_FIRE")
         .with_heat_release(2500.0, ramp_id="T2_MEDIUM")
-        .with_ignition(temperature=200.0, burn_away=False)
-        .with_radiation(emissivity=0.9, absorptivity=0.85)
-        .with_backing("INSULATED")
+        .with_radiation(emissivity=0.9)
         .build()
     )
-    sim.add(fire_surf)
+    sim.add_surface(fire_surf)
 
     # Reaction with suppression model
     reaction = (
         ReactionBuilder()
         .fuel("POLYURETHANE")
-        .with_suppression(k_suppression=0.5)
         .radiative_fraction(0.30)
         .yields(soot=0.10, co=0.04)
         .build()
     )
-    sim.add(reaction)
+    sim.add_reaction(reaction)
 
     # Sprinkler system - 4 sprinklers in a square pattern
     sprinkler_locations = [
@@ -89,12 +84,12 @@ def create_fire_with_sprinkler():
     for i, (x, y, z) in enumerate(sprinkler_locations, 1):
         sprinkler = (
             DevcBuilder(f"SPRINKLER_{i}")
-            .with_quantity("SPRINKLER_LINK_TEMPERATURE")
+            .with_quantity("TEMPERATURE")
             .with_control(setpoint=74.0, trip_direction=1, latch=True, delay=1.0)
             .at_point(Point3D(x, y, z))
             .build()
         )
-        sim.add(sprinkler)
+        sim.add_device(sprinkler)
 
     # Temperature monitoring grid - 3x3 array at ceiling level
     x_positions = [2.0, 4.0, 6.0]
@@ -109,7 +104,7 @@ def create_fire_with_sprinkler():
                 .with_time_history(True)
                 .build()
             )
-            sim.add(temp_sensor)
+            sim.add_device(temp_sensor)
 
     # Average compartment temperature by layer
     layers = [
@@ -126,7 +121,7 @@ def create_fire_with_sprinkler():
             .in_bounds(bounds)
             .build()
         )
-        sim.add(avg_temp)
+        sim.add_device(avg_temp)
 
         max_temp = (
             DevcBuilder(f"MAX_TEMP_{layer_name}")
@@ -135,7 +130,7 @@ def create_fire_with_sprinkler():
             .in_bounds(bounds)
             .build()
         )
-        sim.add(max_temp)
+        sim.add_device(max_temp)
 
     return sim
 

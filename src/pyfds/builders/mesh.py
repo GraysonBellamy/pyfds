@@ -28,12 +28,11 @@ class MeshBuilder(Builder[Mesh]):
     ...     .with_mpi(process=0, n_threads=4) \\
     ...     .build()
 
-    >>> # Cylindrical mesh with stability control
+    >>> # Cylindrical mesh
     >>> mesh = MeshBuilder() \\
     ...     .with_bounds(Bounds3D(0, 1, 0, 1, 0, 3)) \\
     ...     .with_grid(Grid3D(50, 50, 100)) \\
     ...     .as_cylindrical() \\
-    ...     .with_stability_control(cfl_max=0.9, vn_max=0.9) \\
     ...     .build()
     """
 
@@ -141,40 +140,6 @@ class MeshBuilder(Builder[Mesh]):
             self._params["n_threads"] = n_threads
         return self
 
-    def with_stability_control(
-        self,
-        cfl_max: float = 1.0,
-        cfl_min: float = 0.8,
-        vn_max: float = 1.0,
-    ) -> "MeshBuilder":
-        """
-        Set stability parameters.
-
-        Parameters
-        ----------
-        cfl_max : float, optional
-            Maximum CFL number, default: 1.0
-        cfl_min : float, optional
-            Minimum CFL number, default: 0.8
-        vn_max : float, optional
-            Maximum Von Neumann number, default: 1.0
-
-        Returns
-        -------
-        MeshBuilder
-            Self for method chaining
-
-        Examples
-        --------
-        >>> mesh = MeshBuilder() \\
-        ...     .with_stability_control(cfl_max=0.9, vn_max=0.9) \\
-        ...     .build()
-        """
-        self._params["cfl_max"] = cfl_max
-        self._params["cfl_min"] = cfl_min
-        self._params["vn_max"] = vn_max
-        return self
-
     def with_max_iterations(self, max_iter: int) -> "MeshBuilder":
         """
         Set maximum internal pressure iterations.
@@ -263,6 +228,53 @@ class MeshBuilder(Builder[Mesh]):
         Use with caution - disabling time step restriction can lead to unstable simulations.
         """
         self._params["restrict_time_step"] = False
+        return self
+
+    def with_stability_control(
+        self,
+        cfl_max: float | None = None,
+        cfl_min: float | None = None,
+        vn_max: float | None = None,
+        check_vn: bool | None = None,
+        restrict_time_step: bool | None = None,
+    ) -> "MeshBuilder":
+        """
+        Set stability control parameters.
+
+        Parameters
+        ----------
+        cfl_max : float, optional
+            Maximum CFL number, default: 1.0
+        cfl_min : float, optional
+            Minimum CFL number, default: 0.8
+        vn_max : float, optional
+            Maximum Von Neumann number, default: 1.0
+        check_vn : bool, optional
+            Enable Von Neumann check, default: True
+        restrict_time_step : bool, optional
+            Restrict time step, default: True
+
+        Returns
+        -------
+        MeshBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> mesh = MeshBuilder() \\
+        ...     .with_stability_control(cfl_max=0.95, vn_max=0.9) \\
+        ...     .build()
+        """
+        if cfl_max is not None:
+            self._params["cfl_max"] = cfl_max
+        if cfl_min is not None:
+            self._params["cfl_min"] = cfl_min
+        if vn_max is not None:
+            self._params["vn_max"] = vn_max
+        if check_vn is not None:
+            self._params["check_vn"] = check_vn
+        if restrict_time_step is not None:
+            self._params["restrict_time_step"] = restrict_time_step
         return self
 
     def build(self) -> Mesh:

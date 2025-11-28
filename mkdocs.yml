@@ -209,6 +209,7 @@ nav:
     - Control Logic: guide/controls.md
     - Initial Conditions: guide/initial-conditions.md
     - Combustion: guide/combustion.md
+    - Chemical Species: guide/species.md
     - Pyrolysis Modeling: guide/pyrolysis.md
     - Liquid Fuels: guide/liquid_fuels.md
     - Burn-Away Modeling: guide/burn_away.md
@@ -225,6 +226,7 @@ nav:
   - Examples:
     - examples/index.md
     - Basic Examples: examples/basic.md
+    - Chemical Species: examples/species.md
     - Advanced Examples: examples/advanced.md
     - Special Applications: examples/special.md
     - Parametric Studies: examples/parametric.md
@@ -250,6 +252,7 @@ nav:
     - Namelists:
       - api/namelists/index.md
       - Base Classes: api/namelists/base.md
+      - Species: api/namelists/species.md
       - Metadata: api/namelists/metadata.md
       - Domain: api/namelists/domain.md
       - Geometry: api/namelists/geometry.md

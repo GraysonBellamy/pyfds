@@ -52,6 +52,18 @@ class TestMisc:
         assert misc.cfl_min == 0.9
         assert misc.cfl_max == 1.1
 
+    def test_vn_parameters(self):
+        """Test Von Neumann number settings."""
+        misc = Misc(vn_min=0.7, vn_max=0.9)
+        assert misc.vn_min == 0.7
+        assert misc.vn_max == 0.9
+
+    def test_vn_defaults(self):
+        """Test VN parameters have correct default values."""
+        misc = Misc()
+        assert misc.vn_max == 1.0
+        assert misc.vn_min == 0.8
+
     def test_temperature_validation(self):
         """Test temperature range validation."""
         with pytest.raises(ValidationError, match="outside reasonable range"):
@@ -64,6 +76,11 @@ class TestMisc:
         """Test CFL validation."""
         with pytest.raises(ValidationError, match=r"CFL_MIN.*must be less than"):
             Misc(cfl_min=1.5, cfl_max=1.0)
+
+    def test_vn_validation(self):
+        """Test VN validation."""
+        with pytest.raises(ValidationError, match=r"VN_MIN.*must be less than"):
+            Misc(vn_min=1.5, vn_max=1.0)
 
     def test_mode_conflicts(self):
         """Test that solid_phase_only and isothermal cannot both be true."""
@@ -113,6 +130,20 @@ class TestMisc:
         fds_str = misc.to_fds()
         assert "CFL_MIN=0.9" in fds_str
         assert "CFL_MAX=1.1" in fds_str
+
+    def test_to_fds_vn(self):
+        """Test VN parameters in FDS output."""
+        misc = Misc(vn_min=0.7, vn_max=0.9)
+        fds_str = misc.to_fds()
+        assert "VN_MIN=0.7" in fds_str
+        assert "VN_MAX=0.9" in fds_str
+
+    def test_to_fds_vn_defaults_omitted(self):
+        """Test that default VN values are not written to FDS."""
+        misc = Misc()
+        fds_str = misc.to_fds()
+        assert "VN_MAX" not in fds_str
+        assert "VN_MIN" not in fds_str
 
     def test_pressure_validation(self):
         """Test pressure must be positive."""

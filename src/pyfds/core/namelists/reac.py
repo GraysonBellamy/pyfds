@@ -73,6 +73,30 @@ class Reaction(NamelistBase):
     ait_exclusion_zone_ctrl_id : str, optional
         Control logic for exclusion zone
 
+    # Finite-rate kinetics parameters
+    a : float, optional
+        Pre-exponential factor [(mol/cm³)^(1-n)/s]
+    e : float, optional
+        Activation energy [J/mol]
+    n_t : float, optional
+        Temperature exponent in rate equation, default: 0.0
+    spec_id_n_s : list[str], optional
+        Species IDs for concentration exponents
+    n_s : list[float], optional
+        Concentration exponents for each species
+    equation : str, optional
+        Reaction equation in text form (e.g., 'CH4+2*O2=CO2+2*H2O')
+    priority : int, optional
+        Reaction priority for multi-step schemes
+    reverse : bool, optional
+        Enable reversible reaction, default: False
+    fuel_radcal_id : str, optional
+        RadCal species for fuel radiation absorption
+    tau_chem : float, optional
+        Minimum mixing time bound [s]
+    tau_flame : float, optional
+        Maximum mixing time bound [s]
+
     Examples
     --------
     >>> # Use predefined fuel
@@ -87,6 +111,16 @@ class Reaction(NamelistBase):
     ...     n_simple_chemistry_reactions=2,
     ...     fuel_c_to_co_fraction=0.1,
     ...     hcn_yield=0.001
+    ... )
+
+    >>> # Finite-rate kinetics
+    >>> reac = Reaction(
+    ...     fuel='PROPANE',
+    ...     a=8.6e11,
+    ...     e=125520,
+    ...     spec_id_n_s=['PROPANE', 'OXYGEN'],
+    ...     n_s=[0.1, 1.65],
+    ...     equation='C3H8 + 5*O2 = 3*CO2 + 4*H2O'
     ... )
 
     Notes
@@ -179,10 +213,30 @@ class Reaction(NamelistBase):
     spec_id_nu: list[str] = Field(default_factory=list, description="Species IDs for stoichiometry")
     nu: list[float] = Field(default_factory=list, description="Stoichiometric coefficients")
 
-    # Advanced Parameters (Stage 1.3)
-    fixed_mix_time: float | None = Field(None, gt=0, description="Fixed mixing time (s)")
-    tau_chem: float | None = Field(None, gt=0, description="Chemical time scale (s)")
-    tau_flame: float | None = Field(None, gt=0, description="Flame time scale (s)")
+    # Finite-rate kinetics parameters
+    a: float | None = Field(None, gt=0, description="Pre-exponential factor [(mol/cm³)^(1-n)/s]")
+    e: float | None = Field(None, ge=0, description="Activation energy [J/mol]")
+    n_t: float = Field(0.0, description="Temperature exponent in rate equation")
+
+    # Concentration exponents
+    spec_id_n_s: list[str] | None = Field(
+        None, description="Species IDs for concentration exponents"
+    )
+    n_s: list[float] | None = Field(None, description="Concentration exponents for each species")
+
+    # Reaction specification
+    equation: str | None = Field(None, description="Reaction equation in text form")
+    priority: int | None = Field(None, ge=1, description="Reaction priority for multi-step schemes")
+    reverse: bool = Field(False, description="Enable reversible reaction")
+
+    # Radiation
+    fuel_radcal_id: str | None = Field(
+        None, description="RadCal species for fuel radiation absorption"
+    )
+
+    # Mixing time bounds (COMB parameters, but can be set on REAC for convenience)
+    tau_chem: float | None = Field(None, gt=0, description="Minimum mixing time bound [s]")
+    tau_flame: float | None = Field(None, gt=0, description="Maximum mixing time bound [s]")
 
     @field_validator("extinction_model")
     @classmethod
@@ -210,6 +264,26 @@ class Reaction(NamelistBase):
         # Validate auto-ignition exclusion zone
         if self.ait_exclusion_zone is not None and len(self.ait_exclusion_zone) != 6:
             raise ValueError("AIT_EXCLUSION_ZONE must have exactly 6 values (XB bounds)")
+
+        # Finite-rate validation
+        if (
+            self.spec_id_n_s is not None
+            and self.n_s is not None
+            and len(self.spec_id_n_s) != len(self.n_s)
+        ):
+            raise ValueError("SPEC_ID_N_S and N_S must have same length")
+
+        # Equation format validation
+        if self.equation is not None and "=" not in self.equation:
+            raise ValueError("EQUATION must contain '=' separating reactants and products")
+
+        # Validate mixing time bounds
+        if (
+            self.tau_chem is not None
+            and self.tau_flame is not None
+            and self.tau_chem > self.tau_flame
+        ):
+            raise ValueError("TAU_CHEM must be <= TAU_FLAME")
 
         return self
 
@@ -285,5 +359,35 @@ class Reaction(NamelistBase):
             params["ait_exclusion_zone_devc_id"] = self.ait_exclusion_zone_devc_id
         if self.ait_exclusion_zone_ctrl_id is not None:
             params["ait_exclusion_zone_ctrl_id"] = self.ait_exclusion_zone_ctrl_id
+
+        # Finite-rate kinetics parameters
+        if self.a is not None:
+            params["a"] = self.a
+        if self.e is not None:
+            params["e"] = self.e
+        if self.n_t != 0.0:
+            params["n_t"] = self.n_t
+        if self.spec_id_n_s is not None:
+            params["spec_id_n_s"] = self.spec_id_n_s
+        if self.n_s is not None:
+            params["n_s"] = self.n_s
+
+        # Reaction specification
+        if self.equation is not None:
+            params["equation"] = self.equation
+        if self.priority is not None:
+            params["priority"] = self.priority
+        if self.reverse:
+            params["reverse"] = self.reverse
+
+        # Radiation
+        if self.fuel_radcal_id is not None:
+            params["fuel_radcal_id"] = self.fuel_radcal_id
+
+        # Mixing time bounds
+        if self.tau_chem is not None:
+            params["tau_chem"] = self.tau_chem
+        if self.tau_flame is not None:
+            params["tau_flame"] = self.tau_flame
 
         return self._build_namelist("REAC", params)

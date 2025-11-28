@@ -18,6 +18,7 @@ PyFDS transforms the traditional FDS workflow by providing a Pythonic API for:
 
 - **Intuitive API** - Create FDS simulations with clean, readable Python code
 - **Manager-Based Architecture** - Organized into specialized managers (Geometry, Material, Physics, etc.)
+- **Chemical Species Support** - 36+ predefined species with custom fuel definitions and combustion modeling
 - **Automatic Validation** - Catch errors before running simulations
 - **Type Safety** - Full type hints for IDE support and error prevention
 - **Method Chaining** - Fluid interface for building simulations
