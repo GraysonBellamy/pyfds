@@ -11,7 +11,8 @@ that evaporate and burn according to their physical properties.
 
 from pathlib import Path
 
-from pyfds.core.namelists import Material, Mesh, Obstacle, Reaction, Surface, Time, Vent
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Material, Mesh, Obstruction, Reaction, Surface, Time, Vent
 from pyfds.core.simulation import Simulation
 
 
@@ -25,7 +26,7 @@ def main():
     sim.time_params = Time(t_end=300.0)  # 5 minutes
 
     # Mesh
-    mesh = Mesh(id="MESH", ijk=(30, 30, 20), xb=(0.0, 1.5, 0.0, 1.5, 0.0, 1.0))
+    mesh = Mesh(id="MESH", ijk=Grid3D(30, 30, 20), xb=Bounds3D(0.0, 1.5, 0.0, 1.5, 0.0, 1.0))
     sim.geometry.add_mesh(mesh)
 
     # Liquid methanol fuel
@@ -34,13 +35,11 @@ def main():
         density=792.0,  # Liquid density (kg/m³)
         conductivity=0.2,  # Thermal conductivity (W/(m·K))
         specific_heat=2.51,  # Specific heat (kJ/(kg·K))
-        # Liquid fuel parameters
-        boiling_temperature=64.7,  # Boiling point (°C)
-        spec_id="METHANOL",  # Vapor species
-        heat_of_reaction=837.0,  # Heat of combustion (kJ/kg)
-        absorption_coefficient=140.0,  # Absorption coefficient (1/m)
-        heat_of_vaporization=1100.0,  # Heat of vaporization (kJ/kg)
-        mw=32.0,  # Molecular weight (g/mol)
+        emissivity=1.0,  # Emissivity
+        nu_spec=1.0,  # Species yield
+        spec_id="METHANOL",  # Vapor species ID
+        heat_of_reaction=1100.0,  # Heat of vaporization (kJ/kg)
+        boiling_temperature=64.7,  # Boiling temperature (°C)
     )
 
     # Pool surface (liquid layer)
@@ -52,9 +51,9 @@ def main():
     )
 
     # Pool obstruction
-    pool = Obstacle(
+    pool = Obstruction(
         id="POOL",
-        xb=[0.5, 1.0, 0.5, 1.0, 0.0, 0.05],  # 50cm x 50cm x 5cm deep
+        xb=Bounds3D(0.5, 1.0, 0.5, 1.0, 0.0, 0.05),  # 50cm x 50cm x 5cm deep
         surf_id="METHANOL_POOL",
     )
 
@@ -66,9 +65,9 @@ def main():
     )
 
     # Small ignition patch
-    igniter = Obstacle(
+    igniter = Obstruction(
         id="IGNITER_PATCH",
-        xb=[0.7, 0.8, 0.7, 0.8, 0.0, 0.01],  # Small 10cm x 10cm patch
+        xb=Bounds3D(0.7, 0.8, 0.7, 0.8, 0.0, 0.01),  # Small 10cm x 10cm patch
         surf_id="IGNITER",
     )
 
@@ -78,24 +77,24 @@ def main():
         soot_yield=0.015,  # Soot yield
         co_yield=0.001,  # CO yield
         radiative_fraction=0.35,  # Radiative fraction
-        heat_of_combustion_complete=22600.0,  # Complete heat of combustion (kJ/kg)
+        hoc_complete=22600.0,  # Complete heat of combustion (kJ/kg)
     )
 
     # Open vents for ventilation
-    vent_north = Vent(id="VENT_NORTH", xb=[0.0, 1.5, 1.5, 1.5, 0.0, 1.0], surf_id="OPEN")
+    vent_north = Vent(id="VENT_NORTH", xb=Bounds3D(0.0, 1.5, 1.5, 1.5, 0.0, 1.0), surf_id="OPEN")
 
-    vent_south = Vent(id="VENT_SOUTH", xb=[0.0, 1.5, 0.0, 0.0, 0.0, 1.0], surf_id="OPEN")
+    vent_south = Vent(id="VENT_SOUTH", xb=Bounds3D(0.0, 1.5, 0.0, 0.0, 0.0, 1.0), surf_id="OPEN")
 
-    vent_east = Vent(id="VENT_EAST", xb=[1.5, 1.5, 0.0, 1.5, 0.0, 1.0], surf_id="OPEN")
+    vent_east = Vent(id="VENT_EAST", xb=Bounds3D(1.5, 1.5, 0.0, 1.5, 0.0, 1.0), surf_id="OPEN")
 
-    vent_west = Vent(id="VENT_WEST", xb=[0.0, 0.0, 0.0, 1.5, 0.0, 1.0], surf_id="OPEN")
+    vent_west = Vent(id="VENT_WEST", xb=Bounds3D(0.0, 0.0, 0.0, 1.5, 0.0, 1.0), surf_id="OPEN")
 
     # Add components to simulation
     sim.material_mgr.add_material(methanol)
     sim.material_mgr.add_surface(methanol_pool)
     sim.material_mgr.add_surface(ignition)
-    sim.geometry.add_obstacle(pool)
-    sim.geometry.add_obstacle(igniter)
+    sim.geometry.add_obstruction(pool)
+    sim.geometry.add_obstruction(igniter)
     sim.geometry.add_vent(vent_north)
     sim.geometry.add_vent(vent_south)
     sim.geometry.add_vent(vent_east)

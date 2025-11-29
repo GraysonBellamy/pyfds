@@ -17,6 +17,10 @@ def main():
 
     sim = Simulation(chid="multi_layer", title="Multi-Layer Wall Assembly")
 
+    # Time and mesh setup
+    sim.time(t_end=3600.0)  # 1 hour simulation
+    sim.mesh(ijk=(50, 20, 20), xb=(0.0, 5.0, 0.0, 2.0, 0.0, 2.0))  # 5m x 2m x 2m domain
+
     # Define materials
     gypsum = (
         MaterialBuilder("GYPSUM")
@@ -76,7 +80,19 @@ def main():
     sim.add_surface(wall)
     sim.add_surface(interior_wall)
 
-    # ... rest of simulation setup
+    # Wall obstructions
+    # Exterior wall at x=0
+    sim.obstruction(xb=(0.0, 0.0, 0.0, 2.0, 0.0, 2.0), surf_id="EXTERIOR_WALL")
+
+    # Interior wall at x=2.5
+    sim.obstruction(xb=(2.5, 2.5, 0.0, 2.0, 0.0, 2.0), surf_id="INTERIOR_WALL")
+
+    # Ventilation vents
+    sim.vent(xb=(0.0, 5.0, 0.0, 0.0, 0.0, 2.0), surf_id="OPEN")  # Left boundary
+    sim.vent(xb=(5.0, 5.0, 0.0, 2.0, 0.0, 2.0), surf_id="OPEN")  # Right boundary
+    sim.vent(xb=(0.0, 5.0, 2.0, 2.0, 0.0, 2.0), surf_id="OPEN")  # Back boundary
+    sim.vent(xb=(0.0, 5.0, 0.0, 2.0, 2.0, 2.0), surf_id="OPEN")  # Top boundary
+    sim.vent(xb=(0.0, 5.0, 0.0, 2.0, 0.0, 0.0), surf_id="OPEN")  # Bottom boundary (exposed to fire)
 
     output_dir = Path(__file__).parent.parent / "fds"
     output_dir.mkdir(exist_ok=True)
