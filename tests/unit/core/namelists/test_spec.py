@@ -18,14 +18,23 @@ class TestSpecBasic:
         assert "ID=" in fds_output or "id=" in fds_output.lower()
         assert "MASS_FRACTION_0" in fds_output or "mass_fraction_0" in fds_output.lower()
 
-    def test_user_defined_fuel(self):
-        """Test user-defined fuel with composition."""
-        spec = Species(fuel="MY_FUEL", c=7, h=16)
-        assert spec.fuel == "MY_FUEL"
-        assert spec.c == 7
-        assert spec.h == 16
-        fds_output = spec.to_fds()
-        assert "FUEL=" in fds_output or "fuel=" in fds_output.lower()
+    def test_formula_and_elements_mutual_exclusive(self):
+        """Test that FORMULA and elemental composition are mutually exclusive."""
+        # Valid: formula only
+        spec = Species(id="METHANOL", formula="CH3OH", mw=32.0)
+        assert spec.formula == "CH3OH"
+        assert spec.c is None
+
+        # Valid: elements only
+        spec = Species(id="ETHANOL", c=2, h=6, o=1, mw=46.0)
+        assert spec.c == 2
+        assert spec.formula is None
+
+        # Invalid: both formula and elements
+        with pytest.raises(
+            ValidationError, match="Cannot specify both FORMULA and elemental composition"
+        ):
+            Species(id="BAD", formula="CH4", c=1, h=4)
 
     def test_lumped_component(self):
         """Test lumped component species."""

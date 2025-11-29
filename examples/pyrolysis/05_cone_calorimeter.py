@@ -11,7 +11,8 @@ for material flammability testing.
 
 from pathlib import Path
 
-from pyfds.core.namelists import Material, Mesh, Obstacle, Reaction, Surface, Time
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Material, Mesh, Obstruction, Reaction, Species, Surface, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -27,10 +28,17 @@ def main():
     # Mesh - small domain for bench-scale test
     mesh = Mesh(
         id="MESH",
-        ijk=(20, 20, 15),
-        xb=(0.0, 0.1, 0.0, 0.1, 0.0, 0.075),  # 10cm x 10cm x 7.5cm
+        ijk=Grid3D(20, 20, 15),
+        xb=Bounds3D(0.0, 0.1, 0.0, 0.1, 0.0, 0.075),  # 10cm x 10cm x 7.5cm
     )
     sim.geometry.add_mesh(mesh)
+
+    # Define pyrolysis gas species
+    fuel_gas = Species(
+        id="FUEL_GAS",
+        formula="CH2O0.5",  # Generic pyrolysis fuel
+    )
+    sim.add_species(fuel_gas)
 
     # Test sample material
     sample = Material(
@@ -62,9 +70,9 @@ def main():
     )
 
     # Sample holder
-    sample_holder = Obstacle(
+    sample_holder = Obstruction(
         id="SAMPLE",
-        xb=[0.03, 0.07, 0.03, 0.07, 0.0, 0.006],  # 4cm x 4cm x 6mm
+        xb=Bounds3D(0.03, 0.07, 0.03, 0.07, 0.0, 0.006),  # 4cm x 4cm x 6mm
         surf_id="CONE_CALORIMETER",
     )
 
@@ -81,7 +89,7 @@ def main():
     sim.material_mgr.add_material(sample)
     sim.material_mgr.add_material(char)
     sim.material_mgr.add_surface(cone_surface)
-    sim.geometry.add_obstacle(sample_holder)
+    sim.geometry.add_obstruction(sample_holder)
     sim.physics.add_reaction(combustion)
 
     # Create output directory

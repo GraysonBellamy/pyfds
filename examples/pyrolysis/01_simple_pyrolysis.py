@@ -9,7 +9,8 @@ in a single pyrolysis reaction producing gaseous and solid products.
 
 from pathlib import Path
 
-from pyfds.core.namelists import Material, Mesh, Reaction, Time
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Material, Mesh, Reaction, Species, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -23,8 +24,20 @@ def main():
     sim.time_params = Time(t_end=300.0)  # 5 minutes
 
     # Mesh
-    mesh = Mesh(id="MESH", ijk=(20, 20, 10), xb=(0.0, 1.0, 0.0, 1.0, 0.0, 0.5))
+    mesh = Mesh(
+        id="MESH",
+        ijk=Grid3D(20, 20, 10),
+        xb=Bounds3D(0.0, 1.0, 0.0, 1.0, 0.0, 0.5),
+    )
     sim.geometry.add_mesh(mesh)
+
+    # Define pyrolysis gas species
+    # Simple hydrocarbon approximation for wood pyrolysis gases
+    wood_gas = Species(
+        id="WOOD_GAS",
+        formula="CH1.5O0.5",  # Approximate composition for wood pyrolysis products
+    )
+    sim.add_species(wood_gas)
 
     # Pyrolysis material - wood
     wood = Material(

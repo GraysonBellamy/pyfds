@@ -600,8 +600,13 @@ class Material(NamelistBase):
                 # Multiple species for single reaction
                 spec_str = ",".join(f"'{s}'" for s in self.spec_id)
                 params["spec_id"] = spec_str
-        if self.matl_id_products and isinstance(self.matl_id_products, str):
-            params["matl_id"] = self.matl_id_products
+        if self.matl_id_products:
+            if isinstance(self.matl_id_products, str):
+                params["matl_id"] = self.matl_id_products
+            elif isinstance(self.matl_id_products, list):
+                # Multiple residue materials for single reaction
+                matl_str = ",".join(f"'{m}'" for m in self.matl_id_products)
+                params["matl_id"] = matl_str
         if self.heat_of_combustion_array and isinstance(
             self.heat_of_combustion_array, (int, float)
         ):

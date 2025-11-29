@@ -304,6 +304,12 @@ class Species(NamelistBase):
         if self.id is None and self.fuel is None:
             raise ValueError("Either ID or FUEL must be specified for SPEC")
 
+        # Validate that FORMULA and elemental composition are mutually exclusive
+        has_formula = self.formula is not None
+        has_elements = any(x is not None for x in [self.c, self.h, self.o, self.n])
+        if has_formula and has_elements:
+            raise ValueError("Cannot specify both FORMULA and elemental composition (C, H, O, N)")
+
         # Check mixture species consistency
         if self.spec_id is not None:
             if self.mass_fraction is not None and self.volume_fraction is not None:

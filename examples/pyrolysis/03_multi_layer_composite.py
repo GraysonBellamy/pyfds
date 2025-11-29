@@ -11,7 +11,8 @@ different materials that pyrolyze at different rates.
 
 from pathlib import Path
 
-from pyfds.core.namelists import Material, Mesh, Obstacle, Reaction, Surface, Time
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Material, Mesh, Obstruction, Reaction, Species, Surface, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -25,12 +26,50 @@ def main():
     sim.time_params = Time(t_end=1200.0)  # 20 minutes
 
     # Mesh
-    mesh = Mesh(id="MESH", ijk=(40, 20, 20), xb=(0.0, 2.0, 0.0, 1.0, 0.0, 1.0))
+    mesh = Mesh(
+        id="MESH",
+        ijk=Grid3D(40, 20, 20),
+        xb=Bounds3D(0.0, 2.0, 0.0, 1.0, 0.0, 1.0),
+    )
     sim.geometry.add_mesh(mesh)
 
+    # Define pyrolysis gas species
+    gypsum_gas = Species(
+        id="GYPSUM_GAS",
+        formula="H2O",  # Gypsum releases water vapor
+    )
+    wood_gas = Species(
+        id="WOOD_GAS",
+        formula="CH1.5O0.5",  # Approximate composition for wood pyrolysis products
+    )
+    insulation_gas = Species(
+        id="INSULATION_GAS",
+        formula="CH2O0.5",  # Typical polymer-based insulation
+    )
+    sim.add_species(gypsum_gas)
+    sim.add_species(wood_gas)
+    sim.add_species(insulation_gas)
+
     # Materials
+    # Front gypsum board layer
     gypsum = Material(
         id="GYPSUM",
+        density=800.0,
+        conductivity=0.16,
+        specific_heat=0.84,
+        n_reactions=1,
+        a=[2e10],
+        e=[100000],
+        heat_of_reaction=[500],
+        spec_id=["GYPSUM_GAS"],
+        nu_spec=[0.2],
+        matl_id=["CALCINED_GYPSUM"],
+        nu_matl=[0.8],
+    )
+
+    # Back gypsum board layer (same properties as front)
+    gypsum_back = Material(
+        id="GYPSUM_BACK",
         density=800.0,
         conductivity=0.16,
         specific_heat=0.84,
@@ -84,22 +123,24 @@ def main():
     # Multi-layer surface
     composite_wall = Surface(
         id="COMPOSITE_WALL",
-        matl_id=["GYPSUM", "WOOD", "INSULATION", "GYPSUM"],
+        matl_id=["GYPSUM", "WOOD", "INSULATION", "GYPSUM_BACK"],
         thickness=[0.013, 0.019, 0.089, 0.013],  # Standard wall construction
         tmp_front=25.0,
     )
 
     # Wall obstruction
-    wall = Obstacle(
+    wall = Obstruction(
         id="WALL",
-        xb=[0.0, 0.134, 0.0, 1.0, 0.0, 1.0],  # Wall thickness = sum of layers
+        xb=Bounds3D(0.0, 0.134, 0.0, 1.0, 0.0, 1.0),  # Wall thickness = sum of layers
         surf_id="COMPOSITE_WALL",
     )
 
     # Combustion reactions
-    gypsum_combustion = Reaction(
-        fuel="GYPSUM_GAS", soot_yield=0.01, co_yield=0.005, radiative_fraction=0.2
-    )
+    # GYPSUM_GAS is water vapor (H2O), so it doesn't combust
+    # We don't need a reaction for it
+    # gypsum_combustion = Reaction(
+    #     fuel="GYPSUM_GAS", soot_yield=0.01, co_yield=0.005, radiative_fraction=0.2
+    # )
 
     wood_combustion = Reaction(
         fuel="WOOD_GAS",
@@ -115,13 +156,14 @@ def main():
 
     # Add components to simulation
     sim.material_mgr.add_material(gypsum)
+    sim.material_mgr.add_material(gypsum_back)
     sim.material_mgr.add_material(wood)
     sim.material_mgr.add_material(insulation)
     sim.material_mgr.add_material(calcined_gypsum)
     sim.material_mgr.add_material(char)
     sim.material_mgr.add_surface(composite_wall)
-    sim.geometry.add_obstacle(wall)
-    sim.physics.add_reaction(gypsum_combustion)
+    sim.geometry.add_obstruction(wall)
+    # Don't add gypsum_combustion since GYPSUM_GAS (H2O) doesn't combust
     sim.physics.add_reaction(wood_combustion)
     sim.physics.add_reaction(insulation_combustion)
 

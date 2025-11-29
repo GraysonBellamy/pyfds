@@ -11,7 +11,8 @@ during a fire, exposing interior materials and changing geometry.
 
 from pathlib import Path
 
-from pyfds.core.namelists import Material, Mesh, Obstacle, Reaction, Surface, Time, Vent
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Material, Mesh, Obstruction, Reaction, Species, Surface, Time, Vent
 from pyfds.core.simulation import Simulation
 
 
@@ -25,8 +26,24 @@ def main():
     sim.time_params = Time(t_end=900.0)  # 15 minutes
 
     # Mesh
-    mesh = Mesh(id="MESH", ijk=(40, 40, 20), xb=(0.0, 4.0, 0.0, 4.0, 0.0, 2.0))
+    mesh = Mesh(
+        id="MESH",
+        ijk=Grid3D(40, 40, 20),
+        xb=Bounds3D(0.0, 4.0, 0.0, 4.0, 0.0, 2.0),
+    )
     sim.geometry.add_mesh(mesh)
+
+    # Define pyrolysis gas species
+    foam_gas = Species(
+        id="FOAM_GAS",
+        formula="CH2O0.2",  # Typical polyurethane foam composition
+    )
+    wood_gas = Species(
+        id="WOOD_GAS",
+        formula="CH1.5O0.5",  # Approximate composition for wood pyrolysis products
+    )
+    sim.add_species(foam_gas)
+    sim.add_species(wood_gas)
 
     # Foam material (flexible polyurethane foam)
     foam = Material(
@@ -57,9 +74,9 @@ def main():
     )
 
     # Sofa (burn-away furniture)
-    sofa = Obstacle(
+    sofa = Obstruction(
         id="SOFA",
-        xb=[1.0, 3.0, 1.0, 2.5, 0.0, 0.8],  # Sofa dimensions
+        xb=Bounds3D(1.0, 3.0, 1.0, 2.5, 0.0, 0.8),  # Sofa dimensions
         surf_id="FOAM_SURFACE",
         bulk_density=25.0,  # Effective density (kg/m³)
     )
@@ -84,9 +101,9 @@ def main():
 
     table_surface = Surface(id="TABLE_SURFACE", matl_id="WOOD", thickness=0.03, burn_away=True)
 
-    table = Obstacle(
+    table = Obstruction(
         id="TABLE",
-        xb=[1.5, 2.5, 0.5, 1.5, 0.0, 0.45],  # Table dimensions
+        xb=Bounds3D(1.5, 2.5, 0.5, 1.5, 0.0, 0.45),  # Table dimensions
         surf_id="TABLE_SURFACE",
         bulk_density=500.0,
     )
@@ -109,7 +126,11 @@ def main():
     )
 
     # Ventilation
-    vent = Vent(id="CEILING_VENT", xb=[0.0, 4.0, 0.0, 4.0, 2.0, 2.0], surf_id="OPEN")
+    vent = Vent(
+        id="CEILING_VENT",
+        xb=Bounds3D(0.0, 4.0, 0.0, 4.0, 2.0, 2.0),
+        surf_id="OPEN",
+    )
 
     # Add components to simulation
     sim.material_mgr.add_material(foam)
@@ -118,8 +139,8 @@ def main():
     sim.material_mgr.add_material(wood_char)
     sim.material_mgr.add_surface(foam_surface)
     sim.material_mgr.add_surface(table_surface)
-    sim.geometry.add_obstacle(sofa)
-    sim.geometry.add_obstacle(table)
+    sim.geometry.add_obstruction(sofa)
+    sim.geometry.add_obstruction(table)
     sim.geometry.add_vent(vent)
     sim.physics.add_reaction(foam_combustion)
     sim.physics.add_reaction(wood_combustion)

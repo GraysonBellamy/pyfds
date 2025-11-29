@@ -11,7 +11,8 @@ during pyrolysis, which affects heat transfer and burning behavior.
 
 from pathlib import Path
 
-from pyfds.core.namelists import Material, Mesh, Reaction, Surface, Time
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Material, Mesh, Reaction, Species, Surface, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -25,8 +26,20 @@ def main():
     sim.time_params = Time(t_end=600.0)  # 10 minutes
 
     # Mesh
-    mesh = Mesh(id="MESH", ijk=(30, 30, 15), xb=(0.0, 1.5, 0.0, 1.5, 0.0, 0.75))
+    mesh = Mesh(
+        id="MESH",
+        ijk=Grid3D(30, 30, 15),
+        xb=Bounds3D(0.0, 1.5, 0.0, 1.5, 0.0, 0.75),
+    )
     sim.geometry.add_mesh(mesh)
+
+    # Define pyrolysis gas species
+    # Simple hydrocarbon approximation for wood pyrolysis gases
+    wood_gas = Species(
+        id="WOOD_GAS",
+        formula="CH1.5O0.5",  # Approximate composition for wood pyrolysis products
+    )
+    sim.add_species(wood_gas)
 
     # Char residue (non-pyrolyzing)
     char = Material(

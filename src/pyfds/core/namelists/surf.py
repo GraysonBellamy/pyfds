@@ -479,9 +479,10 @@ class Surface(NamelistBase):
                 params["matl_id"] = self.matl_id
             elif isinstance(self.matl_id, list):
                 if all(isinstance(layer, str) for layer in self.matl_id):
-                    # List of materials per layer - use indexed format
+                    # List of materials per layer - use 2D indexed format (1, layer_index)
+                    # FDS requires 2D indexing even for single material per layer
                     for i, matl in enumerate(self.matl_id):
-                        params[f"matl_id({i + 1})"] = matl
+                        params[f"matl_id(1,{i + 1})"] = matl
                 elif all(isinstance(layer, list) for layer in self.matl_id):
                     # 2D array: layer x components
                     for i, layer in enumerate(self.matl_id):
