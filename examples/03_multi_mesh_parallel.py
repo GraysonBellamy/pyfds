@@ -14,9 +14,9 @@ This showcases the parallel computing features added in Stage 1.4 (MESH enhancem
 
 from pathlib import Path
 
-from pyfds.builders import DevcBuilder, MeshBuilder, ReactionBuilder, SurfBuilder
+from pyfds.builders import MeshBuilder, ReactionBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
-from pyfds.core.namelists import Time
+from pyfds.core.namelists import Device, Surface, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -49,8 +49,8 @@ def create_multi_mesh_fire():
         mesh = (
             MeshBuilder()
             .with_id(f"CORRIDOR_{i + 1}")
-            .with_bounds(Bounds3D(x_min, x_max, 0, mesh_width, 0, mesh_height))
-            .with_grid(Grid3D(50, 20, 15))  # 50 cells per mesh = 200 total in x
+            .with_bounds(Bounds3D.of(x_min, x_max, 0, mesh_width, 0, mesh_height))
+            .with_grid(Grid3D.of(50, 20, 15))  # 50 cells per mesh = 200 total in x
             .with_mpi(process=i, n_threads=4)
             .with_stability_control(cfl_max=0.90, vn_max=0.90)
             .with_max_iterations(15)
@@ -59,13 +59,7 @@ def create_multi_mesh_fire():
         sim.add(mesh)
 
     # Fire source at the beginning of the corridor (Mesh 1)
-    fire_surf = (
-        SurfBuilder("CORRIDOR_FIRE")
-        .with_heat_release(1000.0)
-        .with_radiation(emissivity=0.9)
-        .with_backing("EXPOSED")
-        .build()
-    )
+    fire_surf = Surface(id="CORRIDOR_FIRE", hrrpua=1000.0, emissivity=0.9, backing="EXPOSED")
     sim.add(fire_surf)
 
     # Reaction with extinction model
@@ -84,22 +78,20 @@ def create_multi_mesh_fire():
 
     for x in sensor_x_positions:
         # Ceiling temperature
-        ceiling_temp = (
-            DevcBuilder(f"TEMP_CEILING_X{int(x):02d}")
-            .with_quantity("TEMPERATURE")
-            .at_point(Point3D(x, mesh_width / 2, mesh_height - 0.1))
-            .with_time_history(True)
-            .build()
+        ceiling_temp = Device(
+            id=f"TEMP_CEILING_X{int(x):02d}",
+            quantity="TEMPERATURE",
+            xyz=Point3D.of(x, mesh_width / 2, mesh_height - 0.1),
+            time_history=True,
         )
         sim.add(ceiling_temp)
 
         # Mid-height temperature
-        mid_temp = (
-            DevcBuilder(f"TEMP_MID_X{int(x):02d}")
-            .with_quantity("TEMPERATURE")
-            .at_point(Point3D(x, mesh_width / 2, mesh_height / 2))
-            .with_time_history(True)
-            .build()
+        mid_temp = Device(
+            id=f"TEMP_MID_X{int(x):02d}",
+            quantity="TEMPERATURE",
+            xyz=Point3D.of(x, mesh_width / 2, mesh_height / 2),
+            time_history=True,
         )
         sim.add(mid_temp)
 
@@ -108,21 +100,21 @@ def create_multi_mesh_fire():
         x_min = i * mesh_length
         x_max = (i + 1) * mesh_length
 
-        avg_temp = (
-            DevcBuilder(f"AVG_TEMP_MESH{i + 1}")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MEAN", start_time=10.0)
-            .in_bounds(Bounds3D(x_min, x_max, 0, mesh_width, 0, mesh_height))
-            .build()
+        avg_temp = Device(
+            id=f"AVG_TEMP_MESH{i + 1}",
+            quantity="TEMPERATURE",
+            statistics="MEAN",
+            stat_start=10.0,
+            xb=Bounds3D.of(x_min, x_max, 0, mesh_width, 0, mesh_height),
         )
         sim.add(avg_temp)
 
-        max_temp = (
-            DevcBuilder(f"MAX_TEMP_MESH{i + 1}")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MAX", start_time=10.0)
-            .in_bounds(Bounds3D(x_min, x_max, 0, mesh_width, 0, mesh_height))
-            .build()
+        max_temp = Device(
+            id=f"MAX_TEMP_MESH{i + 1}",
+            quantity="TEMPERATURE",
+            statistics="MAX",
+            stat_start=10.0,
+            xb=Bounds3D.of(x_min, x_max, 0, mesh_width, 0, mesh_height),
         )
         sim.add(max_temp)
 
@@ -131,12 +123,11 @@ def create_multi_mesh_fire():
         x_boundary = i * mesh_length
 
         # Velocity at mesh boundary
-        vel_boundary = (
-            DevcBuilder(f"VEL_BOUNDARY_{i}")
-            .with_quantity("VELOCITY")
-            .at_point(Point3D(x_boundary, mesh_width / 2, mesh_height / 2))
-            .with_time_history(True)
-            .build()
+        vel_boundary = Device(
+            id=f"VEL_BOUNDARY_{i}",
+            quantity="VELOCITY",
+            xyz=Point3D.of(x_boundary, mesh_width / 2, mesh_height / 2),
+            time_history=True,
         )
         sim.add(vel_boundary)
 

@@ -28,17 +28,17 @@ def main():
     # Mesh - small domain for bench-scale test
     mesh = Mesh(
         id="MESH",
-        ijk=Grid3D(20, 20, 15),
-        xb=Bounds3D(0.0, 0.1, 0.0, 0.1, 0.0, 0.075),  # 10cm x 10cm x 7.5cm
+        ijk=Grid3D.of(20, 20, 15),
+        xb=Bounds3D.of(0.0, 0.1, 0.0, 0.1, 0.0, 0.075),  # 10cm x 10cm x 7.5cm
     )
-    sim.geometry.add_mesh(mesh)
+    sim.add(mesh)
 
     # Define pyrolysis gas species
     fuel_gas = Species(
         id="FUEL_GAS",
         formula="CH2O0.5",  # Generic pyrolysis fuel
     )
-    sim.add_species(fuel_gas)
+    sim.add(fuel_gas)
 
     # Test sample material
     sample = Material(
@@ -72,7 +72,7 @@ def main():
     # Sample holder
     sample_holder = Obstruction(
         id="SAMPLE",
-        xb=Bounds3D(0.03, 0.07, 0.03, 0.07, 0.0, 0.006),  # 4cm x 4cm x 6mm
+        xb=Bounds3D.of(0.03, 0.07, 0.03, 0.07, 0.0, 0.006),  # 4cm x 4cm x 6mm
         surf_id="CONE_CALORIMETER",
     )
 
@@ -86,11 +86,11 @@ def main():
     )
 
     # Add components to simulation
-    sim.material_mgr.add_material(sample)
-    sim.material_mgr.add_material(char)
-    sim.material_mgr.add_surface(cone_surface)
-    sim.geometry.add_obstruction(sample_holder)
-    sim.physics.add_reaction(combustion)
+    sim.add(sample)
+    sim.add(char)
+    sim.add(cone_surface)
+    sim.add(sample_holder)
+    sim.add(combustion)
 
     # Create output directory
     output_dir = Path(__file__).parent.parent / "fds"

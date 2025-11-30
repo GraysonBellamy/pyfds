@@ -54,45 +54,56 @@ class TestMaterialBuilder:
 
     def test_pyrolysis_single_reaction(self):
         """Test material with single pyrolysis reaction."""
+        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        reaction = PyrolysisReaction(
+            a=1e10,
+            e=80000,
+            heat_of_reaction=1000,
+            products=[PyrolysisProduct(spec_id="FUEL_VAPOR", nu_spec=1.0)],
+        )
+
         mat = (
             MaterialBuilder("FOAM")
             .density(40)
             .thermal_conductivity(0.04)
             .specific_heat(1.5)
-            .add_pyrolysis_reaction(
-                a=1e10, e=80000, heat_of_reaction=1000, product_species="FUEL_VAPOR"
-            )
+            .add_reaction(reaction)
             .build()
         )
 
+        assert mat.reactions == [reaction]
         assert mat.n_reactions == 1
-        assert mat.a == [1e10]
-        assert mat.e == [80000]
-        assert mat.heat_of_reaction == [1000]
-        assert mat.spec_id == ["FUEL_VAPOR"]
-        assert mat.nu_spec == [1.0]
 
     def test_pyrolysis_multi_reaction(self):
         """Test material with multiple pyrolysis reactions."""
+        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        reaction1 = PyrolysisReaction(
+            a=1e10,
+            e=80000,
+            heat_of_reaction=1000,
+            products=[PyrolysisProduct(spec_id="VAPOR_1", nu_spec=1.0)],
+        )
+        reaction2 = PyrolysisReaction(
+            a=5e8,
+            e=120000,
+            heat_of_reaction=1500,
+            products=[PyrolysisProduct(matl_id="CHAR", nu_matl=1.0)],
+        )
+
         mat = (
             MaterialBuilder("COMPLEX")
             .density(500)
             .thermal_conductivity(0.15)
             .specific_heat(2.0)
-            .add_pyrolysis_reaction(
-                a=1e10, e=80000, heat_of_reaction=1000, product_species="VAPOR_1"
-            )
-            .add_pyrolysis_reaction(a=5e8, e=120000, heat_of_reaction=1500, residue_material="CHAR")
+            .add_reaction(reaction1)
+            .add_reaction(reaction2)
             .build()
         )
 
+        assert mat.reactions == [reaction1, reaction2]
         assert mat.n_reactions == 2
-        assert len(mat.a) == 2
-        assert len(mat.e) == 2
-        assert mat.spec_id == ["VAPOR_1", ""]  # None values replaced with empty strings
-        assert mat.nu_spec == [1.0, 0.0]  # Default yields for species, 0.0 for no species
-        assert mat.matl_id_products == ["", "CHAR"]  # None values replaced with empty strings
-        assert mat.nu_matl == [0.0, 1.0]  # Default yields for residue materials, 0.0 for no residue
 
     def test_structured_pyrolysis_reaction(self):
         """Test material with structured PyrolysisReaction."""
@@ -122,30 +133,6 @@ class TestMaterialBuilder:
         # Should not have old-style array parameters when using structured reactions
         assert mat.a is None
         assert mat.e is None
-
-    def test_mixed_reaction_apis_error(self):
-        """Test error when mixing structured and legacy reaction APIs."""
-        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
-
-        reaction = PyrolysisReaction(
-            a=1e10,
-            e=150000,
-            heat_of_reaction=500,
-            products=[PyrolysisProduct(spec_id="GAS", nu_spec=1.0)],
-        )
-
-        with pytest.raises(ValueError, match=r"Cannot mix structured reactions.*legacy reactions"):
-            (
-                MaterialBuilder("WOOD")
-                .density(500)
-                .thermal_conductivity(0.13)
-                .specific_heat(2.5)
-                .add_reaction(reaction)
-                .add_pyrolysis_reaction(
-                    a=5e8, e=120000, heat_of_reaction=600, product_species="GAS2"
-                )
-                .build()
-            )
 
     def test_missing_density_error(self):
         """Test error when density not specified."""

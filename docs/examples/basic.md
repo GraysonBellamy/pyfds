@@ -14,18 +14,18 @@ from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 sim = Simulation(chid='room_fire', title='Simple Room Fire')
 
 # Time: 10 minutes
-sim.time(t_end=600.0)
+sim.add(Time(t_end=600.0)
 
 # Domain: 5m × 5m × 2.5m room, 0.1m cells
-sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Fire: 1m × 1m burner, 1000 kW/m²
 sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
-sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
 
 # Measurements
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 2.4))
-sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 0.1))
+sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
+sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 0.1))
 
 # Write FDS file
 sim.write('room_fire.fds')
@@ -51,18 +51,18 @@ from pyfds import Simulation
 
 sim = Simulation(chid='corridor', title='Corridor Fire')
 
-sim.time(t_end=300.0)
+sim.add(Time(t_end=300.0)
 
 # Long narrow corridor: 20m × 2m × 2.4m
-sim.mesh(ijk=Grid3D(100, 10, 12), xb=Bounds3D(0, 20, 0, 2, 0, 2.4))
+sim.add(Mesh(ijk=Grid3D.of(100, 10, 12), xb=Bounds3D.of(0, 20, 0, 2, 0, 2.4))
 
 # Fire at one end
 sim.surface(id='FIRE', hrrpua=500.0, color='ORANGE')
-sim.obstruction(xb=Bounds3D(1, 2, 0.5, 1.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 0.5, 1.5, 0, 0.1), surf_id='FIRE')
 
 # Temperature array along corridor
 for i, x in enumerate([2, 5, 10, 15, 18]):
-    sim.device(id=f'TEMP_{i+1}', quantity='TEMPERATURE', xyz=(x, 1, 2.2))
+    sim.device(id=f'TEMP_{i+1}', quantity='TEMPERATURE', xyz=Point3D.of(x, 1, 2.2))
 
 sim.write('corridor.fds')
 ```
@@ -81,8 +81,8 @@ from pyfds import Simulation
 
 sim = Simulation(chid='growing_fire', title='Growing Fire')
 
-sim.time(t_end=300.0)
-sim.mesh(ijk=Grid3D(40, 40, 20), xb=Bounds3D(0, 4, 0, 4, 0, 2))
+sim.add(Time(t_end=300.0)
+sim.add(Mesh(ijk=Grid3D.of(40, 40, 20), xb=Bounds3D.of(0, 4, 0, 4, 0, 2))
 
 # Define fire growth (0 to 100% over 180 seconds)
 sim.ramp(
@@ -99,10 +99,10 @@ sim.surface(
     color='RED'
 )
 
-sim.obstruction(xb=(1.5, 2.5, 1.5, 2.5, 0, 0.1), surf_id='GROWING')
+sim.add(Obstruction(xb=Bounds3D.of(1.5, 2.5, 1.5, 2.5, 0, 0.1), surf_id='GROWING')
 
 # Monitor HRR and temperature
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(2, 2, 1.8))
+sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(2, 2, 1.8))
 
 sim.write('growing_fire.fds')
 ```
@@ -121,31 +121,31 @@ from pyfds import Simulation
 
 sim = Simulation(chid='room_door', title='Room with Door')
 
-sim.time(t_end=300.0)
-sim.mesh(ijk=Grid3D(50, 40, 25), xb=Bounds3D(0, 5, 0, 4, 0, 2.5))
+sim.add(Time(t_end=300.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5))
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=Bounds3D(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
 
 # Walls (with door opening)
 sim.surface(id='WALL', matl_id='GYPSUM', thickness=0.013)
-sim.obstruction(xb=Bounds3D(0, 0.2, 0, 4, 0, 2.5), surf_id='WALL')  # West
-sim.obstruction(xb=Bounds3D(4.8, 5, 0, 4, 0, 2.5), surf_id='WALL')  # East
-sim.obstruction(xb=Bounds3D(0, 5, 0, 0.2, 0, 2.5), surf_id='WALL')  # South
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 2.5), surf_id='WALL')  # West
+sim.add(Obstruction(xb=Bounds3D.of(4.8, 5, 0, 4, 0, 2.5), surf_id='WALL')  # East
+sim.add(Obstruction(xb=Bounds3D.of(0, 5, 0, 0.2, 0, 2.5), surf_id='WALL')  # South
 
 # North wall with door
-sim.obstruction(xb=(0, 2, 3.8, 4, 0, 2.5), surf_id='WALL')      # Left
-sim.obstruction(xb=(3, 5, 3.8, 4, 0, 2.5), surf_id='WALL')      # Right
-sim.obstruction(xb=(2, 3, 3.8, 4, 2.1, 2.5), surf_id='WALL')    # Above
+sim.add(Obstruction(xb=Bounds3D.of(0, 2, 3.8, 4, 0, 2.5), surf_id='WALL')      # Left
+sim.add(Obstruction(xb=Bounds3D.of(3, 5, 3.8, 4, 0, 2.5), surf_id='WALL')      # Right
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 3.8, 4, 2.1, 2.5), surf_id='WALL')    # Above
 
 # Door opening
-sim.vent(xb=(2, 3, 3.8, 3.8, 0, 2.1), surf_id='OPEN')
+sim.add(Vent(xb=Bounds3D.of(2, 3, 3.8, 3.8, 0, 2.1), surf_id='OPEN')
 
 # Measurements
-sim.device(id='TEMP_INSIDE', quantity='TEMPERATURE', xyz=(2.5, 2, 2.2))
-sim.device(id='TEMP_DOOR', quantity='TEMPERATURE', xyz=(2.5, 3.8, 1.0))
-sim.device(id='VEL_DOOR', quantity='VELOCITY', xyz=(2.5, 3.8, 1.0))
+sim.device(id='TEMP_INSIDE', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 2.2))
+sim.device(id='TEMP_DOOR', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 3.8, 1.0))
+sim.device(id='VEL_DOOR', quantity='VELOCITY', xyz=Point3D.of(2.5, 3.8, 1.0))
 
 sim.write('room_door.fds')
 ```
@@ -165,25 +165,25 @@ from pyfds import Simulation
 
 sim = Simulation(chid='two_fires', title='Two Fire Sources')
 
-sim.time(t_end=300.0)
-sim.mesh(ijk=Grid3D(80, 40, 25), xb=Bounds3D(0, 8, 0, 4, 0, 2.5))
+sim.add(Time(t_end=300.0)
+sim.add(Mesh(ijk=Grid3D.of(80, 40, 25), xb=Bounds3D.of(0, 8, 0, 4, 0, 2.5))
 
 # Two different fire intensities
 sim.surface(id='FIRE_A', hrrpua=750.0, color='ORANGE')
 sim.surface(id='FIRE_B', hrrpua=1250.0, color='RED')
 
 # Fire A (smaller)
-sim.obstruction(xb=Bounds3D(1.5, 2.5, 1.5, 2.5, 0, 0.1), surf_id='FIRE_A')
+sim.add(Obstruction(xb=Bounds3D.of(1.5, 2.5, 1.5, 2.5, 0, 0.1), surf_id='FIRE_A')
 
 # Fire B (larger)
-sim.obstruction(xb=Bounds3D(5.5, 6.5, 1.5, 2.5, 0, 0.1), surf_id='FIRE_B')
+sim.add(Obstruction(xb=Bounds3D.of(5.5, 6.5, 1.5, 2.5, 0, 0.1), surf_id='FIRE_B')
 
 # Temperature measurements above each fire
-sim.device(id='TEMP_A', quantity='TEMPERATURE', xyz=(2, 2, 2.2))
-sim.device(id='TEMP_B', quantity='TEMPERATURE', xyz=(6, 2, 2.2))
+sim.device(id='TEMP_A', quantity='TEMPERATURE', xyz=Point3D.of(2, 2, 2.2))
+sim.device(id='TEMP_B', quantity='TEMPERATURE', xyz=Point3D.of(6, 2, 2.2))
 
 # Center of room
-sim.device(id='TEMP_CENTER', quantity='TEMPERATURE', xyz=(4, 2, 2.2))
+sim.device(id='TEMP_CENTER', quantity='TEMPERATURE', xyz=Point3D.of(4, 2, 2.2))
 
 sim.write('two_fires.fds')
 ```
@@ -203,15 +203,15 @@ from pyfds import Simulation
 # Coarse mesh, short time for quick testing
 sim = Simulation(chid='quick_test', title='Quick Test')
 
-sim.time(t_end=30.0)  # Only 30 seconds
-sim.mesh(ijk=Grid3D(20, 20, 10), xb=Bounds3D(0, 2, 0, 2, 0, 1))  # Coarse cells
+sim.add(Time(t_end=30.0)  # Only 30 seconds
+sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))  # Coarse cells
 
 # Simple fire
 sim.surface(id='FIRE', hrrpua=500.0)
-sim.obstruction(xb=Bounds3D(0.75, 1.25, 0.75, 1.25, 0, 0.05), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(0.75, 1.25, 0.75, 1.25, 0, 0.05), surf_id='FIRE')
 
 # Basic measurement
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(1, 1, 0.9))
+sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 0.9))
 
 sim.write('quick_test.fds')
 

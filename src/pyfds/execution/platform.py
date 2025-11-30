@@ -9,8 +9,8 @@ import platform
 import shutil
 from pathlib import Path
 
+from ..exceptions import FDSNotFoundError
 from ..utils import get_logger
-from .exceptions import FDSNotFoundError
 
 logger = get_logger(__name__)
 

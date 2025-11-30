@@ -91,10 +91,10 @@ from pyfds import Simulation
 sim = Simulation(chid='test')
 
 # Each method corresponds to an FDS namelist
-sim.time(t_end=100)           # &TIME ... /
-sim.mesh(...)                  # &MESH ... /
+sim.add(Time(t_end=100)           # &TIME ... /
+sim.add(Mesh(...)                  # &MESH ... /
 sim.surface(id='FIRE', ...)   # &SURF ... /
-sim.obstruction(...)           # &OBST ... /
+sim.add(Obstruction(...)           # &OBST ... /
 sim.device(...)                # &DEVC ... /
 ```
 
@@ -146,9 +146,9 @@ Visualization:
 The **mesh** defines the computational domain divided into cells:
 
 ```python
-sim.mesh(
-    ijk=(50, 50, 25),        # Number of cells in X, Y, Z
-    xb=(0, 5, 0, 5, 0, 2.5)  # Physical bounds
+sim.add(Mesh(
+    ijk=Grid3D.of(50, 50, 25),        # Number of cells in X, Y, Z
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)  # Physical bounds
 )
 ```
 
@@ -206,14 +206,14 @@ Geometry is created using **obstructions** and **vents**:
 
 ```python
 # Solid obstruction (wall, furniture)
-sim.obstruction(
-    xb=(0, 0.2, 0, 5, 0, 2.5),  # Thin wall
+sim.add(Obstruction(
+    xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5),  # Thin wall
     surf_id='CONCRETE'
 )
 
 # Vent (opening, boundary)
-sim.vent(
-    xb=(4, 4, 0, 2, 0, 2),      # Door (zero thickness in X)
+sim.add(Vent(
+    xb=Bounds3D.of(4, 4, 0, 2, 0, 2),      # Door (zero thickness in X)
     surf_id='OPEN'               # Open to ambient
 )
 ```
@@ -227,14 +227,14 @@ sim.vent(
 sim.device(
     id='TEMP_1',
     quantity='TEMPERATURE',
-    xyz=(2.5, 2.5, 2.4)    # Single point
+    xyz=Point3D.of(2.5, 2.5, 2.4)    # Single point
 )
 
 # Area measurement
 sim.device(
     id='HF_FLOOR',
     quantity='HEAT FLUX',
-    xb=(0, 5, 0, 5, 0, 0)  # Entire floor
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 0)  # Entire floor
 )
 ```
 
@@ -270,19 +270,19 @@ Add components using methods:
 
 ```python
 # Time parameters
-sim.time(t_end=600.0)
+sim.add(Time(t_end=600.0)
 
 # Computational domain
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Materials and surfaces
 sim.surface(id='FIRE', hrrpua=1000.0)
 
 # Geometry
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 
 # Measurements
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
+sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
 ```
 
 ### 3. Validate
@@ -344,9 +344,9 @@ PyFDS supports **method chaining** for concise code:
 ```python
 sim = (Simulation(chid='test')
        .time(t_end=100)
-       .mesh(ijk=(20, 20, 10), xb=(0, 2, 0, 2, 0, 1))
+       .mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
        .surface(id='FIRE', hrrpua=500)
-       .obstruction(xb=(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE'))
+       .obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE'))
 ```
 
 Each method returns `self`, allowing chaining.
@@ -361,10 +361,10 @@ PyFDS provides **immediate feedback** on configuration errors:
 from pyfds import Simulation
 
 sim = Simulation(chid='test')
-sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
 
 # This will raise a validation error
-sim.obstruction(xb=(5, 6, 0, 1, 0, 1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(5, 6, 0, 1, 0, 1), surf_id='FIRE')
 # Error: Obstruction outside mesh bounds!
 ```
 
@@ -386,10 +386,10 @@ PyFDS uses **Pydantic** for automatic type validation:
 
 ```python
 # This works
-sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
 
 # This raises a type error
-sim.mesh(ijk="invalid", xb=(0, 1, 0, 1, 0, 1))
+sim.add(Mesh(ijk="invalid", xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
 # ValidationError: ijk must be tuple of 3 integers
 ```
 
@@ -437,16 +437,16 @@ Begin with coarse meshes and short times:
 
 ```python
 # Quick test (runs in seconds)
-sim.mesh(ijk=(10, 10, 10), xb=(0, 2, 0, 2, 0, 1))
-sim.time(t_end=10.0)
+sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
+sim.add(Time(t_end=10.0)
 ```
 
 Refine after validation:
 
 ```python
 # Production run
-sim.mesh(ijk=(40, 40, 20), xb=(0, 2, 0, 2, 0, 1))
-sim.time(t_end=300.0)
+sim.add(Mesh(ijk=Grid3D.of(40, 40, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
+sim.add(Time(t_end=300.0)
 ```
 
 ### 2. Use Validation
@@ -487,13 +487,13 @@ Group related components:
 
 ```python
 # Geometry
-sim.mesh(...)
+sim.add(Mesh(...)
 for x in range(5):
-    sim.obstruction(...)  # Walls
+    sim.add(Obstruction(...)  # Walls
 
 # Fires
 sim.surface(id='FIRE', ...)
-sim.obstruction(..., surf_id='FIRE')
+sim.add(Obstruction(..., surf_id='FIRE')
 
 # Measurements
 for i in range(10):
@@ -509,10 +509,10 @@ for i in range(10):
 ```python
 for hrr in [500, 1000, 1500, 2000]:
     sim = Simulation(chid=f'fire_{hrr}')
-    sim.time(t_end=300)
-    sim.mesh(ijk=(30, 30, 15), xb=(0, 3, 0, 3, 0, 1.5))
+    sim.add(Time(t_end=300)
+    sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5))
     sim.surface(id='FIRE', hrrpua=hrr)
-    sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
+    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
     sim.write(f'fire_{hrr}.fds')
 ```
 
@@ -522,8 +522,8 @@ for hrr in [500, 1000, 1500, 2000]:
 for resolution in [0.2, 0.1, 0.05]:
     cells = int(5 / resolution)
     sim = Simulation(chid=f'grid_{resolution}')
-    sim.mesh(ijk=(cells, cells, int(2.5/resolution)),
-             xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(cells, cells, int(2.5/resolution)),
+             xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     # ... rest of setup ...
 ```
 
@@ -534,7 +534,7 @@ def create_standard_room(sim, origin=(0,0,0)):
     """Add a standard 4m x 3m x 2.5m room."""
     x0, y0, z0 = origin
     # Walls
-    sim.obstruction(xb=(x0, x0+0.2, y0, y0+3, z0, z0+2.5), surf_id='WALL')
+    sim.add(Obstruction(xb=Bounds3D.of(x0, x0+0.2, y0, y0+3, z0, z0+2.5), surf_id='WALL')
     # ... more walls ...
     return sim
 

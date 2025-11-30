@@ -4,11 +4,9 @@ FDS MULT namelist.
 Multiplier for creating arrays of repeated objects.
 """
 
-from typing import Any
+from pydantic import model_validator
 
-from pydantic import Field, model_validator
-
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Mult(NamelistBase):
@@ -69,42 +67,46 @@ class Mult(NamelistBase):
     ... )
     """
 
-    id: str = Field(..., description="Multiplier identifier")
+    id: str = FdsField(..., description="Multiplier identifier")
+
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "MULT"
 
     # Spacing
-    dx: float | None = Field(None, description="X spacing [m]")
-    dy: float | None = Field(None, description="Y spacing [m]")
-    dz: float | None = Field(None, description="Z spacing [m]")
+    dx: float | None = FdsField(None, description="X spacing [m]")
+    dy: float | None = FdsField(None, description="Y spacing [m]")
+    dz: float | None = FdsField(None, description="Z spacing [m]")
 
     # Initial offset
-    dx0: float = Field(0.0, description="Initial X offset [m]")
-    dy0: float = Field(0.0, description="Initial Y offset [m]")
-    dz0: float = Field(0.0, description="Initial Z offset [m]")
+    dx0: float = FdsField(0.0, exclude_if=0.0, description="Initial X offset [m]")
+    dy0: float = FdsField(0.0, exclude_if=0.0, description="Initial Y offset [m]")
+    dz0: float = FdsField(0.0, exclude_if=0.0, description="Initial Z offset [m]")
 
     # Array bounds (3D mode)
-    i_lower: int = Field(0, description="X lower bound")
-    i_upper: int = Field(0, description="X upper bound")
-    j_lower: int = Field(0, description="Y lower bound")
-    j_upper: int = Field(0, description="Y upper bound")
-    k_lower: int = Field(0, description="Z lower bound")
-    k_upper: int = Field(0, description="Z upper bound")
+    i_lower: int = FdsField(0, exclude_if=0, description="X lower bound")
+    i_upper: int = FdsField(0, exclude_if=0, description="X upper bound")
+    j_lower: int = FdsField(0, exclude_if=0, description="Y lower bound")
+    j_upper: int = FdsField(0, exclude_if=0, description="Y upper bound")
+    k_lower: int = FdsField(0, exclude_if=0, description="Z lower bound")
+    k_upper: int = FdsField(0, exclude_if=0, description="Z upper bound")
 
     # Sequential mode
-    n_lower: int | None = Field(None, description="Sequential lower bound")
-    n_upper: int | None = Field(None, description="Sequential upper bound")
+    n_lower: int | None = FdsField(None, description="Sequential lower bound")
+    n_upper: int | None = FdsField(None, description="Sequential upper bound")
 
     # Skip ranges (for creating gaps in arrays)
-    i_lower_skip: int | None = Field(None, description="X skip lower")
-    i_upper_skip: int | None = Field(None, description="X skip upper")
-    j_lower_skip: int | None = Field(None, description="Y skip lower")
-    j_upper_skip: int | None = Field(None, description="Y skip upper")
-    k_lower_skip: int | None = Field(None, description="Z skip lower")
-    k_upper_skip: int | None = Field(None, description="Z skip upper")
-    n_lower_skip: int | None = Field(None, description="Sequential skip lower")
-    n_upper_skip: int | None = Field(None, description="Sequential skip upper")
+    i_lower_skip: int | None = FdsField(None, description="X skip lower")
+    i_upper_skip: int | None = FdsField(None, description="X skip upper")
+    j_lower_skip: int | None = FdsField(None, description="Y skip lower")
+    j_upper_skip: int | None = FdsField(None, description="Y skip upper")
+    k_lower_skip: int | None = FdsField(None, description="Z skip lower")
+    k_upper_skip: int | None = FdsField(None, description="Z skip upper")
+    n_lower_skip: int | None = FdsField(None, description="Sequential skip lower")
+    n_upper_skip: int | None = FdsField(None, description="Sequential skip upper")
 
     # Incremental XB offsets
-    dxb: tuple[float, float, float, float, float, float] | None = Field(
+    dxb: tuple[float, float, float, float, float, float] | None = FdsField(
         None, description="Incremental XB offsets"
     )
 
@@ -137,62 +139,3 @@ class Mult(NamelistBase):
         k_count = self.k_upper - self.k_lower + 1
 
         return i_count * j_count * k_count
-
-    def to_fds(self) -> str:
-        """Generate FDS MULT namelist."""
-        params: dict[str, Any] = {"id": self.id}
-
-        # Spacing
-        if self.dx is not None:
-            params["dx"] = self.dx
-        if self.dy is not None:
-            params["dy"] = self.dy
-        if self.dz is not None:
-            params["dz"] = self.dz
-
-        # Offsets (only if non-zero)
-        if self.dx0 != 0.0:
-            params["dx0"] = self.dx0
-        if self.dy0 != 0.0:
-            params["dy0"] = self.dy0
-        if self.dz0 != 0.0:
-            params["dz0"] = self.dz0
-
-        # Array bounds
-        if self.n_lower is not None and self.n_upper is not None:
-            params["n_lower"] = self.n_lower
-            params["n_upper"] = self.n_upper
-        else:
-            if self.i_upper > 0 or self.i_lower != 0:
-                params["i_lower"] = self.i_lower
-                params["i_upper"] = self.i_upper
-            if self.j_upper > 0 or self.j_lower != 0:
-                params["j_lower"] = self.j_lower
-                params["j_upper"] = self.j_upper
-            if self.k_upper > 0 or self.k_lower != 0:
-                params["k_lower"] = self.k_lower
-                params["k_upper"] = self.k_upper
-
-        # Skip ranges
-        if self.i_lower_skip is not None:
-            params["i_lower_skip"] = self.i_lower_skip
-        if self.i_upper_skip is not None:
-            params["i_upper_skip"] = self.i_upper_skip
-        if self.j_lower_skip is not None:
-            params["j_lower_skip"] = self.j_lower_skip
-        if self.j_upper_skip is not None:
-            params["j_upper_skip"] = self.j_upper_skip
-        if self.k_lower_skip is not None:
-            params["k_lower_skip"] = self.k_lower_skip
-        if self.k_upper_skip is not None:
-            params["k_upper_skip"] = self.k_upper_skip
-        if self.n_lower_skip is not None:
-            params["n_lower_skip"] = self.n_lower_skip
-        if self.n_upper_skip is not None:
-            params["n_upper_skip"] = self.n_upper_skip
-
-        # DXB
-        if self.dxb is not None:
-            params["dxb"] = self.dxb
-
-        return self._build_namelist("MULT", params)

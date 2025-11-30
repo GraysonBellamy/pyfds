@@ -20,10 +20,12 @@ class TestNamelistFactory:
 
     def test_create_mesh(self):
         """Test creating MESH namelist."""
-        mesh = NamelistFactory.create("mesh", ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        mesh = NamelistFactory.create(
+            "mesh", ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)
+        )
         assert isinstance(mesh, Mesh)
-        assert mesh.ijk == Grid3D(nx=10, ny=10, nz=10)
-        assert mesh.xb == Bounds3D(xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1)
+        assert mesh.ijk == Grid3D.of(nx=10, ny=10, nz=10)
+        assert mesh.xb == Bounds3D.of(xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1)
 
     def test_create_unknown_namelist(self):
         """Test creating unknown namelist raises error."""
@@ -59,8 +61,8 @@ class TestNamelistFactory:
         fds_text = "&MESH XB=0,5,0,5,0,5, IJK=10,10,10 /"
         mesh = NamelistFactory.parse_fds_namelist(fds_text)
         assert isinstance(mesh, Mesh)
-        assert mesh.xb == Bounds3D(xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
-        assert mesh.ijk == Grid3D(nx=10, ny=10, nz=10)
+        assert mesh.xb == Bounds3D.of(xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
+        assert mesh.ijk == Grid3D.of(nx=10, ny=10, nz=10)
 
     def test_parse_fds_namelist_multiple_params(self):
         """Test parsing FDS namelist with multiple parameters."""

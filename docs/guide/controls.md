@@ -33,7 +33,7 @@ Activate when a device exceeds a threshold:
 sim.device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
-    xyz=(3, 2, 2.4)
+    xyz=Point3D.of(3, 2, 2.4)
 )
 
 # Control activates when temp > 74°C
@@ -188,18 +188,18 @@ sim.control(
 from pyfds import Simulation
 
 sim = Simulation(chid='sprinkler_system')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(60, 50, 30), xb=(0, 6, 0, 5, 0, 3))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3))
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1200.0)
-sim.obstruction(xb=(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
 
 # Sprinkler head temperature (at ceiling)
 sim.device(
     id='SPRINKLER_LINK',
     quantity='TEMPERATURE',
-    xyz=(3, 2.5, 2.95)
+    xyz=Point3D.of(3, 2.5, 2.95)
 )
 
 # Control: Activate at 68°C (RTI included in device)
@@ -218,8 +218,8 @@ sim.surface(
 )
 
 # Sprinkler vent (activates when control True)
-sim.vent(
-    xb=(2.8, 3.2, 2.3, 2.7, 2.95, 2.95),
+sim.add(Vent(
+    xb=Bounds3D.of(2.8, 3.2, 2.3, 2.7, 2.95, 2.95),
     surf_id='SPRINKLER_SPRAY'
 )
 
@@ -230,18 +230,18 @@ sim.write('sprinkler_system.fds')
 
 ```python
 sim = Simulation(chid='hvac_shutdown')
-sim.time(t_end=900.0)
-sim.mesh(ijk=(80, 60, 30), xb=(0, 8, 0, 6, 0, 3))
+sim.add(Time(t_end=900.0)
+sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3))
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
 
 # Smoke detector at ceiling
 sim.device(
     id='SMOKE_DET',
     quantity='OPTICAL DENSITY',
-    xyz=(4, 3, 2.9)
+    xyz=Point3D.of(4, 3, 2.9)
 )
 
 # Control: Shutdown HVAC when smoke detected (OD > 0.05)
@@ -255,15 +255,15 @@ sim.control(
 
 # HVAC vents controlled by smoke detector
 # Control inverted: HVAC ON when control is True (no smoke)
-sim.vent(
-    xb=(1, 1.5, 1, 1.5, 3, 3),
+sim.add(Vent(
+    xb=Bounds3D.of(1, 1.5, 1, 1.5, 3, 3),
     surf_id='HVAC',
     volume_flow=0.6,
     ctrl_id='HVAC_SHUTDOWN'
 )
 
-sim.vent(
-    xb=(6.5, 7, 4.5, 5, 3, 3),
+sim.add(Vent(
+    xb=Bounds3D.of(6.5, 7, 4.5, 5, 3, 3),
     surf_id='HVAC',
     volume_flow=-0.5,
     ctrl_id='HVAC_SHUTDOWN'
@@ -276,12 +276,12 @@ sim.write('hvac_shutdown.fds')
 
 ```python
 sim = Simulation(chid='suppression_system')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(100, 80, 40), xb=(0, 10, 0, 8, 0, 4))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(100, 80, 40), xb=Bounds3D.of(0, 10, 0, 8, 0, 4))
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1500.0)
-sim.obstruction(xb=(4.5, 5.5, 3.5, 4.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 3.5, 4.5, 0, 0.1), surf_id='FIRE')
 
 # Multiple detectors (OR logic)
 detectors = []
@@ -290,7 +290,7 @@ for i, (x, y) in enumerate([(3, 3), (5, 3), (7, 3), (5, 5)]):
     sim.device(
         id=det_id,
         quantity='TEMPERATURE',
-        xyz=(x, y, 3.9)
+        xyz=Point3D.of(x, y, 3.9)
     )
 
     # Individual detector controls
@@ -318,8 +318,8 @@ for i, (x, y) in enumerate(nozzles):
         ctrl_id='SUPPRESSION_ACTIVATE'
     )
 
-    sim.vent(
-        xb=(x-0.2, x+0.2, y-0.2, y+0.2, 3.95, 3.95),
+    sim.add(Vent(
+        xb=Bounds3D.of(x-0.2, x+0.2, y-0.2, y+0.2, 3.95, 3.95),
         surf_id=f'NOZZLE_{i+1}'
     )
 
@@ -330,12 +330,12 @@ sim.write('suppression_system.fds')
 
 ```python
 sim = Simulation(chid='door_sequence')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(100, 60, 30), xb=(0, 10, 0, 6, 0, 3))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(100, 60, 30), xb=Bounds3D.of(0, 10, 0, 6, 0, 3))
 
 # Fire in room 1
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(2, 3, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
 
 # Timer controls for door opening sequence
 # Door 1 opens at t=120s
@@ -349,24 +349,24 @@ sim.control(id='DOOR3_OPEN', delay=360.0)
 
 # Doors as removable obstructions
 # Door 1: Between rooms 1 and 2
-sim.obstruction(
-    xb=(4.9, 5.1, 2.5, 3.5, 0, 2.1),
+sim.add(Obstruction(
+    xb=Bounds3D.of(4.9, 5.1, 2.5, 3.5, 0, 2.1),
     surf_id='INERT',
     ctrl_id='DOOR1_OPEN',
     removable=True  # Removed when control activates
 )
 
 # Door 2: Between rooms 2 and 3
-sim.obstruction(
-    xb=(7.4, 7.6, 2.5, 3.5, 0, 2.1),
+sim.add(Obstruction(
+    xb=Bounds3D.of(7.4, 7.6, 2.5, 3.5, 0, 2.1),
     surf_id='INERT',
     ctrl_id='DOOR2_OPEN',
     removable=True
 )
 
 # Door 3: Exit to outside
-sim.obstruction(
-    xb=(9.9, 10, 2.5, 3.5, 0, 2.1),
+sim.add(Obstruction(
+    xb=Bounds3D.of(9.9, 10, 2.5, 3.5, 0, 2.1),
     surf_id='INERT',
     ctrl_id='DOOR3_OPEN',
     removable=True
@@ -379,18 +379,18 @@ sim.write('door_sequence.fds')
 
 ```python
 sim = Simulation(chid='temp_vent')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(60, 50, 30), xb=(0, 6, 0, 5, 0, 3))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3))
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1200.0)
-sim.obstruction(xb=(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
 
 # Temperature sensor at ceiling
 sim.device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
-    xyz=(3, 2.5, 2.9)
+    xyz=Point3D.of(3, 2.5, 2.9)
 )
 
 # Control: Open vent when temp > 100°C
@@ -402,8 +402,8 @@ sim.control(
 )
 
 # Ceiling vent (initially closed obstruction)
-sim.obstruction(
-    xb=(2.5, 3.5, 2, 3, 2.95, 3),
+sim.add(Obstruction(
+    xb=Bounds3D.of(2.5, 3.5, 2, 3, 2.95, 3),
     surf_id='INERT',
     ctrl_id='VENT_OPEN',
     removable=True  # Opens (removed) when hot
@@ -446,7 +446,7 @@ for zone in zones:
     )
 
     # Suppression in each zone
-    sim.vent(
+    sim.add(Vent(
         xb=(...),
         surf_id='SUPPRESSION',
         ctrl_id=f'CTRL_{zone}'
@@ -559,7 +559,7 @@ sim.control(id='THERMOSTAT', input_id='TEMP', setpoint=25.0, latch=False)
     **Solution**: Check device values and initial state
     ```python
     # Monitor both device and control
-    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(3, 2, 2))
+    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2))
     sim.device(id='CTRL_STATE', quantity='CONTROL VALUE', ctrl_id='MY_CTRL')
     ```
 

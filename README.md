@@ -56,25 +56,19 @@ Create a simple room fire simulation in just a few lines:
 ```python
 from pyfds import Simulation
 from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device
 
 # Create simulation
 sim = Simulation(chid='room_fire', title='Simple Room Fire')
 
-# Set time parameters
-sim.time(t_end=600.0)
-
-# Define computational domain (5m x 5m x 2.5m)
-sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
-
-# Create fire surface (1000 kW/m²)
-sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
-
-# Add fire source (1m x 1m burner)
-sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
-
-# Add temperature measurement at ceiling
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE',
-           xyz=(2.5, 2.5, 2.4))
+# Add components using the unified add() API
+sim.add(
+    Time(t_end=600.0),
+    Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)),
+    Surface(id='BURNER', hrrpua=1000.0, color='RED'),
+    Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER'),
+    Device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
+)
 
 # Validate and write
 sim.write('room_fire.fds')
@@ -86,56 +80,52 @@ Use the new builder API for advanced fire scenarios:
 
 ```python
 from pyfds import Simulation
-from pyfds.builders import SurfBuilder, DevcBuilder, MeshBuilder, ReactionBuilder
+from pyfds.builders import SurfaceBuilder, DeviceBuilder, MeshBuilder, ReactionBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
-from pyfds.core.namelists import Head, Time
+from pyfds.core.namelists import Time
 
 # Create simulation
-sim = Simulation()
-sim.add(Head(chid='advanced_fire', title='Fire with Sprinkler Control'))
-sim.add(Time(t_end=300.0))
+sim = Simulation(chid='advanced_fire', title='Fire with Sprinkler Control')
 
-# Mesh with parallel processing
-mesh = (MeshBuilder()
-       .with_id('ROOM')
-       .with_bounds(Bounds3D(0, 6, 0, 6, 0, 3))
-       .with_grid(Grid3D(60, 60, 30))
-       .with_mpi(process=0, n_threads=4)
-       .build())
-sim.add(mesh)
+# Add components using the unified add() API
+sim.add(
+    Time(t_end=300.0),
 
-# Growing fire with ramped heat release
-fire_surf = (SurfBuilder('FIRE')
-            .with_heat_release(500.0, ramp_id='t2_growth')
-            .with_ignition(temperature=250.0, burn_away=True)
-            .with_radiation(emissivity=0.9)
-            .build())
-sim.add(fire_surf)
+    # Mesh with parallel processing
+    MeshBuilder()
+        .with_bounds(Bounds3D.of(0, 6, 0, 6, 0, 3))
+        .with_grid(Grid3D.of(60, 60, 30))
+        .build(),
 
-# Sprinkler with activation control
-sprinkler = (DevcBuilder('SPRINK1')
-            .with_quantity('SPRINKLER_LINK_TEMPERATURE')
-            .with_control(setpoint=74.0, trip_direction=1, latch=True)
-            .at_point(Point3D(3.0, 3.0, 2.8))
-            .build())
-sim.add(sprinkler)
+    # Growing fire with ramped heat release
+    SurfaceBuilder('FIRE')
+        .with_heat_release(500.0, ramp_id='t2_growth')
+        .with_ignition(temperature=250.0, burn_away=True)
+        .with_radiation(emissivity=0.9)
+        .build(),
 
-# Statistical temperature monitoring
-avg_temp = (DevcBuilder('AVG_TEMP')
-           .with_quantity('TEMPERATURE')
-           .with_statistics('MEAN', start_time=10.0)
-           .in_bounds(Bounds3D(0, 6, 0, 6, 2.0, 3.0))
-           .build())
-sim.add(avg_temp)
+    # Sprinkler with activation control
+    DeviceBuilder('SPRINK1')
+        .with_quantity('SPRINKLER_LINK_TEMPERATURE')
+        .with_control(setpoint=74.0, trip_direction=1, latch=True)
+        .at_point(Point3D.of(3.0, 3.0, 2.8))
+        .build(),
 
-# Advanced combustion with suppression
-reaction = (ReactionBuilder()
-           .fuel('PROPANE')
-           .with_extinction('EXTINCTION_1', critical_temp=1200.0)
-           .with_suppression(k_suppression=0.3)
-           .radiative_fraction(0.35)
-           .build())
-sim.add(reaction)
+    # Statistical temperature monitoring
+    DeviceBuilder('AVG_TEMP')
+        .with_quantity('TEMPERATURE')
+        .with_statistics('MEAN', start_time=10.0)
+        .in_bounds(Bounds3D.of(0, 6, 0, 6, 2.0, 3.0))
+        .build(),
+
+    # Advanced combustion with suppression
+    ReactionBuilder()
+        .fuel('PROPANE')
+        .with_extinction('EXTINCTION_1', critical_temp=1200.0)
+        .with_suppression(k_suppression=0.3)
+        .radiative_fraction(0.35)
+        .build()
+)
 
 # Write FDS input file
 sim.write('advanced_fire.fds')
@@ -153,11 +143,11 @@ from pyfds.core.geometry import Bounds3D, Grid3D
 
 # Create simulation
 sim = Simulation(chid='room_fire', title='Room Fire')
-sim.time(t_end=600.0)
-sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
 
 # Run simulation (blocks until complete)
 results = sim.run(n_threads=4)
@@ -262,14 +252,27 @@ results = job.get_results()
 
 ```python
 from pyfds import Simulation
-from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.builders import SurfaceBuilder, DeviceBuilder, MeshBuilder
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Time
 
 sim = Simulation(chid='room_fire', title='Room Fire Test')
-sim.time(t_end=600.0, dt=0.1)
-sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
-sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
-sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
+sim.add(
+    Time(t_end=600.0, dt=0.1),
+    MeshBuilder()
+        .with_bounds(Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+        .with_grid(Grid3D.of(50, 50, 25))
+        .build(),
+    SurfaceBuilder('BURNER')
+        .with_heat_release(1000.0)
+        .with_color('RED')
+        .build(),
+    Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER'),
+    DeviceBuilder('TEMP')
+        .with_quantity('TEMPERATURE')
+        .at_point(Point3D.of(2.5, 2.5, 2.4))
+        .build()
+)
 
 # Write FDS input file
 sim.write('room_fire.fds')
@@ -279,14 +282,24 @@ sim.write('room_fire.fds')
 
 ```python
 from pyfds import Simulation
-from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.builders import SurfaceBuilder, DeviceBuilder, MeshBuilder
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Time
 
 sim = (Simulation(chid='fire', title='My Fire Simulation')
-       .time(t_end=600.0)
-       .mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
-       .surface(id='FIRE', hrrpua=1000.0)
-       .obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
-       .device(id='TEMP1', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4)))
+       .add(Time(t_end=600.0))
+       .add(MeshBuilder()
+            .with_bounds(Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+            .with_grid(Grid3D.of(50, 50, 25))
+            .build())
+       .add(SurfaceBuilder('FIRE')
+            .with_heat_release(1000.0)
+            .build())
+       .add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+       .add(DeviceBuilder('TEMP1')
+            .with_quantity('TEMPERATURE')
+            .at_point(Point3D.of(2.5, 2.5, 2.4))
+            .build()))
 
 sim.write('fire.fds')
 ```
@@ -295,18 +308,30 @@ sim.write('fire.fds')
 
 ```python
 from pyfds import Simulation
-from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.builders import SurfaceBuilder, DeviceBuilder, MeshBuilder
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Time
 
 # Study effect of heat release rate
 hrr_values = [500, 1000, 1500, 2000]
 
 for hrr in hrr_values:
     sim = Simulation(chid=f'fire_{hrr}')
-    sim.time(t_end=300.0)
-    sim.mesh(ijk=Grid3D(30, 30, 15), xb=Bounds3D(0, 3, 0, 3, 0, 1.5))
-    sim.surface(id='FIRE', hrrpua=float(hrr))
-    sim.obstruction(xb=Bounds3D(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
-    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(1.5, 1.5, 1.4))
+    sim.add(
+        Time(t_end=300.0),
+        MeshBuilder()
+            .with_bounds(Bounds3D.of(0, 3, 0, 3, 0, 1.5))
+            .with_grid(Grid3D.of(30, 30, 15))
+            .build(),
+        SurfaceBuilder('FIRE')
+            .with_heat_release(float(hrr))
+            .build(),
+        Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'),
+        DeviceBuilder('TEMP')
+            .with_quantity('TEMPERATURE')
+            .at_point(Point3D.of(1.5, 1.5, 1.4))
+            .build()
+    )
 
     sim.write(f'fire_{hrr}.fds')
 ```
@@ -315,11 +340,18 @@ for hrr in hrr_values:
 
 ```python
 from pyfds import Simulation
+from pyfds.builders import MeshBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Time
 
 sim = Simulation(chid='test')
-sim.time(t_end=100.0)
-sim.mesh(ijk=Grid3D(10, 10, 10), xb=Bounds3D(0, 1, 0, 1, 0, 1))
+sim.add(
+    Time(t_end=100.0),
+    MeshBuilder()
+        .with_bounds(Bounds3D.of(0, 1, 0, 1, 0, 1))
+        .with_grid(Grid3D.of(10, 10, 10))
+        .build()
+)
 
 # Validate before running
 warnings = sim.validate()
@@ -327,6 +359,23 @@ if warnings:
     for w in warnings:
         print(f"Warning: {w}")
 ```
+
+## CLI Usage
+
+PyFDS includes a command-line interface for validation and execution:
+
+```bash
+# Validate a simulation file
+pyfds validate my_simulation.py
+
+# Run a simulation file directly
+pyfds run my_simulation.py
+
+# Get help
+pyfds --help
+```
+
+The CLI provides immediate feedback on validation errors and supports running simulations with proper error handling.
 
 ## API Reference
 
@@ -336,12 +385,13 @@ if warnings:
 Main orchestrator class for building FDS simulations using specialized managers.
 
 **Manager Properties:**
+- `materials` - MaterialManager (materials, surfaces)
+- `species` - SpeciesManager (gas species, reactions)
 - `geometry` - GeometryManager (meshes, obstructions, vents)
-- `material_mgr` - MaterialManager (materials, surfaces)
+- `devices` - InstrumentationManager (devices, props)
+- `controls` - ControlManager (controls, initial conditions)
 - `ramps` - RampManager (time-varying functions)
 - `physics` - PhysicsManager (reactions, misc parameters)
-- `instrumentation` - InstrumentationManager (devices, props)
-- `controls` - ControlManager (controls, initial conditions)
 
 **Convenience Methods:**
 - `time(t_end, t_begin=None, dt=None)` - Set time parameters
@@ -358,9 +408,10 @@ Main orchestrator class for building FDS simulations using specialized managers.
 ```python
 # Access components via managers
 num_meshes = len(sim.geometry.meshes)
-num_surfaces = len(sim.material_mgr.surfaces)
+num_surfaces = len(sim.materials.surfaces)
+num_species = len(sim.species.species)
+num_devices = len(sim.devices.devices)
 num_ramps = len(sim.ramps.ramps)
-num_devices = len(sim.instrumentation.devices)
 
 # Iterate over components
 for mesh in sim.geometry.meshes:
@@ -480,26 +531,22 @@ pyfds/
 - [x] Built-in plotting utilities
 - [x] Comprehensive test coverage (100 tests)
 
-### Stage 1: Critical Fire Simulation Features ✅ (Complete)
-**Target**: 35% FDS feature coverage | **Achieved**: 29% (190/647 parameters)
+### Phase 3: Architecture Refinement ✅ (Complete)
+- [x] Unified FDS output generation through single `Simulation.to_fds()` path
+- [x] Fixed namelist output order to match FDS User Guide convention
+- [x] Standardized manager property names (material_mgr → materials, etc.)
+- [x] Removed local storage workarounds from managers
+- [x] Eliminated legacy registry compatibility code
+- [x] Renamed confusing validation files (validation.py → input_validators.py)
+- [x] Organized surface mixins in dedicated subdirectory
+- [x] Comprehensive test suite validation (743/743 tests passing)
 
-- [x] **Phase 1.1**: SURF enhancements (18 new parameters)
-  - Heat release rate, mass flux, pyrolysis control
-  - Radiation properties, time-dependent ramping
-  - SurfBuilder with 16 fluent methods
-- [x] **Phase 1.2**: DEVC enhancements (20 new parameters)
-  - Control logic, statistics, device relationships
-  - DevcBuilder with 17 fluent methods
-- [x] **Phase 1.3**: REAC enhancements (11 new parameters)
-  - Extinction, suppression, species tracking
-  - Enhanced ReactionBuilder with 5 new methods
-- [x] **Phase 1.4**: MESH enhancements (10 new parameters)
-  - MPI parallel processing, stability controls
-  - MeshBuilder with 13 fluent methods
-- [x] **Phase 1.5**: Integration tests (21 comprehensive tests)
-- [x] **Phase 1.6**: Documentation and examples (4 complete examples)
-
-📚 **See [STAGE1_FEATURES.md](STAGE1_FEATURES.md) for complete documentation**
+### Phase 4: Polish & Documentation ✅ (Complete)
+- [x] Audited all 8 builders (ControlBuilder, GeomBuilder, HoleBuilder, MeshBuilder, MoveBuilder, MultBuilder, PartBuilder, PropBuilder)
+- [x] Updated README.md to reflect refactored architecture
+- [x] Updated API documentation with new manager property names
+- [x] Final integration testing and validation
+- [x] Code review and final cleanup
 
 ### Stage 2: Particle Systems (Planned)
 - [ ] PART namelist for particle tracking

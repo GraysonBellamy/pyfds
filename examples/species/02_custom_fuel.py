@@ -16,7 +16,13 @@ Run with: python examples/species/02_custom_fuel.py
 from pathlib import Path
 
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Species
+from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.reac import Reaction
+from pyfds.core.namelists.time import Time
+from pyfds.core.namelists.vent import Vent
 
 
 def main():
@@ -54,47 +60,52 @@ def main():
     sim = Simulation(chid="custom_fuel_example")
 
     # Set up basic simulation parameters
-    sim.time(t_end=30.0)
-    sim.mesh(ijk=(20, 20, 20), xb=(0, 2, 0, 2, 0, 2))
+    sim.add(Time(t_end=30.0))
+    sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
 
     # Add species
     print("   - Adding ethanol fuel")
-    sim.add_species(ethanol)
+    sim.add(ethanol)
 
     # Add air components (simplified - using predefined species)
     print("   - Adding air components")
-    sim.species(id="OXYGEN", mass_fraction_0=0.23)
-    sim.species(id="NITROGEN", mass_fraction_0=0.77)
+    sim.add(Species(id="OXYGEN", mass_fraction_0=0.23))
+    sim.add(Species(id="NITROGEN", mass_fraction_0=0.77))
 
     # Define combustion reaction for ethanol
     print("   - Setting up ethanol combustion reaction")
     # C2H5OH + 3O2 -> 2CO2 + 3H2O
-    sim.reaction(
-        fuel="ETHANOL",
-        heat_of_combustion=26700,  # kJ/kg (experimental value for ethanol)
-        c=2,
-        h=6,
-        o=1,  # Fuel composition
-        soot_yield=0.0,  # Ethanol produces negligible soot
-        co_yield=0.001,  # Small CO yield
-        # Product species stoichiometry
-        spec_id_nu=["ETHANOL", "OXYGEN", "CARBON_DIOXIDE", "WATER_VAPOR"],
-        nu=[-1, -3, 2, 3],  # Stoichiometric coefficients
+    sim.add(
+        Reaction(
+            fuel="ETHANOL",
+            heat_of_combustion=26700,  # kJ/kg (experimental value for ethanol)
+            c=2,
+            h=6,
+            o=1,  # Fuel composition
+            soot_yield=0.0,  # Ethanol produces negligible soot
+            co_yield=0.001,  # Small CO yield
+            # Product species stoichiometry
+            spec_id_nu=["ETHANOL", "OXYGEN", "CARBON_DIOXIDE", "WATER_VAPOR"],
+            nu=[-1, -3, 2, 3],  # Stoichiometric coefficients
+        )
     )
 
     # Add fire source
     print("   - Adding ethanol fuel source")
-    sim.vent(id="FUEL_SOURCE", xb=(0.8, 1.2, 0.8, 1.2, 0, 0), surface="burner")
+    sim.add(Vent(id="FUEL_SOURCE", xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0), surface="burner"))
 
     # Add monitoring devices
     print("   - Adding species concentration monitors")
-    sim.device(id="FUEL_CONC", xyz=(1.0, 1.0, 0.5), quantity="MASS FRACTION ETHANOL")
+    sim.add(Device(id="FUEL_CONC", xyz=Point3D.of(1.0, 1.0, 0.5), quantity="MASS FRACTION ETHANOL"))
 
-    sim.device(id="O2_CONC", xyz=(1.0, 1.0, 0.5), quantity="VOLUME FRACTION OXYGEN")
+    sim.add(Device(id="O2_CONC", xyz=Point3D.of(1.0, 1.0, 0.5), quantity="VOLUME FRACTION OXYGEN"))
 
-    sim.device(id="CO2_CONC", xyz=(1.0, 1.0, 0.5), quantity="VOLUME FRACTION CARBON DIOXIDE")
-
-    sim.device(id="TEMP", xyz=(1.0, 1.0, 0.5), quantity="TEMPERATURE")
+    sim.add(
+        Device(
+            id="CO2_CONC", xyz=Point3D.of(1.0, 1.0, 0.5), quantity="VOLUME FRACTION CARBON DIOXIDE"
+        )
+    )
+    sim.add(Device(id="TEMP", xyz=Point3D.of(1.0, 1.0, 0.5), quantity="TEMPERATURE"))
 
     # Generate FDS input
     print("\n3. Generated FDS Input:")

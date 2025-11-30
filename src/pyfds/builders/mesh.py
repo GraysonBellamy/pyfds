@@ -16,22 +16,22 @@ class MeshBuilder(Builder[Mesh]):
     --------
     >>> # Simple mesh
     >>> mesh = MeshBuilder() \\
-    ...     .with_bounds(Bounds3D(0, 10, 0, 10, 0, 3)) \\
-    ...     .with_grid(Grid3D(100, 100, 30)) \\
+    ...     .with_bounds(Bounds3D.of(0, 10, 0, 10, 0, 3) 3)) \\
+    ...     .with_grid(Grid3D.of(100, 100, 30)) \\
     ...     .build()
 
     >>> # Multi-mesh with MPI
     >>> mesh = MeshBuilder() \\
     ...     .with_id('MESH1') \\
-    ...     .with_bounds(Bounds3D(0, 10, 0, 10, 0, 3)) \\
-    ...     .with_grid(Grid3D(50, 50, 15)) \\
+    ...     .with_bounds(Bounds3D.of(0, 10, 0, 10, 0, 3) 3)) \\
+    ...     .with_grid(Grid3D.of(50, 50, 15)) \\
     ...     .with_mpi(process=0, n_threads=4) \\
     ...     .build()
 
     >>> # Cylindrical mesh
     >>> mesh = MeshBuilder() \\
-    ...     .with_bounds(Bounds3D(0, 1, 0, 1, 0, 3)) \\
-    ...     .with_grid(Grid3D(50, 50, 100)) \\
+    ...     .with_bounds(Bounds3D.of(0, 1, 0, 1, 0, 3) 3)) \\
+    ...     .with_grid(Grid3D.of(50, 50, 100)) \\
     ...     .as_cylindrical() \\
     ...     .build()
     """
@@ -62,11 +62,11 @@ class MeshBuilder(Builder[Mesh]):
 
         Examples
         --------
-        >>> mesh = MeshBuilder().with_bounds(Bounds3D(0, 10, 0, 10, 0, 3)).build()
+        >>> mesh = MeshBuilder().with_bounds(Bounds3D.of(0, 10, 0, 10, 0, 3) 3)).build()
         >>> mesh = MeshBuilder().with_bounds((0, 10, 0, 10, 0, 3)).build()
         """
         if isinstance(bounds, tuple):
-            bounds = Bounds3D.from_tuple(bounds)
+            bounds = Bounds3D.of(*bounds)
         self._bounds = bounds
         return self
 
@@ -86,11 +86,11 @@ class MeshBuilder(Builder[Mesh]):
 
         Examples
         --------
-        >>> mesh = MeshBuilder().with_grid(Grid3D(100, 100, 50)).build()
+        >>> mesh = MeshBuilder().with_grid(Grid3D.of(100, 100, 50)).build()
         >>> mesh = MeshBuilder().with_grid((100, 100, 50)).build()
         """
         if isinstance(grid, tuple):
-            grid = Grid3D.from_tuple(grid)
+            grid = Grid3D.of(*grid)
         self._grid = grid
         return self
 

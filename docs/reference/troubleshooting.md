@@ -40,13 +40,13 @@ pip install pyfds
 **Solution**: Check coordinates
 ```python
 # Mesh: (0, 5) in X
-sim.mesh(xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Bad: X goes to 6
-sim.obstruction(xb=(4, 6, 0, 5, 0, 2.5))  # ERROR
+sim.add(Obstruction(xb=Bounds3D.of(4, 6, 0, 5, 0, 2.5))  # ERROR
 
 # Good: X within bounds
-sim.obstruction(xb=(4, 5, 0, 5, 0, 2.5))  # OK
+sim.add(Obstruction(xb=Bounds3D.of(4, 5, 0, 5, 0, 2.5))  # OK
 ```
 
 ### "Surface ID 'FIRE' not found"
@@ -57,7 +57,7 @@ sim.obstruction(xb=(4, 5, 0, 5, 0, 2.5))  # OK
 ```python
 # Correct order
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 ```
 
 ### Validation warnings
@@ -100,10 +100,10 @@ fds -v
 2. **Cells too small**
    ```python
    # Too fine (very slow)
-   sim.mesh(ijk=(200, 200, 100), xb=(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(200, 200, 100), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
    # More reasonable
-   sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
    ```
 
 3. **Physical inconsistencies**
@@ -130,10 +130,10 @@ fds -v
 1. **Reduce cell count**
    ```python
    # Before: 500,000 cells
-   sim.mesh(ijk=(100, 100, 50), xb=(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
    # After: 62,500 cells (8x faster)
-   sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
    ```
 
 2. **Use parallelization**
@@ -148,10 +148,10 @@ fds -v
 3. **Reduce simulation time**
    ```python
    # Test run
-   sim.time(t_end=30.0)
+   sim.add(Time(t_end=30.0)
 
    # Production run
-   sim.time(t_end=600.0)
+   sim.add(Time(t_end=600.0)
    ```
 
 ### Out of memory

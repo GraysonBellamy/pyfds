@@ -4,12 +4,10 @@ FDS INIT namelist.
 Initial conditions for temperature, density, and species.
 """
 
-from typing import Any
-
-from pydantic import Field, field_validator, model_validator
+from pydantic import model_validator
 
 from pyfds.core.geometry import Bounds3D, Point3D
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Init(NamelistBase):
@@ -40,36 +38,23 @@ class Init(NamelistBase):
     --------
     >>> # Hot gas region
     >>> init = Init(
-    ...     xb=(0, 10, 0, 10, 0, 0.1),
+    ...     xb=Bounds3D.of(0, 10, 0, 10, 0, 0.1),
     ...     temperature=500,
     ...     spec_id=['PROPANE'],
     ...     mass_fraction=[0.05]
     ... )
     """
 
-    xb: Bounds3D | None = Field(
+    xb: Bounds3D | None = FdsField(
         None, description="Initialization bounds (xmin,xmax,ymin,ymax,zmin,zmax)"
     )
-    xyz: Point3D | None = Field(None, description="Point location")
-    temperature: float | None = Field(None, description="Temperature [°C]")
-    density: float | None = Field(None, gt=0, description="Density [kg/m³]")
-    mass_fraction: list[float] | None = Field(None, description="Mass fractions")
-    volume_fraction: list[float] | None = Field(None, description="Volume fractions")
-    spec_id: list[str] | None = Field(None, description="Species IDs")
-
-    @field_validator("xyz", mode="before")
-    @classmethod
-    def validate_xyz(cls, v: Any) -> Any:
-        if isinstance(v, tuple):
-            return Point3D.from_tuple(v)
-        return v
-
-    @field_validator("xb", mode="before")
-    @classmethod
-    def validate_xb(cls, v: Any) -> Any:
-        if isinstance(v, tuple):
-            return Bounds3D.from_tuple(v)
-        return v
+    xyz: Point3D | None = FdsField(None, description="Point location")
+    temperature: float | None = FdsField(None, description="Temperature [°C]")
+    density: float | None = FdsField(None, gt=0, description="Density [kg/m³]")
+    mass_fraction: list[float] | None = FdsField(None, description="Mass fractions")
+    volume_fraction: list[float] | None = FdsField(None, description="Volume fractions")
+    spec_id: list[str] | None = FdsField(None, description="Species IDs")
+    id: str | None = FdsField(None, description="INIT identifier")
 
     @model_validator(mode="after")
     def validate_init(self) -> "Init":
@@ -89,23 +74,6 @@ class Init(NamelistBase):
 
         return self
 
-    def to_fds(self) -> str:
-        """Generate FDS INIT namelist."""
-        params: dict[str, Any] = {}
-
-        if self.xb:
-            params["xb"] = self.xb.as_tuple()
-        if self.xyz:
-            params["xyz"] = self.xyz.as_tuple()
-        if self.temperature is not None:
-            params["temperature"] = self.temperature
-        if self.density is not None:
-            params["density"] = self.density
-        if self.spec_id:
-            params["spec_id"] = self.spec_id
-        if self.mass_fraction:
-            params["mass_fraction"] = self.mass_fraction
-        if self.volume_fraction:
-            params["volume_fraction"] = self.volume_fraction
-
-        return self._build_namelist("INIT", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "INIT"

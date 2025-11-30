@@ -4,32 +4,17 @@ FDS VENT namelist.
 Boundary conditions and openings including HVAC vents.
 """
 
-from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING
 
 import numpy as np
-from pydantic import Field, field_validator, model_validator
+from pydantic import model_validator
 
+from pyfds.core.enums import VentShape, VentType
 from pyfds.core.geometry import Bounds3D, Point3D
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
-
-class VentType(str, Enum):
-    """Types of vents in FDS."""
-
-    OPEN = "OPEN"
-    HVAC = "HVAC"
-    SURFACE = "SURFACE"
-    MIRROR = "MIRROR"
-    PERIODIC = "PERIODIC"
-
-
-class VentShape(str, Enum):
-    """Vent geometry types."""
-
-    RECTANGULAR = "RECTANGULAR"
-    CIRCULAR = "CIRCULAR"
-    ANNULAR = "ANNULAR"
+if TYPE_CHECKING:
+    from pyfds.builders import VentBuilder
 
 
 class Vent(NamelistBase):
@@ -87,16 +72,16 @@ class Vent(NamelistBase):
     Examples
     --------
     >>> # Opening to ambient
-    >>> door = Vent(xb=(5, 5, 2, 4, 0, 3), surf_id='OPEN')
+    >>> door = Vent(xb=Bounds3D.of(5, 5, 2, 4, 0, 3), surf_id='OPEN')
 
     >>> # HVAC vent (flow parameters defined on SURF, not VENT)
-    >>> hvac_vent = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id='HVAC')
+    >>> hvac_vent = Vent(xb=Bounds3D.of(5, 6, 5, 6, 3, 3), surf_id='HVAC')
 
     >>> # Circular burner
     >>> burner = Vent(
-    ...     xb=(-1, 1, -1, 1, 0, 0),
+    ...     xb=Bounds3D.of(-1, 1, -1, 1, 0, 0),
     ...     surf_id='FIRE',
-    ...     xyz=(0, 0, 0),
+    ...     xyz=Point3D.of(0, 0, 0),
     ...     radius=0.5
     ... )
 
@@ -111,87 +96,94 @@ class Vent(NamelistBase):
     - For mesh boundaries, use mb instead of xb
     """
 
+    @classmethod
+    def builder(cls) -> "VentBuilder":
+        """Return a fluent builder for Vent.
+
+        Returns
+        -------
+        VentBuilder
+            A builder instance for fluent construction
+
+        Examples
+        --------
+        >>> vent = Vent.builder() \\
+        ...     .bounds(5, 5, 2, 4, 0, 2) \\
+        ...     .open() \\
+        ...     .build()
+        """
+        from pyfds.builders import VentBuilder
+
+        return VentBuilder()
+
     # Geometry
-    xb: Bounds3D | None = Field(None, description="Vent bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
-    mb: str | None = Field(None, description="Mesh boundary")
-    surf_id: str = Field("INERT", description="Surface ID")
-    id: str | None = Field(None, description="Vent identifier")
+    xb: Bounds3D | None = FdsField(None, description="Vent bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
+    mb: str | None = FdsField(None, description="Mesh boundary")
+    surf_id: str = FdsField("INERT", description="Surface ID")
+    id: str | None = FdsField(None, description="Vent identifier")
 
     # Circular geometry
-    xyz: Point3D | None = Field(None, description="Center point")
-    radius: float | None = Field(None, gt=0, description="Radius [m]")
-    radius_inner: float | None = Field(None, gt=0, description="Inner radius [m]")
+    xyz: Point3D | None = FdsField(None, description="Center point")
+    radius: float | None = FdsField(None, gt=0, description="Radius [m]")
+    radius_inner: float | None = FdsField(None, gt=0, description="Inner radius [m]")
 
     # Control
-    devc_id: str | None = Field(None, description="Device ID for activation")
-    ctrl_id: str | None = Field(None, description="Control ID for activation")
-    delay: float = Field(0.0, ge=0, description="Activation delay [s]")
-    t_activate: float | None = Field(None, description="Activation time [s]")
+    devc_id: str | None = FdsField(None, description="Device ID for activation")
+    ctrl_id: str | None = FdsField(None, description="Control ID for activation")
+    delay: float = FdsField(0.0, exclude_if=0.0, ge=0, description="Activation delay [s]")
+    t_activate: float | None = FdsField(None, description="Activation time [s]")
 
     # Mesh reference
-    mesh_id: str | None = Field(None, description="Mesh ID for MB")
+    mesh_id: str | None = FdsField(None, description="Mesh ID for MB")
 
     # Advanced
-    dynamic_pressure: bool = Field(False, description="Dynamic pressure BC")
-    tmp_exterior: float | None = Field(None, description="Exterior temperature [°C]")
+    dynamic_pressure: bool = FdsField(False, exclude_if=False, description="Dynamic pressure BC")
+    tmp_exterior: float | None = FdsField(None, description="Exterior temperature [°C]")
 
     # Visualization
-    color: str | None = Field(None, description="Named color")
-    rgb: tuple[int, int, int] | None = Field(None, description="RGB color")
-    transparency: float = Field(1.0, ge=0, le=1, description="Transparency [0-1]")
+    color: str | None = FdsField(None, description="Named color")
+    rgb: tuple[int, int, int] | None = FdsField(None, description="RGB color")
+    transparency: float = FdsField(
+        1.0, exclude_if=1.0, ge=0, le=1, description="Transparency [0-1]"
+    )
 
-    # === PHASE 4: VENT ENHANCEMENTS ===
     # Geometry parameters
-    db: str | None = Field(None, description="Domain boundary")
-    pbx: float | None = Field(None, description="X plane position")
-    pby: float | None = Field(None, description="Y plane position")
-    pbz: float | None = Field(None, description="Z plane position")
-    ior: int | None = Field(None, description="Orientation: +/-1,2,3")
+    db: str | None = FdsField(None, description="Domain boundary")
+    pbx: float | None = FdsField(None, description="X plane position")
+    pby: float | None = FdsField(None, description="Y plane position")
+    pbz: float | None = FdsField(None, description="Z plane position")
+    ior: int | None = FdsField(None, description="Orientation: +/-1,2,3")
 
     # Control parameters
-    outline: bool = Field(False, description="Draw outline only")
-    mult_id: str | None = Field(None, description="Multiplier ID")
-    obst_id: str | None = Field(None, description="Associated obstruction ID")
+    outline: bool = FdsField(False, exclude_if=False, description="Draw outline only")
+    mult_id: str | None = FdsField(None, description="Multiplier ID")
+    obst_id: str | None = FdsField(None, description="Associated obstruction ID")
 
     # Texture parameters
-    texture_origin: tuple[float, float, float] | None = Field(
+    texture_origin: tuple[float, float, float] | None = FdsField(
         None, description="Texture origin point"
     )
 
     # Fire spread (circular vents)
-    spread_rate: float | None = Field(None, gt=0, description="Fire spread rate [m/s]")
+    spread_rate: float | None = FdsField(None, gt=0, description="Fire spread rate [m/s]")
 
     # Open boundary parameters
-    tmp_exterior_ramp: str | None = Field(None, description="Ramp for exterior temperature")
-    pressure_ramp: str | None = Field(None, description="Ramp for dynamic pressure")
+    tmp_exterior_ramp: str | None = FdsField(None, description="Ramp for exterior temperature")
+    pressure_ramp: str | None = FdsField(None, description="Ramp for dynamic pressure")
 
     # Synthetic turbulence parameters
-    n_eddy: int | None = Field(None, ge=1, description="Number of synthetic eddies")
-    l_eddy: float | None = Field(None, gt=0, description="Eddy length scale [m]")
-    l_eddy_ij: list[list[float]] | None = Field(
+    n_eddy: int | None = FdsField(None, ge=1, description="Number of synthetic eddies")
+    l_eddy: float | None = FdsField(None, gt=0, description="Eddy length scale [m]")
+    l_eddy_ij: list[list[float]] | None = FdsField(
         None, description="Anisotropic eddy length scales (3x3)"
     )
-    vel_rms: float | None = Field(None, ge=0, description="RMS velocity fluctuation [m/s]")
-    reynolds_stress: list[list[float]] | None = Field(
+    vel_rms: float | None = FdsField(None, ge=0, description="RMS velocity fluctuation [m/s]")
+    reynolds_stress: list[list[float]] | None = FdsField(
         None, description="Reynolds stress tensor (3x3)"
     )
-    uvw: tuple[float, float, float] | None = Field(
+    uvw: tuple[float, float, float] | None = FdsField(
         None, description="Mean velocity components [m/s]"
     )
-
-    @field_validator("xyz", mode="before")
-    @classmethod
-    def validate_xyz(cls, v: Any) -> Any:
-        if isinstance(v, tuple):
-            return Point3D.from_tuple(v)
-        return v
-
-    @field_validator("xb", mode="before")
-    @classmethod
-    def validate_xb(cls, v: Any) -> Any:
-        if isinstance(v, tuple):
-            return Bounds3D.from_tuple(v)
-        return v
 
     @model_validator(mode="after")
     def validate_vent(self) -> "Vent":
@@ -235,7 +227,7 @@ class Vent(NamelistBase):
             if any(val < 0 or val > 255 for val in self.rgb):
                 raise ValueError("RGB values must be in range 0-255")
 
-        # Phase 4 validations
+        # Additional validations
         if self.ior is not None and abs(self.ior) not in [1, 2, 3]:
             raise ValueError("IOR must be +/-1, +/-2, or +/-3")
 
@@ -306,90 +298,6 @@ class Vent(NamelistBase):
 
         return None
 
-    def to_fds(self) -> str:
-        """Generate FDS VENT namelist."""
-        params: dict[str, Any] = {}
-
-        if self.id:
-            params["id"] = self.id
-        if self.xb:
-            params["xb"] = self.xb.as_tuple()
-        if self.mb:
-            params["mb"] = self.mb
-            if self.mesh_id:
-                params["mesh_id"] = self.mesh_id
-
-        params["surf_id"] = self.surf_id
-
-        if self.xyz:
-            params["xyz"] = self.xyz.as_tuple()
-        if self.radius is not None:
-            params["radius"] = self.radius
-        if self.radius_inner is not None:
-            params["radius_inner"] = self.radius_inner
-
-        if self.devc_id:
-            params["devc_id"] = self.devc_id
-        if self.ctrl_id:
-            params["ctrl_id"] = self.ctrl_id
-        if self.delay > 0:
-            params["delay"] = self.delay
-        if self.t_activate is not None:
-            params["t_activate"] = self.t_activate
-
-        if self.dynamic_pressure:
-            params["dynamic_pressure"] = self.dynamic_pressure
-        if self.tmp_exterior is not None:
-            params["tmp_exterior"] = self.tmp_exterior
-
-        if self.color:
-            params["color"] = self.color
-        if self.rgb:
-            params["rgb"] = self.rgb
-        if self.transparency != 1.0:
-            params["transparency"] = self.transparency
-
-        # Phase 4: VENT Enhancements
-        if self.db:
-            params["db"] = self.db
-        if self.pbx is not None:
-            params["pbx"] = self.pbx
-        if self.pby is not None:
-            params["pby"] = self.pby
-        if self.pbz is not None:
-            params["pbz"] = self.pbz
-        if self.ior is not None:
-            params["ior"] = self.ior
-
-        if self.outline:
-            params["outline"] = self.outline
-        if self.mult_id:
-            params["mult_id"] = self.mult_id
-        if self.obst_id:
-            params["obst_id"] = self.obst_id
-
-        if self.texture_origin:
-            params["texture_origin"] = self.texture_origin
-
-        if self.spread_rate is not None:
-            params["spread_rate"] = self.spread_rate
-
-        if self.tmp_exterior_ramp:
-            params["tmp_exterior_ramp"] = self.tmp_exterior_ramp
-        if self.pressure_ramp:
-            params["pressure_ramp"] = self.pressure_ramp
-
-        if self.n_eddy is not None:
-            params["n_eddy"] = self.n_eddy
-        if self.l_eddy is not None:
-            params["l_eddy"] = self.l_eddy
-        if self.l_eddy_ij is not None:
-            params["l_eddy_ij"] = self.l_eddy_ij
-        if self.vel_rms is not None:
-            params["vel_rms"] = self.vel_rms
-        if self.reynolds_stress is not None:
-            params["reynolds_stress"] = self.reynolds_stress
-        if self.uvw:
-            params["uvw"] = self.uvw
-
-        return self._build_namelist("VENT", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "VENT"

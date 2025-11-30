@@ -9,7 +9,8 @@ parameters to study the effect of heat release rate on fire behavior.
 from pathlib import Path
 
 from pyfds import Simulation
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Device, Mesh, Obstruction, Reaction, Surface, Time
 
 # Create output directory
 output_dir = Path(__file__).parent / "fds"
@@ -26,24 +27,24 @@ for hrr in hrr_values:
     sim = Simulation(chid=f"fire_hrr_{hrr}", title=f"Parametric Study - HRR {hrr} kW/m²")
 
     # Time parameters
-    sim.time(t_end=300.0)  # 5 minutes
+    sim.add(Time(t_end=300.0))  # 5 minutes
 
     # Mesh - 3m x 3m x 1.5m domain
-    sim.mesh(ijk=(30, 30, 15), xb=(0, 3, 0, 3, 0, 1.5))
+    sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5)))
 
     # Add reaction for combustion
-    sim.reaction(fuel="PROPANE")
+    sim.add(Reaction(fuel="PROPANE"))
 
     # Fire surface with current HRR
-    sim.surface(id="FIRE", hrrpua=float(hrr), color="RED")
+    sim.add(Surface(id="FIRE", hrrpua=float(hrr), color="RED"))
 
     # 1m x 1m fire source
-    sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id="FIRE")
+    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id="FIRE"))
 
     # Temperature measurement devices at different heights
     heights = [0.5, 1.0, 1.4]
     for i, z in enumerate(heights, start=1):
-        sim.device(id=f"TEMP_{i}", quantity="TEMPERATURE", xyz=Point3D(1.5, 1.5, z))
+        sim.add(Device(id=f"TEMP_{i}", quantity="TEMPERATURE", xyz=Point3D.of(1.5, 1.5, z)))
 
     # Write simulation file
     output_file = output_dir / f"fire_hrr_{hrr}.fds"

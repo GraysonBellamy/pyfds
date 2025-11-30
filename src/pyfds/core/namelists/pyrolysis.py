@@ -1,6 +1,8 @@
 """Pyrolysis reaction definitions for FDS materials."""
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, model_validator
+
+from pyfds.core.namelists.base import FdsField
 
 
 class PyrolysisProduct(BaseModel):
@@ -12,17 +14,17 @@ class PyrolysisProduct(BaseModel):
     """
 
     # Gas product
-    spec_id: str | None = Field(None, description="Gas species ID")
-    nu_spec: float | None = Field(None, ge=0, le=1, description="Gas yield fraction")
-    heat_of_combustion: float | None = Field(None, description="Heat of combustion [kJ/kg]")
+    spec_id: str | None = FdsField(None, description="Gas species ID")
+    nu_spec: float | None = FdsField(None, ge=0, le=1, description="Gas yield fraction")
+    heat_of_combustion: float | None = FdsField(None, description="Heat of combustion [kJ/kg]")
 
     # Solid residue
-    matl_id: str | None = Field(None, description="Residue material ID")
-    nu_matl: float | None = Field(None, ge=0, le=1, description="Residue yield fraction")
+    matl_id: str | None = FdsField(None, description="Residue material ID")
+    nu_matl: float | None = FdsField(None, ge=0, le=1, description="Residue yield fraction")
 
     # Particle product
-    part_id: str | None = Field(None, description="Particle class ID")
-    nu_part: float | None = Field(None, ge=0, le=1, description="Particle yield fraction")
+    part_id: str | None = FdsField(None, description="Particle class ID")
+    nu_part: float | None = FdsField(None, ge=0, le=1, description="Particle yield fraction")
 
     @model_validator(mode="after")
     def validate_product(self) -> "PyrolysisProduct":
@@ -61,35 +63,37 @@ class PyrolysisReaction(BaseModel):
     """
 
     # Reaction enthalpy (optional, default 0.0)
-    heat_of_reaction: float = Field(0.0, description="Heat of reaction [kJ/kg]")
+    heat_of_reaction: float = FdsField(0.0, description="Heat of reaction [kJ/kg]")
 
     # Products (required)
-    products: list[PyrolysisProduct] = Field(..., min_length=1, description="Reaction products")
+    products: list[PyrolysisProduct] = FdsField(..., min_length=1, description="Reaction products")
 
     # Arrhenius kinetics (Method 1)
-    a: float | None = Field(None, gt=0, description="Pre-exponential factor [1/s]")
-    e: float | None = Field(None, gt=0, description="Activation energy [kJ/kmol]")
+    a: float | None = FdsField(None, gt=0, description="Pre-exponential factor [1/s]")
+    e: float | None = FdsField(None, gt=0, description="Activation energy [kJ/kmol]")
 
     # Simplified kinetics (Methods 2-4, alternative to A, E)
-    reference_temperature: float | None = Field(None, description="Peak reaction temperature [°C]")
-    reference_rate: float | None = Field(
+    reference_temperature: float | None = FdsField(
+        None, description="Peak reaction temperature [°C]"
+    )
+    reference_rate: float | None = FdsField(
         None, gt=0, description="Normalized mass loss rate at reference temperature [1/s]"
     )
-    pyrolysis_range: float | None = Field(
+    pyrolysis_range: float | None = FdsField(
         None, gt=0, description="Temperature width of reaction [°C]"
     )
-    heating_rate: float = Field(5.0, gt=0, description="TGA heating rate [K/min]")
+    heating_rate: float = FdsField(5.0, gt=0, description="TGA heating rate [K/min]")
 
     # Reaction order parameters
-    n_s: float = Field(1.0, description="Reaction order")
-    n_t: float = Field(0.0, description="Temperature exponent")
-    n_o2: float = Field(0.0, ge=0, description="Oxygen reaction order")
+    n_s: float = FdsField(1.0, description="Reaction order")
+    n_t: float = FdsField(0.0, description="Temperature exponent")
+    n_o2: float = FdsField(0.0, ge=0, description="Oxygen reaction order")
 
     # Advanced parameters
-    gas_diffusion_depth: float | None = Field(
+    gas_diffusion_depth: float | None = FdsField(
         None, gt=0, description="Gas diffusion length scale [m]"
     )
-    max_reaction_rate: float | None = Field(
+    max_reaction_rate: float | None = FdsField(
         None, gt=0, description="Maximum reaction rate [kg/(m³·s)]"
     )
 

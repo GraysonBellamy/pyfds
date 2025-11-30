@@ -4,11 +4,9 @@ FDS COMB namelist.
 Combustion model parameters.
 """
 
-from typing import Any
+from pydantic import field_validator, model_validator
 
-from pydantic import Field, field_validator, model_validator
-
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Combustion(NamelistBase):
@@ -57,7 +55,7 @@ class Combustion(NamelistBase):
     """
 
     # Extinction model
-    extinction_model: str | None = Field(
+    extinction_model: str | None = FdsField(
         None, description="Extinction model: 'EXTINCTION 1' or 'EXTINCTION 2'"
     )
 
@@ -69,29 +67,29 @@ class Combustion(NamelistBase):
             return v.upper()
         return v
 
-    suppression: bool = Field(True, description="Enable flame suppression model")
+    suppression: bool = FdsField(True, description="Enable flame suppression model")
 
     # Turbulent combustion / mixing
-    initial_unmixed_fraction: float = Field(
-        1.0, ge=0.0, le=1.0, description="Initial unmixed fraction"
+    initial_unmixed_fraction: float = FdsField(
+        1.0, ge=0.0, le=1.0, description="Initial unmixed fraction (0-1)"
     )
-    ramp_zeta_0: str | None = Field(
+    ramp_zeta_0: str | None = FdsField(
         None, description="Ramp ID for time-varying initial unmixed fraction"
     )
-    fixed_mix_time: float | None = Field(None, gt=0, description="Fixed mixing time [s]")
-    tau_chem: float | None = Field(None, gt=0, description="Minimum mixing time bound [s]")
-    tau_flame: float | None = Field(None, gt=0, description="Maximum mixing time bound [s]")
+    fixed_mix_time: float | None = FdsField(None, description="Fixed mixing time [s]")
+    tau_chem: float | None = FdsField(None, description="Minimum mixing time bound [s]")
+    tau_flame: float | None = FdsField(None, description="Maximum mixing time bound [s]")
 
     # Species/reaction thresholds
-    zz_min_global: float = Field(
-        1e-10, gt=0, description="Minimum species mass fraction for reactions"
+    zz_min_global: float = FdsField(
+        1e-10, description="Minimum species mass fraction for reactions"
     )
-    finite_rate_min_temp: float | None = Field(
+    finite_rate_min_temp: float | None = FdsField(
         None, description="Minimum temperature for finite-rate reactions [°C]"
     )
 
     # Diagnostics
-    compute_adiabatic_flame_temperature: bool = Field(
+    compute_adiabatic_flame_temperature: bool = FdsField(
         False, description="Compute and report adiabatic flame temperature"
     )
 
@@ -112,32 +110,6 @@ class Combustion(NamelistBase):
 
         return self
 
-    def to_fds(self) -> str:
-        """Generate FDS COMB namelist."""
-        params: dict[str, Any] = {}
-
-        if self.extinction_model is not None:
-            params["extinction_model"] = self.extinction_model.upper()
-        if not self.suppression:
-            params["suppression"] = self.suppression
-        if self.initial_unmixed_fraction != 1.0:
-            params["initial_unmixed_fraction"] = self.initial_unmixed_fraction
-        if self.ramp_zeta_0 is not None:
-            params["ramp_zeta_0"] = self.ramp_zeta_0
-        if self.fixed_mix_time is not None:
-            params["fixed_mix_time"] = self.fixed_mix_time
-        if self.tau_chem is not None:
-            params["tau_chem"] = self.tau_chem
-        if self.tau_flame is not None:
-            params["tau_flame"] = self.tau_flame
-        if self.zz_min_global != 1e-10:
-            params["zz_min_global"] = self.zz_min_global
-        if self.finite_rate_min_temp is not None:
-            params["finite_rate_min_temp"] = self.finite_rate_min_temp
-        if self.compute_adiabatic_flame_temperature:
-            params["compute_adiabatic_flame_temperature"] = True
-
-        if not params:
-            return "&COMB\n/\n"
-
-        return self._build_namelist("COMB", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "COMB"

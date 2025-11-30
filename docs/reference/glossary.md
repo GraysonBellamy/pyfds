@@ -345,7 +345,7 @@ LPM_per_bar05 = GPM_per_psi05 * 14.41
 ## PyFDS-Specific Terms
 
 ### Method Chaining
-Returning `self` from methods to enable: `sim.time(...).mesh(...).surface(...)`.
+Returning `self` from methods to enable: `sim.add(Time(...).mesh(...).surface(...)`.
 
 ### Validation
 Checking simulation configuration for errors before writing. PyFDS validates automatically.

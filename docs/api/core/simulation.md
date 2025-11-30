@@ -13,10 +13,10 @@ from pyfds import Simulation
 sim = Simulation(chid='my_fire', title='My Fire Simulation')
 
 # Add components
-sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 
 # Write FDS file
 sim.write('my_fire.fds')
@@ -65,21 +65,21 @@ sim = Simulation(chid='test', title='My Test Simulation')
 
 ```python
 # Simple
-sim.time(t_end=600.0)
+sim.add(Time(t_end=600.0)
 
 # With start time and time step
-sim.time(t_end=600.0, t_begin=0.0, dt=0.1)
+sim.add(Time(t_end=600.0, t_begin=0.0, dt=0.1)
 ```
 
 ### Domain Setup
 
 ```python
 # Single mesh
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Multiple meshes
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5), id='MESH1')
-sim.mesh(ijk=(30, 30, 15), xb=(5, 8, 0, 3, 0, 1.5), id='MESH2')
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5), id='MESH1')
+sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(5, 8, 0, 3, 0, 1.5), id='MESH2')
 ```
 
 ### Surfaces
@@ -99,22 +99,22 @@ sim.surface(id='INLET', vel=1.0, tmp_front=25.0)
 
 ```python
 # Obstruction
-sim.obstruction(
-    xb=(0, 0.2, 0, 5, 0, 2.5),
+sim.add(Obstruction(
+    xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5),
     surf_id='WALL'
 )
 
 # Vent
-sim.vent(
-    xb=(4, 4, 0, 2, 0, 2),
+sim.add(Vent(
+    xb=Bounds3D.of(4, 4, 0, 2, 0, 2),
     surf_id='OPEN'
 )
 
 # Circular vent
-sim.vent(
-    xb=(-2, 2, -2, 2, 0, 0),
+sim.add(Vent(
+    xb=Bounds3D.of(-2, 2, -2, 2, 0, 0),
     surf_id='BURNER',
-    xyz=(0, 0, 0),
+    xyz=Point3D.of(0, 0, 0),
     radius=1.0
 )
 ```
@@ -126,14 +126,14 @@ sim.vent(
 sim.device(
     id='TEMP_1',
     quantity='TEMPERATURE',
-    xyz=(2.5, 2.5, 2.4)
+    xyz=Point3D.of(2.5, 2.5, 2.4)
 )
 
 # Area measurement
 sim.device(
     id='HF_FLOOR',
     quantity='HEAT FLUX',
-    xb=(0, 5, 0, 5, 0, 0)
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 0)
 )
 ```
 
@@ -164,7 +164,7 @@ sim.ctrl(
 
 # Initial condition
 sim.init(
-    xb=(0, 5, 0, 5, 2.0, 2.5),
+    xb=Bounds3D.of(0, 5, 0, 5, 2.0, 2.5),
     temperature=200.0
 )
 ```
@@ -205,9 +205,9 @@ All configuration methods return `self` for chaining:
 ```python
 sim = (Simulation(chid='test')
        .time(t_end=600.0)
-       .mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+       .mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
        .surface(id='FIRE', hrrpua=1000.0)
-       .obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+       .obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 sim.write('test.fds')
 ```

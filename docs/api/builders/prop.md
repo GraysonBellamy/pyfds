@@ -252,7 +252,7 @@ for i in range(5):
     sim.device(
         id=f'SPRINKLER_{i}',
         prop_id='SPRINKLER_QR',
-        xyz=Point3D(i*2, 5, 3),
+        xyz=Point3D.of(i*2, 5, 3),
         quantity='SPRINKLER_LINK_TEMPERATURE'
     )
 ```
@@ -296,7 +296,7 @@ for i in range(1, 4):
     sim.device(
         id=f'HEAT_DET_{i}',
         prop_id='HEAT_DET',
-        xyz=Point3D(i*3, 5, 2.5)
+        xyz=Point3D.of(i*3, 5, 2.5)
     )
 
 # Delayed sprinkler activation on heat detection
@@ -321,13 +321,13 @@ sim.add_prop(heat_prop)
 sim.add_prop(sprinkler_prop)
 
 # Smoke detector for early warning
-sim.device(id='SD_1', prop_id='SMOKE', xyz=Point3D(5, 5, 2.5))
+sim.device(id='SD_1', prop_id='SMOKE', xyz=Point3D.of(5, 5, 2.5))
 
 # Heat detector for sprinkler activation
-sim.device(id='HD_1', prop_id='HEAT', xyz=Point3D(5, 5, 2.5))
+sim.device(id='HD_1', prop_id='HEAT', xyz=Point3D.of(5, 5, 2.5))
 
 # Sprinkler activated by heat detector
-sim.device(id='SPK_1', prop_id='SPRINKLER', xyz=Point3D(5, 5, 3), ctrl_id='HD_1')
+sim.device(id='SPK_1', prop_id='SPRINKLER', xyz=Point3D.of(5, 5, 3), ctrl_id='HD_1')
 ```
 
 ## Predefined Properties

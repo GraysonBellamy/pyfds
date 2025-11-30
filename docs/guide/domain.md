@@ -7,9 +7,9 @@ Learn how to define meshes and set up the computational domain for your FDS simu
 The **computational domain** is the 3D space where FDS performs calculations. It's divided into a grid of cells called a **mesh**.
 
 ```python
-sim.mesh(
-    ijk=(50, 50, 25),              # Number of cells in each direction
-    xb=(0, 5, 0, 5, 0, 2.5)        # Physical bounds in meters
+sim.add(Mesh(
+    ijk=Grid3D.of(50, 50, 25),              # Number of cells in each direction
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)        # Physical bounds in meters
 )
 ```
 
@@ -23,12 +23,12 @@ Every simulation requires at least one mesh:
 from pyfds import Simulation
 
 sim = Simulation(chid='test')
-sim.time(t_end=100.0)
+sim.add(Time(t_end=100.0)
 
 # Define a 5m x 5m x 2.5m domain
-sim.mesh(
-    ijk=(50, 50, 25),
-    xb=(0, 5, 0, 5, 0, 2.5)
+sim.add(Mesh(
+    ijk=Grid3D.of(50, 50, 25),
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)
 )
 ```
 
@@ -67,7 +67,7 @@ ijk = (50, 50, 25)
 Cell size determines resolution and accuracy:
 
 ```python
-# For xb=(0, 5, 0, 5, 0, 2.5) and ijk=(50, 50, 25):
+# For xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5) and ijk=Grid3D.of(50, 50, 25):
 dx = (xmax - xmin) / I = (5 - 0) / 50 = 0.1 m
 dy = (ymax - ymin) / J = (5 - 0) / 50 = 0.1 m
 dz = (zmax - zmin) / K = (2.5 - 0) / 25 = 0.1 m
@@ -88,7 +88,7 @@ cell_size = 0.1
 ijk = tuple(int(d / cell_size) for d in domain)
 # Result: (60, 40, 30)
 
-sim.mesh(ijk=ijk, xb=(0, 6, 0, 4, 0, 3))
+sim.add(Mesh(ijk=ijk, xb=Bounds3D.of(0, 6, 0, 4, 0, 3))
 ```
 
 ## Resolution Guidelines
@@ -97,10 +97,10 @@ sim.mesh(ijk=ijk, xb=(0, 6, 0, 4, 0, 3))
 
 | Application | Cell Size | Example |
 |-------------|-----------|---------|
-| **Quick test** | 0.2 - 0.3 m | `ijk=(25, 25, 12)` for 5×5×2.5m |
-| **Standard room fire** | 0.1 - 0.2 m | `ijk=(50, 50, 25)` for 5×5×2.5m |
-| **Detailed analysis** | 0.05 - 0.1 m | `ijk=(100, 100, 50)` for 5×5×2.5m |
-| **Research validation** | < 0.05 m | `ijk=(200, 200, 100)` for 5×5×2.5m |
+| **Quick test** | 0.2 - 0.3 m | `ijk=Grid3D.of(25, 25, 12)` for 5×5×2.5m |
+| **Standard room fire** | 0.1 - 0.2 m | `ijk=Grid3D.of(50, 50, 25)` for 5×5×2.5m |
+| **Detailed analysis** | 0.05 - 0.1 m | `ijk=Grid3D.of(100, 100, 50)` for 5×5×2.5m |
+| **Research validation** | < 0.05 m | `ijk=Grid3D.of(200, 200, 100)` for 5×5×2.5m |
 
 ### By Fire Diameter
 
@@ -130,16 +130,16 @@ Use multiple meshes for:
 
 ```python
 # Fine mesh around fire (0.05m cells)
-sim.mesh(
-    ijk=(40, 40, 40),
-    xb=(1, 3, 1, 3, 0, 2),
+sim.add(Mesh(
+    ijk=Grid3D.of(40, 40, 40),
+    xb=Bounds3D.of(1, 3, 1, 3, 0, 2),
     id='FINE_MESH'
 )
 
 # Coarse mesh for surrounding room (0.1m cells)
-sim.mesh(
-    ijk=(50, 50, 25),
-    xb=(0, 5, 0, 5, 0, 2.5),
+sim.add(Mesh(
+    ijk=Grid3D.of(50, 50, 25),
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5),
     id='COARSE_MESH'
 )
 ```
@@ -150,12 +150,12 @@ Meshes should align at boundaries:
 
 ```python
 # Good - meshes share boundary at X=3
-sim.mesh(ijk=(30, 20, 20), xb=(0, 3, 0, 2, 0, 2), id='MESH1')
-sim.mesh(ijk=(20, 20, 20), xb=(3, 5, 0, 2, 0, 2), id='MESH2')
+sim.add(Mesh(ijk=Grid3D.of(30, 20, 20), xb=Bounds3D.of(0, 3, 0, 2, 0, 2), id='MESH1')
+sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(3, 5, 0, 2, 0, 2), id='MESH2')
 
 # Bad - gap between meshes
-sim.mesh(ijk=(30, 20, 20), xb=(0, 2.9, 0, 2, 0, 2), id='MESH1')
-sim.mesh(ijk=(20, 20, 20), xb=(3.1, 5, 0, 2, 0, 2), id='MESH2')
+sim.add(Mesh(ijk=Grid3D.of(30, 20, 20), xb=Bounds3D.of(0, 2.9, 0, 2, 0, 2), id='MESH1')
+sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(3.1, 5, 0, 2, 0, 2), id='MESH2')
 ```
 
 ## Mesh Examples
@@ -164,30 +164,30 @@ sim.mesh(ijk=(20, 20, 20), xb=(3.1, 5, 0, 2, 0, 2), id='MESH2')
 
 ```python
 # 3m x 3m x 2.4m room, 0.1m cells
-sim.mesh(ijk=(30, 30, 24), xb=(0, 3, 0, 3, 0, 2.4))
+sim.add(Mesh(ijk=Grid3D.of(30, 30, 24), xb=Bounds3D.of(0, 3, 0, 3, 0, 2.4))
 ```
 
 ### Corridor
 
 ```python
 # 20m x 2m x 2.4m corridor, 0.2m cells
-sim.mesh(ijk=(100, 10, 12), xb=(0, 20, 0, 2, 0, 2.4))
+sim.add(Mesh(ijk=Grid3D.of(100, 10, 12), xb=Bounds3D.of(0, 20, 0, 2, 0, 2.4))
 ```
 
 ### Multi-Room Building
 
 ```python
 # Three connected rooms with consistent resolution
-sim.mesh(ijk=(50, 30, 25), xb=(0, 5, 0, 3, 0, 2.5), id='ROOM1')
-sim.mesh(ijk=(50, 30, 25), xb=(5, 10, 0, 3, 0, 2.5), id='ROOM2')
-sim.mesh(ijk=(50, 30, 25), xb=(10, 15, 0, 3, 0, 2.5), id='ROOM3')
+sim.add(Mesh(ijk=Grid3D.of(50, 30, 25), xb=Bounds3D.of(0, 5, 0, 3, 0, 2.5), id='ROOM1')
+sim.add(Mesh(ijk=Grid3D.of(50, 30, 25), xb=Bounds3D.of(5, 10, 0, 3, 0, 2.5), id='ROOM2')
+sim.add(Mesh(ijk=Grid3D.of(50, 30, 25), xb=Bounds3D.of(10, 15, 0, 3, 0, 2.5), id='ROOM3')
 ```
 
 ### Outdoor Fire
 
 ```python
 # Large outdoor domain, 0.5m cells
-sim.mesh(ijk=(100, 100, 40), xb=(0, 50, 0, 50, 0, 20))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 40), xb=Bounds3D.of(0, 50, 0, 50, 0, 20))
 ```
 
 ## Performance Considerations
@@ -198,13 +198,13 @@ Total cells = I × J × K
 
 ```python
 # Coarse: 15,000 cells (fast)
-sim.mesh(ijk=(30, 25, 20), xb=(0, 3, 0, 2.5, 0, 2))
+sim.add(Mesh(ijk=Grid3D.of(30, 25, 20), xb=Bounds3D.of(0, 3, 0, 2.5, 0, 2))
 
 # Medium: 60,000 cells (moderate)
-sim.mesh(ijk=(60, 50, 40), xb=(0, 3, 0, 2.5, 0, 2))
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 40), xb=Bounds3D.of(0, 3, 0, 2.5, 0, 2))
 
 # Fine: 240,000 cells (slow)
-sim.mesh(ijk=(120, 100, 80), xb=(0, 3, 0, 2.5, 0, 2))
+sim.add(Mesh(ijk=Grid3D.of(120, 100, 80), xb=Bounds3D.of(0, 3, 0, 2.5, 0, 2))
 ```
 
 !!! warning "Computational Cost"
@@ -215,19 +215,19 @@ sim.mesh(ijk=(120, 100, 80), xb=(0, 3, 0, 2.5, 0, 2))
 1. **Start coarse, refine later**
    ```python
    # Initial test
-   sim.mesh(ijk=(20, 20, 10), xb=(0, 2, 0, 2, 0, 1))
+   sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
 
    # Production
-   sim.mesh(ijk=(80, 80, 40), xb=(0, 2, 0, 2, 0, 1))
+   sim.add(Mesh(ijk=Grid3D.of(80, 80, 40), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
    ```
 
 2. **Use variable resolution**
    ```python
    # Fine near fire
-   sim.mesh(ijk=(40, 40, 30), xb=(1, 3, 1, 3, 0, 1.5))
+   sim.add(Mesh(ijk=Grid3D.of(40, 40, 30), xb=Bounds3D.of(1, 3, 1, 3, 0, 1.5))
 
    # Coarse elsewhere
-   sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
    ```
 
 3. **Parallelize with MPI**
@@ -236,7 +236,7 @@ sim.mesh(ijk=(120, 100, 80), xb=(0, 3, 0, 2.5, 0, 2))
    for i in range(4):
        x0 = i * 2.5
        x1 = (i + 1) * 2.5
-       sim.mesh(ijk=(25, 50, 25), xb=(x0, x1, 0, 5, 0, 2.5), id=f'MESH{i}')
+       sim.add(Mesh(ijk=Grid3D.of(25, 50, 25), xb=Bounds3D.of(x0, x1, 0, 5, 0, 2.5), id=f'MESH{i}')
    ```
 
 ## Validation
@@ -249,10 +249,10 @@ sim.mesh(ijk=(120, 100, 80), xb=(0, 3, 0, 2.5, 0, 2))
     **Solution**: Increase IJK or decrease domain size
     ```python
     # Before: 0.5m cells
-    sim.mesh(ijk=(10, 10, 5), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(10, 10, 5), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
     # After: 0.1m cells
-    sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     ```
 
 ??? question "Aspect ratio warning"
@@ -261,11 +261,11 @@ sim.mesh(ijk=(120, 100, 80), xb=(0, 3, 0, 2.5, 0, 2))
     **Solution**: Adjust IJK for uniform cells
     ```python
     # Bad: Non-uniform cells
-    sim.mesh(ijk=(50, 50, 10), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 10), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     # dx=0.1, dy=0.1, dz=0.25
 
     # Good: Uniform cells
-    sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     # dx=dy=dz=0.1
     ```
 
@@ -275,10 +275,10 @@ sim.mesh(ijk=(120, 100, 80), xb=(0, 3, 0, 2.5, 0, 2))
     **Solution**: Reduce resolution or use multiple meshes
     ```python
     # Too fine: 1,000,000 cells
-    sim.mesh(ijk=(100, 100, 100), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(100, 100, 100), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
     # Better: 62,500 cells
-    sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     ```
 
 ## Best Practices
@@ -299,7 +299,7 @@ def calculate_ijk(xb, cell_size):
 
 # Use it
 ijk = calculate_ijk((0, 6, 0, 4, 0, 3), cell_size=0.1)
-sim.mesh(ijk=ijk, xb=(0, 6, 0, 4, 0, 3))
+sim.add(Mesh(ijk=ijk, xb=Bounds3D.of(0, 6, 0, 4, 0, 3))
 ```
 
 ### 2. Align with Geometry
@@ -308,8 +308,8 @@ Align mesh boundaries with walls and openings:
 
 ```python
 # Wall at X=5, align mesh boundary
-sim.mesh(xb=(0, 5, 0, 5, 0, 2.5))  # Good
-sim.mesh(xb=(0, 5.3, 0, 5, 0, 2.5))  # Bad - wall at 5, mesh at 5.3
+sim.add(Mesh(xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))  # Good
+sim.add(Mesh(xb=Bounds3D.of(0, 5.3, 0, 5, 0, 2.5))  # Bad - wall at 5, mesh at 5.3
 ```
 
 ### 3. Document Your Choices
@@ -318,7 +318,7 @@ sim.mesh(xb=(0, 5.3, 0, 5, 0, 2.5))  # Bad - wall at 5, mesh at 5.3
 # Document cell size and justification
 # Cell size: 0.1m (D*/dx = 12 for 1.2m fire)
 # Based on FDS User Guide recommendation
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 ```
 
 ### 4. Test Resolution
@@ -329,7 +329,7 @@ Run grid convergence studies:
 for cell_size in [0.2, 0.1, 0.05]:
     ijk = calculate_ijk((0, 5, 0, 5, 0, 2.5), cell_size)
     sim = Simulation(chid=f'grid_{cell_size}')
-    sim.mesh(ijk=ijk, xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=ijk, xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     # ... rest of simulation ...
 ```
 

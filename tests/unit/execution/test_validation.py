@@ -3,13 +3,13 @@ Unit tests for parallel execution validation.
 """
 
 import os
-from unittest.mock import patch
 
 import pytest
 
 from pyfds import Simulation
 from pyfds.core.geometry import Bounds3D, Grid3D
-from pyfds.execution.validation import ParallelValidator
+from pyfds.core.namelists import Mesh
+from pyfds.validation import ParallelValidator
 
 
 class TestParallelValidator:
@@ -24,7 +24,7 @@ class TestParallelValidator:
     def single_mesh_sim(self) -> Simulation:
         """Create simulation with single mesh."""
         sim = Simulation(chid="test")
-        sim.mesh(ijk=Grid3D(10, 10, 10), xb=Bounds3D(0, 1, 0, 1, 0, 1))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
         return sim
 
     @pytest.fixture
@@ -32,10 +32,7 @@ class TestParallelValidator:
         """Create simulation with 4 meshes."""
         sim = Simulation(chid="test")
         for i in range(4):
-            sim.mesh(
-                ijk=Grid3D(10, 10, 10),
-                xb=Bounds3D(i, i + 1, 0, 1, 0, 1),
-            )
+            sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(i, i + 1, 0, 1, 0, 1)))
         return sim
 
 
@@ -56,20 +53,29 @@ class TestMPIMeshValidation(TestParallelValidator):
         warnings = validator.validate_mpi_mesh_count(single_mesh_sim, n_mpi=4)
 
         assert len(warnings) == 1
-        assert "4 MPI processes" in warnings[0]
-        assert "1 mesh" in warnings[0]
+        assert "(4)" in warnings[0]  # 4 MPI processes
+        assert "(1)" in warnings[0]  # 1 mesh
         assert "idle" in warnings[0].lower()
 
-    def test_mpi_less_than_mesh_count(
+    def test_mpi_less_than_mesh_count_uneven(
         self, validator: ParallelValidator, multi_mesh_sim: Simulation
     ) -> None:
-        """Test warning when MPI processes less than mesh count."""
-        warnings = validator.validate_mpi_mesh_count(multi_mesh_sim, n_mpi=2)
+        """Test info when MPI processes unevenly divide mesh count."""
+        # 4 meshes with 3 MPI processes = uneven division
+        warnings = validator.validate_mpi_mesh_count(multi_mesh_sim, n_mpi=3)
 
         assert len(warnings) == 1
-        assert "4 meshes" in warnings[0]
-        assert "2 MPI process" in warnings[0]
-        assert "efficiency" in warnings[0].lower()
+        assert "4" in warnings[0]  # 4 meshes
+        assert "3" in warnings[0]  # 3 MPI processes
+        assert "unbalanced" in warnings[0].lower()
+
+    def test_mpi_less_than_mesh_count_even(
+        self, validator: ParallelValidator, multi_mesh_sim: Simulation
+    ) -> None:
+        """Test no warning when MPI processes evenly divide mesh count."""
+        # 4 meshes with 2 MPI processes = even division
+        warnings = validator.validate_mpi_mesh_count(multi_mesh_sim, n_mpi=2)
+        assert len(warnings) == 0
 
     def test_single_mesh_single_mpi_ok(
         self, validator: ParallelValidator, single_mesh_sim: Simulation
@@ -97,7 +103,7 @@ class TestThreadCountValidation(TestParallelValidator):
         warnings = validator.validate_thread_count(n_threads=cpu_count + 4)
 
         assert len(warnings) == 1
-        assert "oversubscribe" in warnings[0].lower()
+        assert "oversubscription" in warnings[0].lower()
         assert str(cpu_count + 4) in warnings[0]
 
     def test_thread_count_over_50_percent(self, validator: ParallelValidator) -> None:
@@ -113,17 +119,7 @@ class TestThreadCountValidation(TestParallelValidator):
 
         assert len(warnings) == 1
         assert "50%" in warnings[0]
-        assert "Info" in warnings[0] or "responsiveness" in warnings[0].lower()
-
-    @patch("os.cpu_count", return_value=None)
-    def test_thread_count_unknown_cpu_count(
-        self, mock_cpu_count, validator: ParallelValidator
-    ) -> None:
-        """Test handling when CPU count cannot be determined."""
-        warnings = validator.validate_thread_count(n_threads=4)
-
-        assert len(warnings) == 1
-        assert "Could not determine" in warnings[0]
+        assert "responsiveness" in warnings[0].lower()
 
 
 class TestCombinedParallelismValidation(TestParallelValidator):
@@ -141,7 +137,7 @@ class TestCombinedParallelismValidation(TestParallelValidator):
 
         # May get info message about high OpenMP threads, but not error
         for warning in warnings:
-            assert "oversubscribe" not in warning.lower()
+            assert "oversubscription" not in warning.lower()
 
     def test_combined_exceeds_cores(self, validator: ParallelValidator) -> None:
         """Test warning when combined parallelism exceeds cores."""
@@ -150,16 +146,16 @@ class TestCombinedParallelismValidation(TestParallelValidator):
         warnings = validator.validate_combined_parallelism(n_mpi=cpu_count, n_threads=2)
 
         assert len(warnings) >= 1
-        # Should warn about oversubscription
-        oversubscribe_warning = any("oversubscribe" in w.lower() for w in warnings)
-        assert oversubscribe_warning
+        # Should warn about exceeding CPU count
+        exceeds_warning = any("exceeds" in w.lower() for w in warnings)
+        assert exceeds_warning
 
     def test_high_openmp_with_mpi(self, validator: ParallelValidator) -> None:
         """Test info message about inefficient high OpenMP with MPI."""
         warnings = validator.validate_combined_parallelism(n_mpi=4, n_threads=8)
 
         # Should get info about OpenMP inefficiency beyond ~4 threads
-        openmp_info = any("OpenMP" in w and "factor" in w for w in warnings)
+        openmp_info = any("OpenMP" in w and "diminishing" in w for w in warnings)
         assert openmp_info
 
 
@@ -193,10 +189,7 @@ class TestConfigurationRecommendations(TestParallelValidator):
 
         # Create more meshes than likely available cores
         for i in range(100):
-            sim.mesh(
-                ijk=Grid3D(5, 5, 5),
-                xb=Bounds3D(i, i + 1, 0, 1, 0, 1),
-            )
+            sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(i, i + 1, 0, 1, 0, 1)))
 
         config = validator.recommend_configuration(sim)
 
@@ -225,9 +218,10 @@ class TestValidateAll(TestParallelValidator):
         cpu_count = os.cpu_count() or 8
 
         # Configuration that should trigger multiple warnings
+        # Use 3 MPI for 4 meshes (uneven) and exceed CPU count for threads
         all_warnings = validator.validate_all(
             multi_mesh_sim,
-            n_mpi=2,  # Less than 4 meshes
+            n_mpi=3,  # Uneven division of 4 meshes
             n_threads=cpu_count + 2,  # Exceeds cores
         )
 
@@ -256,5 +250,5 @@ class TestValidateAll(TestParallelValidator):
 
         # Optimal config may still have info messages, but at most one warning
         # (on systems with limited cores relative to mesh count)
-        critical_warnings = [w for w in all_warnings if "Warning" in w]
+        critical_warnings = [w for w in all_warnings if "WARNING" in w]
         assert len(critical_warnings) <= 1

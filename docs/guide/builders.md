@@ -447,7 +447,7 @@ from pyfds.builders import VentBuilder
 
 # Generic opening to ambient
 opening = VentBuilder.opening(
-    xb=(5, 5, 2, 4, 0, 2.1),
+    xb=Bounds3D.of(5, 5, 2, 4, 0, 2.1),
     id='DOOR'
 )
 sim.add_vent(opening)
@@ -477,14 +477,14 @@ window = VentBuilder.window(
 ```python
 # Supply vent (positive flow)
 supply = VentBuilder.hvac_supply(
-    xb=(5, 6, 5, 6, 3, 3),
+    xb=Bounds3D.of(5, 6, 5, 6, 3, 3),
     volume_flow=0.5,  # m³/s
     id='SUPPLY_1'
 )
 
 # Exhaust vent (negative flow)
 exhaust = VentBuilder.hvac_exhaust(
-    xb=(0, 1, 0, 1, 3, 3),
+    xb=Bounds3D.of(0, 1, 0, 1, 3, 3),
     volume_flow=0.3,  # m³/s (automatically negated)
     id='EXHAUST_1'
 )
@@ -588,8 +588,8 @@ from pyfds.builders import (
 
 # Create simulation
 sim = Simulation('apartment_fire', title='Apartment Fire Demo')
-sim.time(t_end=600)
-sim.mesh(ijk=(100, 100, 50), xb=(0, 10, 0, 10, 0, 5))
+sim.add(Time(t_end=600)
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
 
 # Add combustion reaction
 reac = (
@@ -629,7 +629,7 @@ sim.add_material(steel)
 
 # Add vents
 door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0, id='DOOR')
-supply = VentBuilder.hvac_supply(xb=(5, 6, 5, 6, 3, 3), volume_flow=0.5, id='SUPPLY')
+supply = VentBuilder.hvac_supply(xb=Bounds3D.of(5, 6, 5, 6, 3, 3), volume_flow=0.5, id='SUPPLY')
 
 sim.add_vent(door)
 sim.add_vent(supply)
@@ -655,7 +655,7 @@ sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
 sim.surface(id='WALL', matl_id='STEEL', thickness=0.012)
 
 # Add geometry
-sim.obstruction(xb=(4.5, 5.5, 4.5, 5.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 4.5, 5.5, 0, 0.1), surf_id='FIRE')
 
 # Write FDS file
 sim.write('apartment_fire.fds')

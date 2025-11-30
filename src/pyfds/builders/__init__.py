@@ -6,7 +6,7 @@ making it easier to construct simulations with readable, chainable methods.
 
 Examples
 --------
->>> from pyfds.builders import RampBuilder, MaterialBuilder, ReactionBuilder
+>>> from pyfds.builders import RampBuilder, MaterialBuilder
 >>>
 >>> # Create a fire growth ramp
 >>> fire_ramp = RampBuilder('HRR_GROWTH') \
@@ -20,44 +20,36 @@ Examples
 ...     .specific_heat(0.46) \
 ...     .emissivity(0.7) \
 ...     .build()
->>>
->>> # Create a combustion reaction
->>> reac = ReactionBuilder() \
-...     .fuel('PROPANE') \
-...     .soot_yield(0.015) \
-...     .build()
 """
 
-from .base import Builder
 from .control import ControlBuilder
-from .devc import DevcBuilder
 from .geom import GeomBuilder
 from .hole import HoleBuilder
 from .material import MaterialBuilder
 from .mesh import MeshBuilder
 from .move import MoveBuilder
 from .mult import MultBuilder
+from .obstruction import ObstructionBuilder
 from .part import PartBuilder
 from .prop import PropBuilder
 from .ramp import RampBuilder
 from .reaction import ReactionBuilder
-from .surf import SurfBuilder
+from .surface import SurfaceBuilder
 from .vent import VentBuilder
 
 __all__ = [
-    "Builder",
     "ControlBuilder",
-    "DevcBuilder",
     "GeomBuilder",
     "HoleBuilder",
     "MaterialBuilder",
     "MeshBuilder",
     "MoveBuilder",
     "MultBuilder",
+    "ObstructionBuilder",
     "PartBuilder",
     "PropBuilder",
     "RampBuilder",
     "ReactionBuilder",
-    "SurfBuilder",
+    "SurfaceBuilder",
     "VentBuilder",
 ]

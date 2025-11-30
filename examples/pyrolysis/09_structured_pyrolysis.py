@@ -8,8 +8,8 @@ multi-step material decomposition reactions.
 
 from pathlib import Path
 
-from pyfds import Simulation
-from pyfds.builders import MaterialBuilder, SurfBuilder
+from pyfds import Simulation, Surface
+from pyfds.builders import MaterialBuilder
 from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
 
 
@@ -71,17 +71,12 @@ def main():
     )
 
     # Create surface with pyrolysis
-    wood_surface = (
-        SurfBuilder("WOOD_SURFACE")
-        .with_material("WOOD", thickness=0.012)
-        .with_backing("EXPOSED")
-        .build()
-    )
+    wood_surface = Surface(id="WOOD_SURFACE", matl_id="WOOD", thickness=0.012, backing="EXPOSED")
 
     # Add to simulation
-    sim.add_material(wood)
-    sim.add_material(char)
-    sim.add_surface(wood_surface)
+    sim.add(wood)
+    sim.add(char)
+    sim.add(wood_surface)
 
     # ... rest of simulation setup
 

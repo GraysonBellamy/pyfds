@@ -91,7 +91,7 @@ Apply to fire surface:
 
 ```python
 sim.surface(id='FIRE', hrrpua=1000.0, ramp_q='MEDIUM')
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(ion(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 ```
 
 ### Custom Fire Growth
@@ -136,8 +136,8 @@ sim.ramp(
     f=[0.0, 1.0, 1.0, 0.0]
 )
 
-sim.vent(
-    xb=(2, 2.5, 2, 2.5, 3, 3),
+sim.add(Vent(
+    xb=Bounds3D.of(2, 2.5, 2, 2.5, 3, 3),
     surf_id='HVAC',
     volume_flow=0.5,
     volume_flow_ramp='HVAC_SCHEDULE'
@@ -218,8 +218,8 @@ sim.ramp(
 from pyfds import Simulation
 
 sim = Simulation(chid='growing_fire')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(60, 50, 25), xb=(0, 6, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
 
 # Medium growth fire (300s to peak)
 sim.ramp(
@@ -229,10 +229,10 @@ sim.ramp(
 )
 
 sim.surface(id='FIRE', hrrpua=1500.0, ramp_q='GROWTH', color='ORANGE')
-sim.obstruction(xb=(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(ion(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
 
 # Door
-sim.vent(xb=(6, 6, 2, 3, 0, 2.1), surf_id='OPEN')
+sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN')
 
 sim.write('growing_fire.fds')
 ```
@@ -241,8 +241,8 @@ sim.write('growing_fire.fds')
 
 ```python
 sim = Simulation(chid='fire_decay')
-sim.time(t_end=900.0)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=900.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Fire grows to peak at 180s, steady until 600s, decays to 10% by 900s
 sim.ramp(
@@ -252,7 +252,7 @@ sim.ramp(
 )
 
 sim.surface(id='FIRE', hrrpua=2000.0, ramp_q='FIRE_CURVE')
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(ion(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 
 sim.write('fire_decay.fds')
 ```
@@ -261,8 +261,8 @@ sim.write('fire_decay.fds')
 
 ```python
 sim = Simulation(chid='temp_wall')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(60, 40, 25), xb=(0, 6, 0, 4, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 40, 25), xb=Bounds3D.of(0, 6, 0, 4, 0, 2.5))
 
 # Conductivity increases with temperature
 sim.ramp(
@@ -288,10 +288,10 @@ sim.surface(
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(2.5, 3.5, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(ion(xb=Bounds3D.of(2.5, 3.5, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
 
 # Wall
-sim.obstruction(xb=(0, 0.1, 0, 4, 0, 2.5), surf_id='GYPSUM_WALL')
+sim.add(Obstruction(ion(xb=Bounds3D.of(0, 0.1, 0, 4, 0, 2.5), surf_id='GYPSUM_WALL')
 
 sim.write('temp_wall.fds')
 ```
@@ -300,8 +300,8 @@ sim.write('temp_wall.fds')
 
 ```python
 sim = Simulation(chid='hvac_schedule')
-sim.time(t_end=900.0)
-sim.mesh(ijk=(60, 60, 30), xb=(0, 6, 0, 6, 0, 3))
+sim.add(Time(t_end=900.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 60, 30), xb=Bounds3D.of(0, 6, 0, 6, 0, 3))
 
 # HVAC operates: 0-300s off, 300-600s on, 600s+ off
 sim.ramp(
@@ -312,11 +312,11 @@ sim.ramp(
 
 # Fire starts at t=0
 sim.surface(id='FIRE', hrrpua=800.0)
-sim.obstruction(xb=(2.5, 3.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(ion(xb=Bounds3D.of(2.5, 3.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
 
 # HVAC vent with schedule
-sim.vent(
-    xb=(1, 1.5, 1, 1.5, 3, 3),
+sim.add(Vent(
+    xb=Bounds3D.of(1, 1.5, 1, 1.5, 3, 3),
     surf_id='HVAC',
     volume_flow=0.6,
     volume_flow_ramp='HVAC_ON'
@@ -329,18 +329,18 @@ sim.write('hvac_schedule.fds')
 
 ```python
 sim = Simulation(chid='staggered_fires')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(80, 60, 25), xb=(0, 8, 0, 6, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(80, 60, 25), xb=Bounds3D.of(0, 8, 0, 6, 0, 2.5))
 
 # First fire: starts at t=0
 sim.ramp(id='FIRE1', t=[0, 120], f=[0.0, 1.0])
 sim.surface(id='FIRE1', hrrpua=1000.0, ramp_q='FIRE1')
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE1')
+sim.add(Obstruction(ion(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE1')
 
 # Second fire: starts at t=180s
 sim.ramp(id='FIRE2', t=[0, 180, 300], f=[0.0, 0.0, 1.0])
 sim.surface(id='FIRE2', hrrpua=1200.0, ramp_q='FIRE2')
-sim.obstruction(xb=(5, 6, 3, 4, 0, 0.1), surf_id='FIRE2')
+sim.add(Obstruction(ion(xb=Bounds3D.of(5, 6, 3, 4, 0, 0.1), surf_id='FIRE2')
 
 sim.write('staggered_fires.fds')
 ```
@@ -417,7 +417,7 @@ sim.ramp(id='BAD', t=[30, 60, 120], f=[0, 0.5, 1])
 ### 3. Match Simulation Duration
 
 ```python
-sim.time(t_end=600.0)
+sim.add(Time(t_end=600.0)
 
 # RAMP extends to simulation end
 sim.ramp(

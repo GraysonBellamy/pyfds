@@ -4,11 +4,9 @@ FDS SPEC namelist.
 Gas species definition for combustion and pyrolysis.
 """
 
-from typing import Any
+from pydantic import field_validator, model_validator
 
-from pydantic import Field, field_validator, model_validator
-
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Species(NamelistBase):
@@ -172,112 +170,122 @@ class Species(NamelistBase):
     - See FDS User Guide Appendix for list of predefined species
     """
 
-    id: str | None = Field(None, description="Species identifier")
-    fuel: str | None = Field(None, description="Fuel name for composition-defined species")
+    id: str | None = FdsField(None, description="Species identifier")
+    fuel: str | None = FdsField(None, description="Fuel name for composition-defined species")
 
     # Species identification
-    formula: str | None = Field(None, description="Chemical formula (e.g., 'C2H6O2')")
-    alt_id: str | None = Field(None, description="Alternative species ID for lookups")
-    background: bool = Field(False, description="Use as background species")
-    primitive: bool = Field(False, description="Treat duplicate species as primitive")
-    copy_lumped: bool = Field(False, description="Create copy of lumped species")
+    formula: str | None = FdsField(None, description="Chemical formula (e.g., 'C2H6O2')")
+    alt_id: str | None = FdsField(None, description="Alternative species ID for lookups")
+    background: bool = FdsField(False, exclude_if=False, description="Use as background species")
+    primitive: bool = FdsField(
+        False, exclude_if=False, description="Treat duplicate species as primitive"
+    )
+    copy_lumped: bool = FdsField(
+        False, exclude_if=False, description="Create copy of lumped species"
+    )
 
     # Chemical composition for user-defined species
-    c: float | None = Field(None, ge=0, description="Carbon atoms")
-    h: float | None = Field(None, ge=0, description="Hydrogen atoms")
-    o: float | None = Field(None, ge=0, description="Oxygen atoms")
-    n: float | None = Field(None, ge=0, description="Nitrogen atoms")
-    mw: float | None = Field(None, gt=0, description="Molecular weight [g/mol]")
+    c: float | None = FdsField(None, ge=0, description="Carbon atoms")
+    h: float | None = FdsField(None, ge=0, description="Hydrogen atoms")
+    o: float | None = FdsField(None, ge=0, exclude_if=0, description="Oxygen atoms")
+    n: float | None = FdsField(None, ge=0, exclude_if=0, description="Nitrogen atoms")
+    mw: float | None = FdsField(None, gt=0, description="Molecular weight [g/mol]")
 
     # Ambient composition
-    mass_fraction_0: float | None = Field(
+    mass_fraction_0: float | None = FdsField(
         None, ge=0, le=1, description="Initial mass fraction in ambient"
     )
-    volume_fraction_0: float | None = Field(
+    volume_fraction_0: float | None = FdsField(
         None, ge=0, le=1, description="Initial volume fraction in ambient"
     )
 
     # Predefined species flags
-    lumped_component_only: bool = Field(False, description="Lumped component flag")
+    lumped_component_only: bool = FdsField(
+        False, exclude_if=False, description="Lumped component flag"
+    )
 
     # Mixture species
-    spec_id: list[str] | None = Field(None, description="Component species IDs for mixture")
-    mass_fraction: list[float] | None = Field(
+    spec_id: list[str] | None = FdsField(None, description="Component species IDs for mixture")
+    mass_fraction: list[float] | None = FdsField(
         None, description="Component mass fractions for mixture"
     )
-    volume_fraction: list[float] | None = Field(
+    volume_fraction: list[float] | None = FdsField(
         None, description="Component volume fractions for mixture"
     )
 
     # Thermophysical properties (optional overrides)
-    enthalpy: float | None = Field(None, description="Enthalpy of formation [kJ/kg]")
-    specific_heat: float | None = Field(None, gt=0, description="Specific heat [kJ/(kg·K)]")
-    conductivity: float | None = Field(None, gt=0, description="Thermal conductivity [W/(m·K)]")
-    viscosity: float | None = Field(None, gt=0, description="Dynamic viscosity [kg/(m·s)]")
-    diffusivity: float | None = Field(None, gt=0, description="Mass diffusivity [m²/s]")
+    enthalpy: float | None = FdsField(None, description="Enthalpy of formation [kJ/kg]")
+    specific_heat: float | None = FdsField(None, gt=0, description="Specific heat [kJ/(kg·K)]")
+    conductivity: float | None = FdsField(None, gt=0, description="Thermal conductivity [W/(m·K)]")
+    viscosity: float | None = FdsField(None, gt=0, description="Dynamic viscosity [kg/(m·s)]")
+    diffusivity: float | None = FdsField(None, gt=0, description="Mass diffusivity [m²/s]")
 
     # Reference enthalpy
-    reference_temperature: float | None = Field(None, description="Reference temperature [°C]")
-    reference_enthalpy: float | None = Field(None, description="Enthalpy at reference temp [kJ/kg]")
-    enthalpy_of_formation: float | None = Field(None, description="Formation enthalpy [kJ/mol]")
+    reference_temperature: float | None = FdsField(None, description="Reference temperature [°C]")
+    reference_enthalpy: float | None = FdsField(
+        None, description="Enthalpy at reference temp [kJ/kg]"
+    )
+    enthalpy_of_formation: float | None = FdsField(None, description="Formation enthalpy [kJ/mol]")
 
     # NASA polynomials (2 sets of 7 coefficients)
-    polynomial_coeff: list[list[float]] | None = Field(
+    polynomial_coeff: list[list[float]] | None = FdsField(
         None, description="NASA polynomial coefficients"
     )
-    polynomial_temp: list[float] | None = Field(
+    polynomial_temp: list[float] | None = FdsField(
         None, description="Polynomial temperature ranges [K]"
     )
 
     # Temperature-dependent property ramps
-    ramp_k: str | None = Field(None, description="Conductivity ramp ID")
-    ramp_d: str | None = Field(None, description="Diffusivity ramp ID")
-    ramp_mu: str | None = Field(None, description="Viscosity ramp ID")
-    ramp_cp: str | None = Field(None, description="Specific heat ramp ID")
-    ramp_g_f: str | None = Field(None, description="Gibbs free energy ramp ID")
+    ramp_k: str | None = FdsField(None, description="Conductivity ramp ID")
+    ramp_d: str | None = FdsField(None, description="Diffusivity ramp ID")
+    ramp_mu: str | None = FdsField(None, description="Viscosity ramp ID")
+    ramp_cp: str | None = FdsField(None, description="Specific heat ramp ID")
+    ramp_g_f: str | None = FdsField(None, description="Gibbs free energy ramp ID")
 
     # Aerosol properties
-    aerosol: bool = Field(False, description="Species is an aerosol")
-    density_solid: float | None = Field(None, gt=0, description="Aerosol particle density [kg/m³]")
-    mean_diameter: float | None = Field(None, gt=0, description="Aerosol mean diameter [m]")
+    aerosol: bool = FdsField(False, exclude_if=False, description="Species is an aerosol")
+    density_solid: float | None = FdsField(
+        None, gt=0, description="Aerosol particle density [kg/m³]"
+    )
+    mean_diameter: float | None = FdsField(None, gt=0, description="Aerosol mean diameter [m]")
 
     # Radiation properties
-    radcal_id: str | None = Field(None, description="RadCal surrogate species for absorption")
+    radcal_id: str | None = FdsField(None, description="RadCal surrogate species for absorption")
 
     # Additional properties
-    pr: float | None = Field(None, gt=0, description="Prandtl number")
-    sc: float | None = Field(None, gt=0, description="Schmidt number")
+    pr: float | None = FdsField(None, gt=0, description="Prandtl number")
+    sc: float | None = FdsField(None, gt=0, description="Schmidt number")
 
     # Lennard-Jones potential parameters
-    sigmalj: float | None = Field(None, gt=0, description="Lennard-Jones sigma [Å]")
-    epsilonklj: float | None = Field(None, gt=0, description="Lennard-Jones epsilon/k [K]")
+    sigmalj: float | None = FdsField(None, gt=0, description="Lennard-Jones sigma [Å]")
+    epsilonklj: float | None = FdsField(None, gt=0, description="Lennard-Jones epsilon/k [K]")
 
     # Gas phase properties
-    pr_gas: float | None = Field(None, gt=0, description="Gas phase Prandtl number")
-    turbulent_schmidt_number: float | None = Field(
+    pr_gas: float | None = FdsField(None, gt=0, description="Gas phase Prandtl number")
+    turbulent_schmidt_number: float | None = FdsField(
         None, gt=0, description="Turbulent Schmidt number"
     )
-    gamma: float | None = Field(None, gt=1, description="Ratio of specific heats")
+    gamma: float | None = FdsField(None, gt=1, description="Ratio of specific heats")
 
     # Liquid properties for droplet simulations
-    boiling_temperature: float | None = Field(None, description="Boiling temperature [°C]")
-    vaporization_temperature: float | None = Field(
+    boiling_temperature: float | None = FdsField(None, description="Boiling temperature [°C]")
+    vaporization_temperature: float | None = FdsField(
         None, description="Vaporization temperature [°C]"
     )
-    heat_of_vaporization: float | None = Field(
+    heat_of_vaporization: float | None = FdsField(
         None, gt=0, description="Heat of vaporization [kJ/kg]"
     )
-    density_liquid: float | None = Field(None, gt=0, description="Liquid density [kg/m³]")
-    specific_heat_liquid: float | None = Field(
+    density_liquid: float | None = FdsField(None, gt=0, description="Liquid density [kg/m³]")
+    specific_heat_liquid: float | None = FdsField(
         None, gt=0, description="Liquid specific heat [kJ/(kg·K)]"
     )
-    conductivity_liquid: float | None = Field(
+    conductivity_liquid: float | None = FdsField(
         None, gt=0, description="Liquid conductivity [W/(m·K)]"
     )
-    viscosity_liquid: float | None = Field(None, gt=0, description="Liquid viscosity [kg/(m·s)]")
-    surface_tension: float | None = Field(None, gt=0, description="Surface tension [N/m]")
-    melting_temperature: float | None = Field(None, description="Melting temperature [°C]")
-    h_v_reference_temperature: float | None = Field(
+    viscosity_liquid: float | None = FdsField(None, gt=0, description="Liquid viscosity [kg/(m·s)]")
+    surface_tension: float | None = FdsField(None, gt=0, description="Surface tension [N/m]")
+    melting_temperature: float | None = FdsField(None, description="Melting temperature [°C]")
+    h_v_reference_temperature: float | None = FdsField(
         None, description="Reference temp for vaporization [°C]"
     )
 
@@ -364,148 +372,6 @@ class Species(NamelistBase):
 
         return self
 
-    def to_fds(self) -> str:
-        """Generate FDS SPEC namelist."""
-        params: dict[str, Any] = {}
-
-        # Use FUEL if specified, otherwise ID
-        if self.fuel:
-            params["fuel"] = self.fuel
-        elif self.id:
-            params["id"] = self.id
-
-        # Species identification
-        if self.formula is not None:
-            params["formula"] = self.formula
-        if self.alt_id is not None:
-            params["alt_id"] = self.alt_id
-        if self.background:
-            params["background"] = self.background
-        if self.primitive:
-            params["primitive"] = self.primitive
-        if self.copy_lumped:
-            params["copy_lumped"] = self.copy_lumped
-
-        # Chemical composition
-        if self.c is not None:
-            params["c"] = self.c
-        if self.h is not None:
-            params["h"] = self.h
-        if self.o is not None and self.o > 0:
-            params["o"] = self.o
-        if self.n is not None and self.n > 0:
-            params["n"] = self.n
-        if self.mw is not None:
-            params["mw"] = self.mw
-
-        # Ambient composition
-        if self.mass_fraction_0 is not None:
-            params["mass_fraction_0"] = self.mass_fraction_0
-        if self.volume_fraction_0 is not None:
-            params["volume_fraction_0"] = self.volume_fraction_0
-
-        # Flags
-        if self.lumped_component_only:
-            params["lumped_component_only"] = self.lumped_component_only
-
-        # Mixture components
-        if self.spec_id:
-            params["spec_id"] = self.spec_id
-        if self.mass_fraction:
-            params["mass_fraction"] = self.mass_fraction
-        if self.volume_fraction:
-            params["volume_fraction"] = self.volume_fraction
-
-        # Thermophysical properties
-        if self.enthalpy is not None:
-            params["enthalpy"] = self.enthalpy
-        if self.specific_heat is not None:
-            params["specific_heat"] = self.specific_heat
-        if self.conductivity is not None:
-            params["conductivity"] = self.conductivity
-        if self.viscosity is not None:
-            params["viscosity"] = self.viscosity
-        if self.diffusivity is not None:
-            params["diffusivity"] = self.diffusivity
-
-        # Temperature-dependent ramps
-        if self.ramp_k is not None:
-            params["ramp_k"] = self.ramp_k
-        if self.ramp_d is not None:
-            params["ramp_d"] = self.ramp_d
-        if self.ramp_mu is not None:
-            params["ramp_mu"] = self.ramp_mu
-        if self.ramp_cp is not None:
-            params["ramp_cp"] = self.ramp_cp
-        if self.ramp_g_f is not None:
-            params["ramp_g_f"] = self.ramp_g_f
-
-        # Aerosol properties
-        if self.aerosol:
-            params["aerosol"] = self.aerosol
-        if self.density_solid is not None:
-            params["density_solid"] = self.density_solid
-        if self.mean_diameter is not None:
-            params["mean_diameter"] = self.mean_diameter
-
-        # Additional properties
-        if self.pr is not None:
-            params["pr"] = self.pr
-        if self.sc is not None:
-            params["sc"] = self.sc
-
-        # Lennard-Jones parameters
-        if self.sigmalj is not None:
-            params["sigmalj"] = self.sigmalj
-        if self.epsilonklj is not None:
-            params["epsilonklj"] = self.epsilonklj
-
-        # Gas phase properties
-        if self.pr_gas is not None:
-            params["pr_gas"] = self.pr_gas
-        if self.turbulent_schmidt_number is not None:
-            params["turbulent_schmidt_number"] = self.turbulent_schmidt_number
-        if self.gamma is not None:
-            params["gamma"] = self.gamma
-
-        # Reference enthalpy
-        if self.reference_temperature is not None:
-            params["reference_temperature"] = self.reference_temperature
-        if self.reference_enthalpy is not None:
-            params["reference_enthalpy"] = self.reference_enthalpy
-        if self.enthalpy_of_formation is not None:
-            params["enthalpy_of_formation"] = self.enthalpy_of_formation
-
-        # NASA polynomials
-        if self.polynomial_coeff is not None:
-            params["polynomial_coeff"] = self.polynomial_coeff
-        if self.polynomial_temp is not None:
-            params["polynomial_temp"] = self.polynomial_temp
-
-        # Radiation properties
-        if self.radcal_id is not None:
-            params["radcal_id"] = self.radcal_id
-
-        # Liquid properties
-        if self.boiling_temperature is not None:
-            params["boiling_temperature"] = self.boiling_temperature
-        if self.vaporization_temperature is not None:
-            params["vaporization_temperature"] = self.vaporization_temperature
-        if self.heat_of_vaporization is not None:
-            params["heat_of_vaporization"] = self.heat_of_vaporization
-        if self.density_liquid is not None:
-            params["density_liquid"] = self.density_liquid
-        if self.specific_heat_liquid is not None:
-            params["specific_heat_liquid"] = self.specific_heat_liquid
-        if self.conductivity_liquid is not None:
-            params["conductivity_liquid"] = self.conductivity_liquid
-        if self.viscosity_liquid is not None:
-            params["viscosity_liquid"] = self.viscosity_liquid
-        if self.surface_tension is not None:
-            params["surface_tension"] = self.surface_tension
-        if self.melting_temperature is not None:
-            params["melting_temperature"] = self.melting_temperature
-        if self.h_v_reference_temperature is not None:
-            params["h_v_reference_temperature"] = self.h_v_reference_temperature
-
-        return self._build_namelist("SPEC", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "SPEC"

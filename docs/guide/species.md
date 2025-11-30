@@ -78,7 +78,7 @@ custom_fuel = Species(
 sim.add_species(custom_fuel)
 
 # Define combustion reaction
-sim.reaction(
+sim.add(Reaction(
     fuel="MY_FUEL",
     heat_of_combustion=45000,  # kJ/kg
     c=6, h=14, o=0, n=0,      # Stoichiometric coefficients
@@ -121,12 +121,12 @@ from pyfds import Simulation
 sim = Simulation(chid="lumped_example")
 
 # Define component species (must be marked as lumped components)
-sim.species(id="N2_COMPONENT", lumped_component_only=True)
-sim.species(id="O2_COMPONENT", lumped_component_only=True)
-sim.species(id="CO2_COMPONENT", lumped_component_only=True)
+sim.add(Species(id="N2_COMPONENT", lumped_component_only=True)
+sim.add(Species(id="O2_COMPONENT", lumped_component_only=True)
+sim.add(Species(id="CO2_COMPONENT", lumped_component_only=True)
 
 # Define lumped air mixture
-sim.species(
+sim.add(Species(
     id="AIR_MIX",
     background=True,
     spec_id=["N2_COMPONENT", "O2_COMPONENT", "CO2_COMPONENT"],
@@ -134,7 +134,7 @@ sim.species(
 )
 
 # Use in combustion
-sim.reaction(
+sim.add(Reaction(
     fuel="PROPANE",
     spec_id_nu=["PROPANE", "AIR_MIX", "CO2_COMPONENT", "WATER_VAPOR"],
     nu=[-1, -5, 3, 4]  # Stoichiometric coefficients
@@ -158,7 +158,7 @@ from pyfds import Simulation
 sim = Simulation(chid="background_example")
 
 # Define air as background
-sim.species(
+sim.add(Species(
     id="AIR",
     background=True,
     formula="AIR",
@@ -195,7 +195,7 @@ sim = Simulation(chid="temp_dependent")
 sim.ramp(id="VISCOSITY_RAMP", x=[20, 100, 500], f=[1.8e-5, 2.1e-5, 3.5e-5])
 
 # Define species with temperature-dependent viscosity
-sim.species(
+sim.add(Species(
     id="HOT_GAS",
     formula="N2",
     mw=28.0134,
@@ -218,7 +218,7 @@ from pyfds import Simulation
 sim = Simulation(chid="radiation_example")
 
 # Species with radiation absorption
-sim.species(
+sim.add(Species(
     id="CO2",
     formula="CO2",
     mw=44.0095,
@@ -234,7 +234,7 @@ from pyfds import Simulation
 sim = Simulation(chid="droplet_example")
 
 # Fuel with liquid properties for droplet evaporation
-sim.species(
+sim.add(Species(
     id="HEPTANE",
     formula="C7H16",
     mw=100.2,
@@ -288,25 +288,25 @@ sim.combustion(
 from pyfds import Simulation
 
 sim = Simulation(chid="simple_combustion")
-sim.time(t_end=60.0)
-sim.mesh(ijk=(20, 20, 20), xb=(0, 2, 0, 2, 0, 2))
+sim.add(Time(t_end=60.0)
+sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2))
 
 # Use predefined species
-sim.species(id="PROPANE", mass_fraction_0=0.0)
-sim.species(id="OXYGEN", mass_fraction_0=0.23)
-sim.species(id="NITROGEN", mass_fraction_0=0.77)
+sim.add(Species(id="PROPANE", mass_fraction_0=0.0)
+sim.add(Species(id="OXYGEN", mass_fraction_0=0.23)
+sim.add(Species(id="NITROGEN", mass_fraction_0=0.77)
 
 # Combustion reaction
-sim.reaction(
+sim.add(Reaction(
     fuel="PROPANE",
     soot_yield=0.01,
     co_yield=0.005
 )
 
 # Fire source
-sim.vent(
+sim.add(Vent(
     id="FIRE",
-    xb=(0.8, 1.2, 0.8, 1.2, 0, 0),
+    xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0),
     surface="burner"
 )
 
@@ -321,13 +321,13 @@ from pyfds import Simulation
 sim = Simulation(chid="finite_rate")
 
 # Species definitions
-sim.species(id="CH4", mass_fraction_0=0.0)  # Methane
-sim.species(id="O2", mass_fraction_0=0.23)  # Oxygen
-sim.species(id="CO2", mass_fraction_0=0.0)  # Carbon dioxide
-sim.species(id="H2O", mass_fraction_0=0.0)  # Water vapor
+sim.add(Species(id="CH4", mass_fraction_0=0.0)  # Methane
+sim.add(Species(id="O2", mass_fraction_0=0.23)  # Oxygen
+sim.add(Species(id="CO2", mass_fraction_0=0.0)  # Carbon dioxide
+sim.add(Species(id="H2O", mass_fraction_0=0.0)  # Water vapor
 
 # Finite-rate reaction
-sim.reaction(
+sim.add(Reaction(
     fuel="CH4",
     # Arrhenius parameters
     a=8.6e11,      # Pre-exponential factor

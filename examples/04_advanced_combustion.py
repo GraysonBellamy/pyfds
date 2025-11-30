@@ -15,8 +15,11 @@ This showcases the advanced combustion features added in Stage 1.3 (REAC enhance
 
 from pathlib import Path
 
-from pyfds.builders import DevcBuilder, ReactionBuilder, SurfBuilder
-from pyfds.core.geometry import Bounds3D, Point3D
+from pyfds.builders import ReactionBuilder
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Device, Surface
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.time import Time
 from pyfds.core.simulation import Simulation
 
 
@@ -35,10 +38,10 @@ def create_advanced_combustion_fire():
     sim = Simulation(
         chid="advanced_combustion", title="Advanced Combustion Modeling - PyFDS Stage 1 Example"
     )
-    sim.time(t_end=400.0)
+    sim.add(Time(t_end=400.0))
 
     # Computational mesh
-    sim.mesh(id="BURN_ROOM", xb=(0, 6, 0, 6, 0, 3), ijk=(60, 60, 30))
+    sim.add(Mesh(id="BURN_ROOM", xb=Bounds3D.of(0, 6, 0, 6, 0, 3), ijk=Grid3D.of(60, 60, 30)))
 
     # Stability control
     sim.set_misc(cfl_max=0.95)
@@ -72,18 +75,19 @@ def create_advanced_combustion_fire():
         .auto_ignition_temperature(220.0)
         .build()
     )
-    sim.add_reaction(reaction)
+    sim.add(reaction)
 
     # Fire surface with mass flux
-    fire_surf = (
-        SurfBuilder("LIQUID_POOL")
-        .with_mass_flux(0.02)  # kg/s/m²
-        .with_ignition(temperature=220.0, burn_away=False)
-        .with_radiation(emissivity=0.95, absorptivity=0.90)
-        .with_heat_of_combustion(44600.0)
-        .build()
+    fire_surf = Surface(
+        id="LIQUID_POOL",
+        mass_flux=0.02,  # kg/s/m²
+        ignition_temperature=220.0,
+        burn_away=False,
+        emissivity=0.95,
+        absorptivity=0.90,
+        heat_of_combustion=44600.0,
     )
-    sim.add_surface(fire_surf)
+    sim.add(fire_surf)
 
     # Temperature monitoring - detailed grid
     x_positions = [1.5, 3.0, 4.5]
@@ -94,62 +98,48 @@ def create_advanced_combustion_fire():
         for y in y_positions:
             for z in z_positions:
                 temp_id = f"T_X{int(x * 10):02d}_Y{int(y * 10):02d}_Z{int(z * 10):02d}"
-                temp_sensor = (
-                    DevcBuilder(temp_id)
-                    .with_quantity("TEMPERATURE")
-                    .at_point(Point3D(x, y, z))
-                    .build()
-                )
-                sim.add_device(temp_sensor)
+                temp_sensor = Device(id=temp_id, quantity="TEMPERATURE", xyz=Point3D.of(x, y, z))
+                sim.add(temp_sensor)
 
     # Species concentration measurements (CO2, O2, CO)
     species_quantities = ["VOLUME FRACTION CO2", "VOLUME FRACTION O2", "VOLUME FRACTION CO"]
-    measurement_point = Point3D(3.0, 3.0, 1.5)
 
     for species in species_quantities:
         species_name = species.replace("VOLUME FRACTION ", "").replace(" ", "_")
-        species_sensor = (
-            DevcBuilder(f"SPECIES_{species_name}")
-            .with_quantity(species)
-            .at_point(measurement_point)
-            .with_time_history(True)
-            .build()
+        species_sensor = Device(
+            id=f"SPECIES_{species_name}",
+            quantity=species,
+            xyz=Point3D.of(3.0, 3.0, 1.5),
+            time_history=True,
         )
-        sim.add_device(species_sensor)
-    hrr_sensor = (
-        DevcBuilder("HRR_TOTAL").with_quantity("HRR").in_bounds(Bounds3D(0, 6, 0, 6, 0, 3)).build()
-    )
-    sim.add_device(hrr_sensor)
+        sim.add(species_sensor)
+    hrr_sensor = Device(id="HRR_TOTAL", quantity="HRR", xb=Bounds3D.of(0, 6, 0, 6, 0, 3))
+    sim.add(hrr_sensor)
 
     # Extinction indicator - monitors flame temperature
-    flame_temp = (
-        DevcBuilder("FLAME_TEMP")
-        .with_quantity("TEMPERATURE")
-        .at_point(Point3D(3.0, 3.0, 0.5))
-        .with_time_history(True)
-        .build()
+    flame_temp = Device(
+        id="FLAME_TEMP", quantity="TEMPERATURE", xyz=Point3D.of(3.0, 3.0, 0.5), time_history=True
     )
-    sim.add_device(flame_temp)
+    sim.add(flame_temp)
 
     # Average upper layer temperature
-    upper_layer = (
-        DevcBuilder("UPPER_LAYER_TEMP")
-        .with_quantity("TEMPERATURE")
-        .with_statistics("MEAN", start_time=10.0)
-        .in_bounds(Bounds3D(0, 6, 0, 6, 2.0, 3.0))
-        .build()
+    upper_layer = Device(
+        id="UPPER_LAYER_TEMP",
+        quantity="TEMPERATURE",
+        statistics="MEAN",
+        stat_start=10.0,
+        xb=Bounds3D.of(0, 6, 0, 6, 2.0, 3.0),
     )
-    sim.add_device(upper_layer)
+    sim.add(upper_layer)
 
     # Suppression effectiveness monitor
-    suppression_monitor = (
-        DevcBuilder("SUPPRESSION_RATE")
-        .with_quantity("SUPPRESSION")
-        .at_point(Point3D(3.0, 3.0, 1.0))
-        .with_time_history(True)
-        .build()
+    suppression_monitor = Device(
+        id="SUPPRESSION_RATE",
+        quantity="SUPPRESSION",
+        xyz=Point3D.of(3.0, 3.0, 1.0),
+        time_history=True,
     )
-    sim.add_device(suppression_monitor)
+    sim.add(suppression_monitor)
 
     return sim
 

@@ -66,11 +66,11 @@ from pyfds import Simulation
 
 # Create simulation
 sim = Simulation(chid='test')
-sim.time(t_end=100.0)
-sim.mesh(ijk=(20, 20, 10), xb=(0, 2, 0, 2, 0, 1))
+sim.add(Time(t_end=100.0)
+sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
 sim.surface(id='FIRE', hrrpua=500.0)
-sim.obstruction(xb=(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE')
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(1, 1, 0.9))
+sim.add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE')
+sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 0.9))
 
 # Execute and get results
 results = sim.run(n_threads=4)

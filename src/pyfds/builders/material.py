@@ -43,14 +43,10 @@ class MaterialBuilder(Builder[Material]):
     ...     .density(40) \\
     ...     .thermal_conductivity(0.04) \\
     ...     .specific_heat(1.5) \\
-    ...     .add_pyrolysis_reaction(
+    ...     .add_reaction(PyrolysisReaction(
     ...         a=1e10, e=80000, heat_of_reaction=1000,
-    ...         product_species='FUEL_VAPOR'
-    ...     ) \\
-    ...     .add_pyrolysis_reaction(
-    ...         a=5e8, e=120000, heat_of_reaction=1500,
-    ...         residue_material='CHAR'
-    ...     ) \\
+    ...         products=[PyrolysisProduct(spec_id='FUEL_VAPOR', nu_spec=1.0)]
+    ...     )) \\
     ...     .build()
 
     >>> # Use predefined materials
@@ -59,14 +55,14 @@ class MaterialBuilder(Builder[Material]):
     >>> steel = MaterialBuilder.steel()
     """
 
-    def __init__(self, id: str):
+    def __init__(self, id: str | None = None):
         """
         Initialize the MaterialBuilder.
 
         Parameters
         ----------
-        id : str
-            Unique identifier for the material
+        id : str, optional
+            Unique identifier for the material. Can also be set via .id() method.
         """
         super().__init__()
         self._id = id
@@ -78,9 +74,7 @@ class MaterialBuilder(Builder[Material]):
         self._emissivity: float = 0.9
         self._absorption_coefficient: float = 50000.0
         self._reference_temperature: float | None = None
-        self._reactions: list[dict] = []
         self._structured_reactions: list[PyrolysisReaction] = []
-        # Stage 2.4 enhancements
         self._spec_id: str | None = None
         self._yield_fraction: float | None = None
         self._heat_of_combustion: float | None = None
@@ -89,6 +83,23 @@ class MaterialBuilder(Builder[Material]):
         self._boiling_temperature: float | None = None
         self._mw: float | None = None
         self._heat_of_vaporization: float | None = None
+
+    def id(self, material_id: str) -> "MaterialBuilder":
+        """
+        Set material identifier.
+
+        Parameters
+        ----------
+        material_id : str
+            Unique identifier for the material
+
+        Returns
+        -------
+        MaterialBuilder
+            Self for method chaining
+        """
+        self._id = material_id
+        return self
 
     def density(self, value: float) -> "MaterialBuilder":
         """
@@ -250,7 +261,7 @@ class MaterialBuilder(Builder[Material]):
         self, spec_id: str, yield_fraction: float | None = None
     ) -> "MaterialBuilder":
         """
-        Set pyrolysis product for single-reaction materials (Stage 2.4).
+        Set pyrolysis product for single-reaction materials.
 
         Parameters
         ----------
@@ -280,7 +291,7 @@ class MaterialBuilder(Builder[Material]):
 
     def with_heat_of_combustion(self, value: float) -> "MaterialBuilder":
         """
-        Set heat of combustion (Stage 2.4).
+        Set heat of combustion.
 
         Parameters
         ----------
@@ -306,7 +317,7 @@ class MaterialBuilder(Builder[Material]):
 
     def with_reference_rate(self, rate: float) -> "MaterialBuilder":
         """
-        Set reference reaction rate (Stage 2.4).
+        Set reference reaction rate.
 
         Parameters
         ----------
@@ -319,62 +330,6 @@ class MaterialBuilder(Builder[Material]):
             Self for method chaining
         """
         self._reference_rate = rate
-        return self
-
-    def add_pyrolysis_reaction(
-        self,
-        a: float,
-        e: float,
-        heat_of_reaction: float,
-        product_species: str | None = None,
-        residue_material: str | None = None,
-        reaction_order: float = 1.0,
-    ) -> "MaterialBuilder":
-        """
-        Add a pyrolysis reaction to the material.
-
-        Parameters
-        ----------
-        a : float
-            Pre-exponential factor in 1/s
-        e : float
-            Activation energy in kJ/kmol
-        heat_of_reaction : float
-            Heat of pyrolysis/vaporization in kJ/kg
-        product_species : str, optional
-            Gaseous product species ID
-        residue_material : str, optional
-            Solid residue material ID
-        reaction_order : float, optional
-            Reaction order, default: 1.0
-
-        Returns
-        -------
-        MaterialBuilder
-            Self for method chaining
-
-        Examples
-        --------
-        >>> mat = MaterialBuilder('WOOD') \\
-        ...     .density(500) \\
-        ...     .thermal_conductivity(0.13) \\
-        ...     .specific_heat(2.5) \\
-        ...     .add_pyrolysis_reaction(
-        ...         a=1e10, e=100000, heat_of_reaction=1800,
-        ...         product_species='WOOD_VAPOR'
-        ...     ) \\
-        ...     .build()
-        """
-        self._reactions.append(
-            {
-                "a": a,
-                "e": e,
-                "heat_of_reaction": heat_of_reaction,
-                "product_species": product_species,
-                "residue_material": residue_material,
-                "reaction_order": reaction_order,
-            }
-        )
         return self
 
     def add_reaction(self, reaction: "PyrolysisReaction") -> "MaterialBuilder":
@@ -400,6 +355,58 @@ class MaterialBuilder(Builder[Material]):
         ... )
         >>> mat = MaterialBuilder('WOOD').add_reaction(reaction).build()
         """
+        self._structured_reactions.append(reaction)
+        return self
+
+    def add_pyrolysis_reaction(
+        self,
+        a: float,
+        e: float,
+        heat_of_reaction: float,
+        product_species: str | None = None,
+        residue_material: str | None = None,
+        yield_fraction: float = 1.0,
+    ) -> "MaterialBuilder":
+        """
+        Add a pyrolysis reaction using legacy array-based API.
+
+        This method is provided for backward compatibility. For new code,
+        prefer using add_reaction() with PyrolysisReaction objects.
+
+        Parameters
+        ----------
+        a : float
+            Pre-exponential factor [1/s]
+        e : float
+            Activation energy [J/mol]
+        heat_of_reaction : float
+            Heat of reaction [kJ/kg]
+        product_species : str, optional
+            Gas species produced
+        residue_material : str, optional
+            Solid residue material produced
+        yield_fraction : float, optional
+            Yield fraction (default: 1.0)
+
+        Returns
+        -------
+        MaterialBuilder
+            Self for method chaining
+        """
+        from ..core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+
+        products = []
+        if product_species:
+            products.append(PyrolysisProduct(spec_id=product_species, nu_spec=yield_fraction))
+        if residue_material:
+            products.append(PyrolysisProduct(matl_id=residue_material, nu_matl=yield_fraction))
+
+        reaction = PyrolysisReaction(
+            a=a,
+            e=e,
+            heat_of_reaction=heat_of_reaction,
+            products=products,
+        )
         self._structured_reactions.append(reaction)
         return self
 
@@ -499,13 +506,6 @@ class MaterialBuilder(Builder[Material]):
         if self._density is None:
             raise ValueError(f"MaterialBuilder '{self._id}': density is required")
 
-        # Validate reaction API consistency
-        if self._structured_reactions and self._reactions:
-            raise ValueError(
-                f"MaterialBuilder '{self._id}': Cannot mix structured reactions "
-                "(add_reaction()) with legacy reactions (add_pyrolysis_reaction())"
-            )
-
         # Build parameter dict
         params: dict = {
             "id": self._id,
@@ -528,7 +528,6 @@ class MaterialBuilder(Builder[Material]):
         if self._reference_temperature is not None:
             params["reference_temperature"] = self._reference_temperature
 
-        # Stage 2.4 enhancements
         if self._spec_id is not None:
             params["spec_id"] = self._spec_id
         if self._yield_fraction is not None:
@@ -550,29 +549,6 @@ class MaterialBuilder(Builder[Material]):
         if self._structured_reactions:
             # Use structured PyrolysisReaction objects
             params["reactions"] = self._structured_reactions
-        elif self._reactions:
-            # Use legacy array-based parameters
-            params["n_reactions"] = len(self._reactions)
-            params["a"] = [r["a"] for r in self._reactions]
-            params["e"] = [r["e"] for r in self._reactions]
-            params["heat_of_reaction"] = [r["heat_of_reaction"] for r in self._reactions]
-            params["n_s"] = [r["reaction_order"] for r in self._reactions]
-
-            # Species and materials (filter out None values)
-            spec_ids = [r.get("product_species") for r in self._reactions]
-            matl_ids = [r.get("residue_material") for r in self._reactions]
-
-            # Only include if there are non-None values
-            if any(s is not None for s in spec_ids):
-                # Set species IDs
-                params["spec_id"] = [s if s is not None else "" for s in spec_ids]
-                # Set default yields of 1.0 for each species
-                params["nu_spec"] = [1.0 if s is not None else 0.0 for s in spec_ids]
-            if any(m is not None for m in matl_ids):
-                # Set residue material IDs
-                params["matl_id"] = [m if m is not None else "" for m in matl_ids]
-                # Set default yields of 1.0 for each residue material
-                params["nu_matl"] = [1.0 if m is not None else 0.0 for m in matl_ids]
 
         material = Material(**params)
         self._mark_built()

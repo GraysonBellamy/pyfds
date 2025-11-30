@@ -3,7 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from pyfds.core.namelists import Misc, TurbulenceModel
+from pyfds.core.enums import TurbulenceModel
+from pyfds.core.namelists import Misc
 
 
 class TestMisc:

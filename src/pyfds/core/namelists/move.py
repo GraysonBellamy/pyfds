@@ -4,11 +4,9 @@ FDS MOVE namelist.
 Transformations for geometry objects.
 """
 
-from typing import Any
+from pydantic import field_validator
 
-from pydantic import Field, field_validator
-
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Move(NamelistBase):
@@ -53,19 +51,21 @@ class Move(NamelistBase):
     ... )
     """
 
-    id: str = Field(..., description="Transformation identifier")
+    id: str = FdsField(..., description="Transformation identifier")
 
     # Translation
-    dx: float = Field(0.0, description="X translation [m]")
-    dy: float = Field(0.0, description="Y translation [m]")
-    dz: float = Field(0.0, description="Z translation [m]")
+    dx: float = FdsField(0.0, exclude_if=0.0, description="X translation [m]")
+    dy: float = FdsField(0.0, exclude_if=0.0, description="Y translation [m]")
+    dz: float = FdsField(0.0, exclude_if=0.0, description="Z translation [m]")
 
     # Rotation
-    axis: tuple[float, float, float] | None = Field(None, description="Rotation axis vector")
-    rotation_angle: float | None = Field(None, description="Rotation angle [degrees]")
+    axis: tuple[float, float, float] | None = FdsField(None, description="Rotation axis vector")
+    rotation_angle: float | None = FdsField(None, description="Rotation angle [degrees]")
 
     # Scaling
-    scale: tuple[float, float, float] | None = Field(None, description="Scale factors (sx, sy, sz)")
+    scale: tuple[float, float, float] | None = FdsField(
+        None, description="Scale factors (sx, sy, sz)"
+    )
 
     @field_validator("axis")
     @classmethod
@@ -95,23 +95,6 @@ class Move(NamelistBase):
                 raise ValueError("scale factors must be positive")
         return v
 
-    def to_fds(self) -> str:
-        """Generate FDS MOVE namelist."""
-        params: dict[str, Any] = {"id": self.id}
-
-        if self.dx != 0.0:
-            params["dx"] = self.dx
-        if self.dy != 0.0:
-            params["dy"] = self.dy
-        if self.dz != 0.0:
-            params["dz"] = self.dz
-
-        if self.axis:
-            params["axis"] = self.axis
-        if self.rotation_angle is not None:
-            params["rotation_angle"] = self.rotation_angle
-
-        if self.scale:
-            params["scale"] = self.scale
-
-        return self._build_namelist("MOVE", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "MOVE"

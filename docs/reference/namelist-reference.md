@@ -7,7 +7,7 @@ Complete reference for all FDS namelists supported by PyFDS.
 This reference provides comprehensive parameter listings for all FDS namelists. For usage examples and explanations, see the [User Guide](../guide/index.md).
 
 !!! info "PyFDS Method Names"
-    PyFDS uses lowercase method names (e.g., `sim.mesh()`) to create namelists. The actual FDS namelist names (e.g., `&MESH`) are used in the generated `.fds` files.
+    PyFDS uses lowercase method names (e.g., `sim.add(Mesh()`) to create namelists. The actual FDS namelist names (e.g., `&MESH`) are used in the generated `.fds` files.
 
 ## Quick Index
 
@@ -62,7 +62,7 @@ sim.head(title='Single room fire with sprinkler')
 
 Time control parameters.
 
-**PyFDS Method**: `sim.time()`
+**PyFDS Method**: `sim.add(Time()`
 
 **Parameters**
 
@@ -76,7 +76,7 @@ Time control parameters.
 **Example**
 
 ```python
-sim.time(t_end=600.0, dt=0.1)
+sim.add(Time(t_end=600.0, dt=0.1)
 ```
 
 **FDS Output**
@@ -138,7 +138,7 @@ sim.set_misc(
 
 Computational mesh definition.
 
-**PyFDS Method**: `sim.mesh()`
+**PyFDS Method**: `sim.add(Mesh()`
 
 **Parameters**
 
@@ -152,10 +152,10 @@ Computational mesh definition.
 **Example**
 
 ```python
-sim.mesh(
+sim.add(Mesh(
     id='MESH1',
-    ijk=(50, 50, 25),
-    xb=(0, 5, 0, 5, 0, 2.5)
+    ijk=Grid3D.of(50, 50, 25),
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)
 )
 ```
 
@@ -173,7 +173,7 @@ sim.mesh(
 
 Solid obstructions.
 
-**PyFDS Method**: `sim.obstruction()`
+**PyFDS Method**: `sim.add(Obstruction()`
 
 **Parameters**
 
@@ -192,15 +192,15 @@ Solid obstructions.
 
 ```python
 # Fire source
-sim.obstruction(
-    xb=(2, 3, 2, 3, 0, 0.1),
+sim.add(Obstruction(
+    xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1),
     surf_id='FIRE',
     color='RED'
 )
 
 # Wall with different faces
-sim.obstruction(
-    xb=(0, 0.2, 0, 5, 0, 2.5),
+sim.add(Obstruction(
+    xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5),
     surf_ids=['BRICK', 'BRICK', 'INERT', 'INERT', 'INERT', 'INERT']
 )
 ```
@@ -211,7 +211,7 @@ sim.obstruction(
 
 Boundary conditions and openings.
 
-**PyFDS Method**: `sim.vent()`
+**PyFDS Method**: `sim.add(Vent()`
 
 **Parameters**
 
@@ -237,18 +237,18 @@ Boundary conditions and openings.
 
 ```python
 # Open door
-sim.vent(
-    xb=(5, 5, 2, 3, 0, 2.1),
+sim.add(Vent(
+    xb=Bounds3D.of(5, 5, 2, 3, 0, 2.1),
     surf_id='OPEN',
     ior=1
-)
+))
 
 # Supply vent
-sim.vent(
-    xb=(0, 0.3, 0, 0.3, 2.5, 2.5),
+sim.add(Vent(
+    xb=Bounds3D.of(0, 0.3, 0, 0.3, 2.5, 2.5),
     surf_id='SUPPLY',
     ior=3
-)
+))
 ```
 
 ---
@@ -435,14 +435,14 @@ Measurement devices and outputs.
 sim.device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
-    xyz=(2.5, 2.5, 2.4)
+    xyz=Point3D.of(2.5, 2.5, 2.4)
 )
 
 # Surface heat flux
 sim.device(
     id='HF_WALL',
     quantity='GAUGE HEAT FLUX',
-    xyz=(0.1, 2.5, 1.5),
+    xyz=Point3D.of(0.1, 2.5, 1.5),
     ior=1
 )
 
@@ -450,7 +450,7 @@ sim.device(
 sim.device(
     id='TEMP_AVG',
     quantity='TEMPERATURE',
-    xb=(0, 5, 0, 5, 2, 2.5),
+    xb=Bounds3D.of(0, 5, 0, 5, 2, 2.5),
     spatial_statistic='MEAN'
 )
 ```
@@ -628,13 +628,13 @@ Initial conditions.
 ```python
 # Hot upper layer
 sim.init(
-    xb=(0, 10, 0, 10, 2.5, 3),
+    xb=Bounds3D.of(0, 10, 0, 10, 2.5, 3),
     temperature=400.0
 )
 
 # Velocity field
 sim.init(
-    xb=(0, 10, 0, 10, 0, 3),
+    xb=Bounds3D.of(0, 10, 0, 10, 0, 3),
     uu=0.5,  # Wind in +X
     ww=0.0
 )
@@ -646,7 +646,7 @@ sim.init(
 
 Combustion reaction.
 
-**PyFDS Method**: `sim.reaction()`
+**PyFDS Method**: `sim.add(Reaction()`
 
 **Parameters**
 
@@ -664,7 +664,7 @@ Combustion reaction.
 
 ```python
 # Custom fuel
-sim.reaction(
+sim.add(Reaction(
     id='WOOD',
     fuel='CELLULOSE',
     heat_of_combustion=15000.0,
@@ -684,7 +684,7 @@ PyFDS validates parameters before writing:
 
 ```python
 try:
-    sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 except ValueError as e:
     print(f"Validation error: {e}")
 ```
@@ -695,8 +695,8 @@ Many parameters have sensible defaults:
 
 ```python
 # These are equivalent
-sim.time(t_end=600.0, t_begin=0.0)
-sim.time(t_end=600.0)  # t_begin defaults to 0.0
+sim.add(Time(t_end=600.0, t_begin=0.0)
+sim.add(Time(t_end=600.0)  # t_begin defaults to 0.0
 ```
 
 ### Method Chaining
@@ -706,7 +706,7 @@ Most methods return `self` for chaining:
 ```python
 sim = (Simulation(chid='test')
     .time(t_end=600.0)
-    .mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    .mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     .surface(id='FIRE', hrrpua=1000.0))
 ```
 

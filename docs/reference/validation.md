@@ -10,8 +10,8 @@ PyFDS includes a comprehensive validation system that checks simulation configur
 from pyfds import Simulation, Validator
 
 sim = Simulation(chid='test')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Validate before writing
 validator = Validator()
@@ -96,8 +96,8 @@ sim = Simulation(chid='test')
 
 # This passes
 sim = Simulation(chid='test')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 ```
 
 #### Namelist Level
@@ -106,16 +106,16 @@ Each namelist has specific required parameters:
 
 ```python
 # MESH requires IJK and XB
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))  # Valid
-sim.mesh(ijk=(50, 50, 25))  # Invalid - missing XB
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))  # Valid
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25)))  # Invalid - missing XB
 
 # OBST requires XB
-sim.obstruction(xb=(0, 1, 0, 1, 0, 0.1))  # Valid
-sim.obstruction(surf_id='FIRE')  # Invalid - missing XB
+sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 0.1)))  # Valid
+sim.add(Obstruction(surf_id='FIRE'))  # Invalid - missing XB
 
 # DEVC requires ID and QUANTITY
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(1, 1, 1))  # Valid
-sim.device(id='TEMP')  # Invalid - missing QUANTITY
+sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 1)))  # Valid
+sim.add(Device(id='TEMP'))  # Invalid - missing QUANTITY
 ```
 
 ### Parameter Types
@@ -124,14 +124,14 @@ PyFDS validates parameter types using Pydantic:
 
 ```python
 # Correct types
-sim.time(t_end=600.0)  # float
-sim.mesh(ijk=(50, 50, 25))  # tuple of ints
-sim.surface(id='FIRE', hrrpua=1000.0)  # str and float
+sim.add(Time(t_end=600.0))  # float
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25)))  # tuple of ints
+sim.add(Surface(id='FIRE', hrrpua=1000.0))  # str and float
 
 # Type errors
-sim.time(t_end="600")  # Error: expected float, got str
-sim.mesh(ijk="50,50,25")  # Error: expected tuple, got str
-sim.surface(id='FIRE', hrrpua="1000")  # Error: expected float, got str
+sim.add(Time(t_end="600"))  # Error: expected float, got str
+sim.add(Mesh(ijk="50,50,25"))  # Error: expected tuple, got str
+sim.add(Surface(id='FIRE', hrrpua="1000"))  # Error: expected float, got str
 ```
 
 ### Geometric Validation
@@ -142,11 +142,11 @@ Meshes must have valid bounds:
 
 ```python
 # Valid bounds (x1 > x0, y1 > y0, z1 > z0)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))  # ✓
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))  # ✓
 
 # Invalid bounds
-sim.mesh(ijk=(50, 50, 25), xb=(5, 0, 0, 5, 0, 2.5))  # ✗ x1 < x0
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 0, 0, 2.5))  # ✗ y1 = y0
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(5, 0, 0, 5, 0, 2.5)))  # ✗ x1 < x0
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 0, 0, 2.5)))  # ✗ y1 = y0
 ```
 
 #### Cell Count Validation
@@ -155,12 +155,12 @@ Cell counts must be positive integers:
 
 ```python
 # Valid
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))  # ✓
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))  # ✓
 
 # Invalid
-sim.mesh(ijk=(0, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))  # ✗ I = 0
-sim.mesh(ijk=(-10, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))  # ✗ negative
-sim.mesh(ijk=(50.5, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))  # ✗ float
+sim.add(Mesh(ijk=Grid3D.of(0, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))  # ✗ I = 0
+sim.add(Mesh(ijk=Grid3D.of(-10, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))  # ✗ negative
+sim.add(Mesh(ijk=Grid3D.of(50.5, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))  # ✗ float
 ```
 
 #### Obstruction Validation
@@ -168,13 +168,13 @@ sim.mesh(ijk=(50.5, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))  # ✗ float
 Obstructions must be within mesh bounds:
 
 ```python
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Valid - inside mesh
-sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1))  # ✓
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1)))  # ✓
 
 # Warning - outside mesh
-sim.obstruction(xb=(6, 7, 1, 2, 0, 0.1))  # ⚠ x > 5 (outside domain)
+sim.add(Obstruction(xb=Bounds3D.of(6, 7, 1, 2, 0, 0.1)))  # ⚠ x > 5 (outside domain)
 ```
 
 ### Mesh Quality
@@ -221,33 +221,33 @@ PyFDS validates ID references:
 
 ```python
 # Surface reference
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')  # ✓
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))  # ✓
 
 # Invalid reference
-sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='UNKNOWN')  # ✗
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='UNKNOWN'))  # ✗
 
 # Material reference
-sim.material(id='CONCRETE', conductivity=1.0, specific_heat=0.88, density=2280)
-sim.surface(id='WALL', matl_id='CONCRETE')  # ✓
+sim.add(Material(id='CONCRETE', conductivity=1.0, specific_heat=0.88, density=2280))
+sim.add(Surface(id='WALL', matl_id='CONCRETE'))  # ✓
 
 # Invalid reference
-sim.surface(id='WALL', matl_id='UNKNOWN')  # ✗
+sim.add(Surface(id='WALL', matl_id='UNKNOWN'))  # ✗
 
 # RAMP reference
-sim.ramp(id='GROWTH', t=0, f=0.0)
-sim.ramp(id='GROWTH', t=60, f=1.0)
-sim.surface(id='FIRE', hrrpua=1000.0, ramp_q='GROWTH')  # ✓
+sim.add(Ramp(id='GROWTH', t=0, f=0.0))
+sim.add(Ramp(id='GROWTH', t=60, f=1.0))
+sim.add(Surface(id='FIRE', hrrpua=1000.0, ramp_q='GROWTH'))  # ✓
 
 # Invalid reference
-sim.surface(id='FIRE', hrrpua=1000.0, ramp_q='UNKNOWN')  # ✗
+sim.add(Surface(id='FIRE', hrrpua=1000.0, ramp_q='UNKNOWN'))  # ✗
 
 # Control reference
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(1, 1, 1))
-sim.control(id='CTRL', input_id='TEMP', setpoint=100.0)  # ✓
+sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 1)))
+sim.add(Ctrl(id='CTRL', input_id='TEMP', setpoint=100.0))  # ✓
 
 # Invalid reference
-sim.control(id='CTRL', input_id='UNKNOWN', setpoint=100.0)  # ✗
+sim.add(Ctrl(id='CTRL', input_id='UNKNOWN', setpoint=100.0))  # ✗
 ```
 
 ### Physical Validation
@@ -256,43 +256,47 @@ sim.control(id='CTRL', input_id='UNKNOWN', setpoint=100.0)  # ✗
 
 ```python
 # Valid temperatures
-sim.set_misc(tmpa=20.0)  # ✓
-sim.init(xb=(0, 5, 0, 5, 2, 2.5), temperature=600.0)  # ✓
+sim.add(Misc(tmpa=20.0))  # ✓
+sim.add(Init(xb=Bounds3D.of(0, 5, 0, 5, 2, 2.5), temperature=600.0))  # ✓
 
 # Warnings for extreme values
-sim.set_misc(tmpa=-50.0)  # ⚠ Very cold
-sim.init(xb=(0, 5, 0, 5, 2, 2.5), temperature=2000.0)  # ⚠ Very hot
+sim.add(Misc(tmpa=-50.0))  # ⚠ Very cold
+sim.add(Init(xb=Bounds3D.of(0, 5, 0, 5, 2, 2.5), temperature=2000.0))  # ⚠ Very hot
 ```
 
 #### Velocity Limits
 
 ```python
 # Reasonable velocities
-sim.surface(id='SUPPLY', vel=-1.5)  # ✓
+sim.add(Surface(id='SUPPLY', vel=-1.5))  # ✓
 
 # Warning for high velocity
-sim.surface(id='SUPPLY', vel=-50.0)  # ⚠ Very high velocity
+sim.add(Surface(id='SUPPLY', vel=-50.0))  # ⚠ Very high velocity
 ```
 
 #### Material Properties
 
 ```python
 # Valid material properties
-sim.material(
-    id='CONCRETE',
-    conductivity=1.0,  # W/m/K (reasonable)
-    specific_heat=0.88,  # kJ/kg/K (reasonable)
-    density=2280,  # kg/m³ (reasonable)
-    emissivity=0.9  # 0-1 (valid)
+sim.add(
+    Material(
+        id='CONCRETE',
+        conductivity=1.0,  # W/m/K (reasonable)
+        specific_heat=0.88,  # kJ/kg/K (reasonable)
+        density=2280,  # kg/m³ (reasonable)
+        emissivity=0.9,  # 0-1 (valid)
+    )
 )  # ✓
 
 # Invalid emissivity
-sim.material(
-    id='TEST',
-    conductivity=1.0,
-    specific_heat=0.88,
-    density=2280,
-    emissivity=1.5  # ✗ Must be 0-1
+sim.add(
+    Material(
+        id='TEST',
+        conductivity=1.0,
+        specific_heat=0.88,
+        density=2280,
+        emissivity=1.5,  # ✗ Must be 0-1
+    )
 )
 ```
 
@@ -408,11 +412,11 @@ sim.validate(level='info')
 ```python
 # Error
 sim = Simulation(chid='test')
-sim.time(t_end=600.0)
+sim.add(Time(t_end=600.0))
 sim.write('test.fds')  # ✗ No MESH defined
 
 # Fix
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 sim.write('test.fds')  # ✓
 ```
 
@@ -420,21 +424,21 @@ sim.write('test.fds')  # ✓
 
 ```python
 # Error
-sim.mesh(ijk=(50, 50, 25), xb=(5, 0, 0, 5, 0, 2.5))  # ✗ x1 < x0
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(5, 0, 0, 5, 0, 2.5))  # ✗ x1 < x0
 
 # Fix
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))  # ✓
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))  # ✓
 ```
 
 ### Undefined Reference
 
 ```python
 # Error
-sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')  # ✗ 'FIRE' not defined
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))  # ✗ 'FIRE' not defined
 
 # Fix
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')  # ✓
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))  # ✓
 ```
 
 ### Device Missing Location
@@ -444,7 +448,7 @@ sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')  # ✓
 sim.device(id='TEMP', quantity='TEMPERATURE')  # ✗ No XYZ or XB
 
 # Fix
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(1, 1, 1))  # ✓
+sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 1))  # ✓
 ```
 
 ## Best Practices
@@ -472,7 +476,7 @@ from pyfds import Simulation
 
 def create_simulation(name: str, end_time: float) -> Simulation:
     sim = Simulation(chid=name)
-    sim.time(t_end=end_time)  # IDE will check types
+    sim.add(Time(t_end=end_time))  # IDE will check types
     return sim
 ```
 
@@ -511,8 +515,8 @@ from pyfds import Simulation
 
 def test_simulation_valid():
     sim = Simulation(chid='test')
-    sim.time(t_end=600.0)
-    sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
     assert sim.is_valid(), f"Validation errors: {sim.validate()}"
 

@@ -10,6 +10,8 @@ from pathlib import Path
 import pytest
 
 from pyfds import FDSNotFoundError, Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Device, Mesh, Obstruction, Surface, Time
 from pyfds.execution import find_fds_executable
 
 
@@ -36,8 +38,8 @@ class TestFDSExecution:
         """Test running a simple FDS simulation (blocking mode)."""
         # Create a very small, fast simulation
         sim = Simulation(chid="integration_test_blocking", title="Integration Test")
-        sim.time(t_end=1.0)  # Very short simulation
-        sim.mesh(ijk=(5, 5, 5), xb=(0, 1, 0, 1, 0, 1))  # Very coarse mesh
+        sim.add(Time(t_end=1.0))  # Very short simulation
+        sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))  # Very coarse mesh
 
         # Run simulation
         results = sim.run(
@@ -66,8 +68,8 @@ class TestFDSExecution:
         """Test running FDS simulation in non-blocking mode."""
         # Create simulation
         sim = Simulation(chid="integration_test_nonblocking", title="Non-Blocking Test")
-        sim.time(t_end=2.0)
-        sim.mesh(ijk=(5, 5, 5), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Time(t_end=2.0))
+        sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         # Run in non-blocking mode
         job = sim.run(
@@ -98,8 +100,8 @@ class TestFDSExecution:
         """Test graceful stopping of FDS simulation via CHID.stop file."""
         # Create a longer simulation to allow time for stop
         sim = Simulation(chid="integration_test_stop", title="Graceful Stop Test")
-        sim.time(t_end=30.0)  # Longer simulation
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Time(t_end=30.0))  # Longer simulation
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         # Run in non-blocking mode
         job = sim.run(
@@ -132,12 +134,12 @@ class TestFDSExecution:
         """Test simulation with device outputs."""
         # Create simulation with devices
         sim = Simulation(chid="integration_test_devices", title="Device Test")
-        sim.time(t_end=1.0)
-        sim.mesh(ijk=(5, 5, 5), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Time(t_end=1.0))
+        sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         # Add some devices
-        sim.device(id="TEMP_1", quantity="TEMPERATURE", xyz=(0.5, 0.5, 0.5))
-        sim.device(id="TEMP_2", quantity="TEMPERATURE", xyz=(0.5, 0.5, 0.8))
+        sim.add(Device(id="TEMP_1", quantity="TEMPERATURE", xyz=Point3D.of(0.5, 0.5, 0.5)))
+        sim.add(Device(id="TEMP_2", quantity="TEMPERATURE", xyz=Point3D.of(0.5, 0.5, 0.8)))
 
         # Run simulation
         results = sim.run(
@@ -168,19 +170,19 @@ class TestFDSExecution:
         """Test simulation with fire source."""
         # Create simulation with fire
         sim = Simulation(chid="integration_test_fire", title="Fire Test")
-        sim.time(t_end=2.0)
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 2, 0, 2, 0, 2))
+        sim.add(Time(t_end=2.0))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
 
         # Add reaction (required when using HRRPUA)
         # Use a simple burner approach without HRRPUA instead
         # Just test with a hot surface which doesn't require REAC
-        sim.surface(id="HOT", tmp_front=500.0)  # Hot surface instead of fire
+        sim.add(Surface(id="HOT", tmp_front=500.0))  # Hot surface instead of fire
 
         # Add hot obstruction
-        sim.obstruction(xb=(0.8, 1.2, 0.8, 1.2, 0, 0.1), surf_id="HOT")
+        sim.add(Obstruction(xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0.1), surf_id="HOT"))
 
         # Add temperature device
-        sim.device(id="TEMP", quantity="TEMPERATURE", xyz=(1.0, 1.0, 1.0))
+        sim.add(Device(id="TEMP", quantity="TEMPERATURE", xyz=Point3D.of(1.0, 1.0, 1.0)))
 
         # Run simulation
         results = sim.run(
@@ -203,11 +205,11 @@ class TestFDSExecution:
         """Test that validation works before execution."""
         # Create simulation with warnings
         sim = Simulation(chid="integration_test_validation", title="Validation Test")
-        sim.time(t_end=0.5)
+        sim.add(Time(t_end=0.5))
 
         # Add a non-cubic mesh (will generate warning)
-        # ijk=(100,30,30) xb=(0,10,0,1,0,1) gives dx=0.1, dy=0.033, dz=0.033 -> aspect ratio ~3
-        sim.mesh(ijk=(100, 30, 30), xb=(0, 10, 0, 1, 0, 1))
+        # ijk=Grid3D.of(100, 30, 30) xb=Bounds3D.of(0, 10, 0, 1, 0, 1) gives dx=0.1, dy=0.033, dz=0.033 -> aspect ratio ~3
+        sim.add(Mesh(ijk=Grid3D.of(100, 30, 30), xb=Bounds3D.of(0, 10, 0, 1, 0, 1)))
 
         # Get validation warnings
         warnings = sim.validate()
@@ -229,8 +231,10 @@ class TestFDSExecution:
         """Test that strict validation raises on warnings."""
         # Create simulation with warnings
         sim = Simulation(chid="integration_test_strict", title="Strict Validation Test")
-        sim.time(t_end=0.5)
-        sim.mesh(ijk=(100, 30, 30), xb=(0, 10, 0, 1, 0, 1))  # Non-cubic (aspect ratio ~3)
+        sim.add(Time(t_end=0.5))
+        sim.add(
+            Mesh(ijk=Grid3D.of(100, 30, 30), xb=Bounds3D.of(0, 10, 0, 1, 0, 1))
+        )  # Non-cubic (aspect ratio ~3)
 
         # Should raise ValueError in strict mode
         with pytest.raises(ValueError, match="Simulation validation failed"):
@@ -245,9 +249,9 @@ class TestFDSExecution:
         """Test that summary statistics are generated correctly."""
         # Create simulation
         sim = Simulation(chid="integration_test_summary", title="Summary Test")
-        sim.time(t_end=1.0)
-        sim.mesh(ijk=(5, 5, 5), xb=(0, 1, 0, 1, 0, 1))
-        sim.device(id="TEMP", quantity="TEMPERATURE", xyz=(0.5, 0.5, 0.5))
+        sim.add(Time(t_end=1.0))
+        sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
+        sim.add(Device(id="TEMP", quantity="TEMPERATURE", xyz=Point3D.of(0.5, 0.5, 0.5)))
 
         # Run simulation
         results = sim.run(
@@ -275,12 +279,12 @@ class TestFDSRunnerAPI:
 
     def test_runner_direct_usage(self, tmp_path: Path) -> None:
         """Test using FDSRunner directly."""
-        from pyfds import FDSRunner
+        from pyfds.execution import FDSRunner
 
         # Create and write simulation file
         sim = Simulation(chid="runner_test", title="Runner Test")
-        sim.time(t_end=0.5)
-        sim.mesh(ijk=(5, 5, 5), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Time(t_end=0.5))
+        sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         fds_file = tmp_path / "runner_test.fds"
         sim.write(fds_file)
@@ -310,8 +314,8 @@ class TestProgressMonitoring:
         """Test that progress monitoring provides updates."""
         # Create a slightly longer simulation to see progress
         sim = Simulation(chid="progress_test", title="Progress Test")
-        sim.time(t_end=5.0)  # Longer simulation
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 2, 0, 2, 0, 2))
+        sim.add(Time(t_end=5.0))  # Longer simulation
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
 
         # Track progress updates
         progress_values = []

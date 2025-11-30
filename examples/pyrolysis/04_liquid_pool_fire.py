@@ -26,8 +26,8 @@ def main():
     sim.time_params = Time(t_end=300.0)  # 5 minutes
 
     # Mesh
-    mesh = Mesh(id="MESH", ijk=Grid3D(30, 30, 20), xb=Bounds3D(0.0, 1.5, 0.0, 1.5, 0.0, 1.0))
-    sim.geometry.add_mesh(mesh)
+    mesh = Mesh(id="MESH", ijk=Grid3D.of(30, 30, 20), xb=Bounds3D.of(0.0, 1.5, 0.0, 1.5, 0.0, 1.0))
+    sim.add(mesh)
 
     # Liquid methanol fuel
     methanol = Material(
@@ -53,7 +53,7 @@ def main():
     # Pool obstruction
     pool = Obstruction(
         id="POOL",
-        xb=Bounds3D(0.5, 1.0, 0.5, 1.0, 0.0, 0.05),  # 50cm x 50cm x 5cm deep
+        xb=Bounds3D.of(0.5, 1.0, 0.5, 1.0, 0.0, 0.05),  # 50cm x 50cm x 5cm deep
         surf_id="METHANOL_POOL",
     )
 
@@ -67,7 +67,7 @@ def main():
     # Small ignition patch
     igniter = Obstruction(
         id="IGNITER_PATCH",
-        xb=Bounds3D(0.7, 0.8, 0.7, 0.8, 0.0, 0.01),  # Small 10cm x 10cm patch
+        xb=Bounds3D.of(0.7, 0.8, 0.7, 0.8, 0.0, 0.01),  # Small 10cm x 10cm patch
         surf_id="IGNITER",
     )
 
@@ -81,25 +81,25 @@ def main():
     )
 
     # Open vents for ventilation
-    vent_north = Vent(id="VENT_NORTH", xb=Bounds3D(0.0, 1.5, 1.5, 1.5, 0.0, 1.0), surf_id="OPEN")
+    vent_north = Vent(id="VENT_NORTH", xb=Bounds3D.of(0.0, 1.5, 1.5, 1.5, 0.0, 1.0), surf_id="OPEN")
 
-    vent_south = Vent(id="VENT_SOUTH", xb=Bounds3D(0.0, 1.5, 0.0, 0.0, 0.0, 1.0), surf_id="OPEN")
+    vent_south = Vent(id="VENT_SOUTH", xb=Bounds3D.of(0.0, 1.5, 0.0, 0.0, 0.0, 1.0), surf_id="OPEN")
 
-    vent_east = Vent(id="VENT_EAST", xb=Bounds3D(1.5, 1.5, 0.0, 1.5, 0.0, 1.0), surf_id="OPEN")
+    vent_east = Vent(id="VENT_EAST", xb=Bounds3D.of(1.5, 1.5, 0.0, 1.5, 0.0, 1.0), surf_id="OPEN")
 
-    vent_west = Vent(id="VENT_WEST", xb=Bounds3D(0.0, 0.0, 0.0, 1.5, 0.0, 1.0), surf_id="OPEN")
+    vent_west = Vent(id="VENT_WEST", xb=Bounds3D.of(0.0, 0.0, 0.0, 1.5, 0.0, 1.0), surf_id="OPEN")
 
     # Add components to simulation
-    sim.material_mgr.add_material(methanol)
-    sim.material_mgr.add_surface(methanol_pool)
-    sim.material_mgr.add_surface(ignition)
-    sim.geometry.add_obstruction(pool)
-    sim.geometry.add_obstruction(igniter)
-    sim.geometry.add_vent(vent_north)
-    sim.geometry.add_vent(vent_south)
-    sim.geometry.add_vent(vent_east)
-    sim.geometry.add_vent(vent_west)
-    sim.physics.add_reaction(methanol_combustion)
+    sim.add(methanol)
+    sim.add(methanol_pool)
+    sim.add(ignition)
+    sim.add(pool)
+    sim.add(igniter)
+    sim.add(vent_north)
+    sim.add(vent_south)
+    sim.add(vent_east)
+    sim.add(vent_west)
+    sim.add(methanol_combustion)
 
     # Create output directory
     output_dir = Path(__file__).parent.parent / "fds"

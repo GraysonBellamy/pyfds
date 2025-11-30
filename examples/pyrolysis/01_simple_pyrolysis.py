@@ -26,10 +26,10 @@ def main():
     # Mesh
     mesh = Mesh(
         id="MESH",
-        ijk=Grid3D(20, 20, 10),
-        xb=Bounds3D(0.0, 1.0, 0.0, 1.0, 0.0, 0.5),
+        ijk=Grid3D.of(20, 20, 10),
+        xb=Bounds3D.of(0.0, 1.0, 0.0, 1.0, 0.0, 0.5),
     )
-    sim.geometry.add_mesh(mesh)
+    sim.add(mesh)
 
     # Define pyrolysis gas species
     # Simple hydrocarbon approximation for wood pyrolysis gases
@@ -37,7 +37,7 @@ def main():
         id="WOOD_GAS",
         formula="CH1.5O0.5",  # Approximate composition for wood pyrolysis products
     )
-    sim.add_species(wood_gas)
+    sim.add(wood_gas)
 
     # Pyrolysis material - wood
     wood = Material(
@@ -62,9 +62,9 @@ def main():
     combustion = Reaction(fuel="WOOD_GAS", soot_yield=0.02, co_yield=0.01, radiative_fraction=0.25)
 
     # Add components to simulation
-    sim.material_mgr.add_material(wood)
-    sim.material_mgr.add_material(char)
-    sim.physics.add_reaction(combustion)
+    sim.add(wood)
+    sim.add(char)
+    sim.add(combustion)
 
     # Create output directory
     output_dir = Path(__file__).parent.parent / "fds"

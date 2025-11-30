@@ -14,10 +14,12 @@ from pyfds.builders import (
     PropBuilder,
     RampBuilder,
     ReactionBuilder,
-    VentBuilder,
 )
 from pyfds.builders.libraries import CommonMaterials
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Device, Obstruction, Surface
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.time import Time
 
 
 def main():
@@ -27,8 +29,8 @@ def main():
     sim = Simulation("apartment_fire", title="Apartment Fire with Builders")
 
     # Time and mesh
-    sim.time(t_end=600.0)
-    sim.mesh(ijk=Grid3D(100, 100, 50), xb=Bounds3D(0, 10, 0, 10, 0, 5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
     # ========================================================================
     # Combustion Reaction (using builder)
@@ -41,14 +43,14 @@ def main():
         .radiative_fraction(0.30)
         .build()
     )
-    sim.add_reaction(reaction)
+    sim.add(reaction)
 
     # ========================================================================
     # Fire Growth Ramp (t-squared)
     # ========================================================================
     print("Adding fire growth ramp...")
     fire_ramp = RampBuilder("HRR_GROWTH").t_squared("FAST", peak_hrr=2500, t_peak=300).build()
-    sim.add_ramp(fire_ramp)
+    sim.add(fire_ramp)
 
     # ========================================================================
     # Temperature-Dependent Material Properties
@@ -61,7 +63,7 @@ def main():
         .temperature_table({20: 45.8, 100: 43.3, 200: 40.7, 400: 36.4, 600: 31.0})
         .build()
     )
-    sim.add_ramp(steel_k_ramp)
+    sim.add(steel_k_ramp)
 
     # Create steel material using the ramp
     steel = (
@@ -72,7 +74,7 @@ def main():
         .emissivity(0.7)
         .build()
     )
-    sim.add_material(steel)
+    sim.add(steel)
 
     # ========================================================================
     # Pyrolysis Material (multi-reaction)
@@ -89,7 +91,7 @@ def main():
         .add_pyrolysis_reaction(a=5e8, e=120000, heat_of_reaction=1500, residue_material="CHAR")
         .build()
     )
-    sim.add_material(foam)
+    sim.add(foam)
 
     # ========================================================================
     # Use Predefined Materials from Library
@@ -97,8 +99,8 @@ def main():
     print("Adding predefined materials...")
     concrete = CommonMaterials.concrete()
     gypsum = CommonMaterials.gypsum()
-    sim.add_material(concrete)
-    sim.add_material(gypsum)
+    sim.add(concrete)
+    sim.add(gypsum)
 
     # ========================================================================
     # Vents (using factory methods)
@@ -106,32 +108,33 @@ def main():
     print("Adding vents...")
 
     # Door using convenience method (on X=10 boundary)
-    door = VentBuilder.door(x=10.0, y_min=4.0, y_max=6.0, z_min=0.0, z_max=2.1, id="DOOR_1")
-    sim.add_vent(door)
+    from pyfds.core.namelists import Vent
+
+    door = Vent(xb=Bounds3D.of(10.0, 10.0, 4.0, 6.0, 0.0, 2.1), surf_id="OPEN", id="DOOR_1")
+    sim.add(door)
 
     # Window (on X=0 boundary)
-    window = VentBuilder.window(x=0.0, y_min=2.0, y_max=4.0, z_min=1.0, z_max=2.0, id="WINDOW_1")
-    sim.add_vent(window)
+    window = Vent(xb=Bounds3D.of(0.0, 0.0, 2.0, 4.0, 1.0, 2.0), surf_id="OPEN", id="WINDOW_1")
+    sim.add(window)
 
     # HVAC vents - Note: VOLUME_FLOW must be on SURF, not VENT per FDS requirements
     # Create surfaces with volume flow
-    sim.surface(id="HVAC_SUPPLY", volume_flow=-0.5, color="BLUE")  # negative = into domain
-    sim.surface(id="HVAC_EXHAUST", volume_flow=0.3, color="RED")  # positive = out of domain
+    sim.add(Surface(id="HVAC_SUPPLY", volume_flow=-0.5, color="BLUE"))  # negative = into domain
+    sim.add(Surface(id="HVAC_EXHAUST", volume_flow=0.3, color="RED"))  # positive = out of domain
 
     # Create vents referencing the surfaces (on ceiling at Z=5)
     from pyfds.core.namelists import Vent
 
-    supply = Vent(xb=(5, 6, 5, 6, 5, 5), surf_id="HVAC_SUPPLY", id="SUPPLY_1")
-    sim.add_vent(supply)
+    supply = Vent(xb=Bounds3D.of(5, 6, 5, 6, 5, 5), surf_id="HVAC_SUPPLY", id="SUPPLY_1")
+    sim.add(supply)
 
-    exhaust = Vent(xb=(0, 1, 0, 1, 5, 5), surf_id="HVAC_EXHAUST", id="EXHAUST_1")
-    sim.add_vent(exhaust)
+    exhaust = Vent(xb=Bounds3D.of(0, 1, 0, 1, 5, 5), surf_id="HVAC_EXHAUST", id="EXHAUST_1")
+    sim.add(exhaust)
 
     # Circular burner
-    burner = VentBuilder.circular_burner(
-        center=Point3D(5, 5, 0), radius=0.5, surf_id="FIRE", id="BURNER"
-    )
-    sim.add_vent(burner)
+    # Approximate circular burner with square vent
+    burner = Vent(xb=Bounds3D.of(4.5, 5.5, 4.5, 5.5, 0.0, 0.0), surf_id="FIRE", id="BURNER")
+    sim.add(burner)
 
     # ========================================================================
     # Device Properties (using factory methods)
@@ -140,15 +143,15 @@ def main():
 
     # Sprinkler using predefined quick-response
     sprinkler = PropBuilder.quick_response_sprinkler(id="SPRINKLER_QR")
-    sim.add_prop(sprinkler)
+    sim.add(sprinkler)
 
     # Smoke detector
     smoke_det = PropBuilder.smoke_detector(id="SMOKE_DET", activation_obscuration=3.28)
-    sim.add_prop(smoke_det)
+    sim.add(smoke_det)
 
     # Heat detector
     heat_det = PropBuilder.heat_detector(id="HEAT_DET", activation_temp=74, rti=5.0)
-    sim.add_prop(heat_det)
+    sim.add(heat_det)
 
     # ========================================================================
     # Control Logic
@@ -157,7 +160,7 @@ def main():
 
     # ANY logic - alarm if any detector activates
     alarm = ControlBuilder("SMOKE_ALARM").any(["SMOKE_DET_1", "SMOKE_DET_2", "SMOKE_DET_3"]).build()
-    sim.add_ctrl(alarm)
+    sim.add(alarm)
 
     # Time-delayed sprinkler activation
     sprinkler_ctrl = (
@@ -166,7 +169,7 @@ def main():
         .with_latch(True)
         .build()
     )
-    sim.add_ctrl(sprinkler_ctrl)
+    sim.add(sprinkler_ctrl)
 
     # ========================================================================
     # Add Surfaces and Obstructions
@@ -174,17 +177,17 @@ def main():
     print("Adding surfaces and obstructions...")
 
     # Fire surface
-    sim.surface(id="FIRE", hrrpua=1000.0, color="RED")
+    sim.add(Surface(id="FIRE", hrrpua=1000.0, color="RED"))
 
     # Wall surface with material
-    sim.surface(id="WALL", matl_id="GYPSUM", thickness=0.012, color="GRAY")
+    sim.add(Surface(id="WALL", matl_id="GYPSUM", thickness=0.012, color="GRAY"))
 
     # Burner obstruction
-    sim.obstruction(xb=(4.5, 5.5, 4.5, 5.5, 0, 0.1), surf_id="FIRE")
+    sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 4.5, 5.5, 0, 0.1), surf_id="FIRE"))
 
     # Wall obstructions
-    sim.obstruction(xb=(0, 0, 0, 10, 0, 3), surf_id="WALL")
-    sim.obstruction(xb=(10, 10, 0, 10, 0, 3), surf_id="WALL")
+    sim.add(Obstruction(xb=Bounds3D.of(0, 0, 0, 10, 0, 3), surf_id="WALL"))
+    sim.add(Obstruction(xb=Bounds3D.of(10, 10, 0, 10, 0, 3), surf_id="WALL"))
 
     # ========================================================================
     # Add Devices
@@ -192,33 +195,44 @@ def main():
     print("Adding measurement devices...")
 
     # Temperature measurements
-    sim.device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=Point3D(5, 5, 2.5))
-    sim.device(id="TEMP_CORNER", quantity="TEMPERATURE", xyz=Point3D(1, 1, 2.5))
+    sim.add(Device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=Point3D.of(5, 5, 2.5)))
+    sim.add(Device(id="TEMP_CORNER", quantity="TEMPERATURE", xyz=Point3D.of(1, 1, 2.5)))
 
     # HRR measurement
-    sim.device(id="HRR", quantity="HRR", xb=(0, 10, 0, 10, 0, 5))
+    sim.add(Device(id="HRR", quantity="HRR", xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
     # Actual detector devices (referenced by controls)
-    sim.device(
-        id="SMOKE_DET_1",
-        quantity="CHAMBER OBSCURATION",
-        xyz=Point3D(3, 3, 2.5),
-        prop_id="SMOKE_DET",
+    sim.add(
+        Device(
+            id="SMOKE_DET_1",
+            quantity="CHAMBER OBSCURATION",
+            xyz=Point3D.of(3, 3, 2.5),
+            prop_id="SMOKE_DET",
+        )
     )
-    sim.device(
-        id="SMOKE_DET_2",
-        quantity="CHAMBER OBSCURATION",
-        xyz=Point3D(7, 3, 2.5),
-        prop_id="SMOKE_DET",
+    sim.add(
+        Device(
+            id="SMOKE_DET_2",
+            quantity="CHAMBER OBSCURATION",
+            xyz=Point3D.of(7, 3, 2.5),
+            prop_id="SMOKE_DET",
+        )
     )
-    sim.device(
-        id="SMOKE_DET_3",
-        quantity="CHAMBER OBSCURATION",
-        xyz=Point3D(5, 7, 2.5),
-        prop_id="SMOKE_DET",
+    sim.add(
+        Device(
+            id="SMOKE_DET_3",
+            quantity="CHAMBER OBSCURATION",
+            xyz=Point3D.of(5, 7, 2.5),
+            prop_id="SMOKE_DET",
+        )
     )
-    sim.device(
-        id="HEAT_DET", quantity="LINK TEMPERATURE", xyz=Point3D(5, 5, 2.5), prop_id="HEAT_DET"
+    sim.add(
+        Device(
+            id="HEAT_DET",
+            quantity="LINK TEMPERATURE",
+            xyz=Point3D.of(5, 5, 2.5),
+            prop_id="HEAT_DET",
+        )
     )
 
     # ========================================================================
@@ -250,15 +264,15 @@ def main():
     print("=" * 70)
     print(f"CHID: {sim.chid}")
     print(f"Title: {sim.head.title}")
-    print(f"Meshes: {len(sim.geometry.meshes)}")
-    print(f"Materials: {len(sim.material_mgr.materials)}")
-    print(f"Ramps: {len(sim.ramps.ramps)}")
-    print(f"Surfaces: {len(sim.material_mgr.surfaces)}")
-    print(f"Obstructions: {len(sim.geometry.obstructions)}")
-    print(f"Vents: {len(sim.geometry.vents)}")
-    print(f"Devices: {len(sim.instrumentation.devices)}")
-    print(f"Controls: {len(sim.controls.ctrls)}")
-    print(f"Props: {len(sim.instrumentation.props)}")
+    print(f"Meshes: {len(sim.meshes)}")
+    print(f"Materials: {len(sim.materials)}")
+    print(f"Ramps: {len(sim.ramps.all())}")
+    print(f"Surfaces: {len(sim.surfaces)}")
+    print(f"Obstructions: {len(sim.obstructions)}")
+    print(f"Vents: {len(sim.vents)}")
+    print(f"Devices: {len(sim.devices)}")
+    print(f"Controls: {len(sim.ctrls)}")
+    print(f"Props: {len(sim.props)}")
     print("=" * 70)
 
     # Show available fuels

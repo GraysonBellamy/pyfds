@@ -16,7 +16,15 @@ Run with: python examples/species/04_finite_rate.py
 from pathlib import Path
 
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Species
+from pyfds.core.namelists.comb import Combustion
+from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.reac import Reaction
+from pyfds.core.namelists.surf import Surface
+from pyfds.core.namelists.time import Time
+from pyfds.core.namelists.vent import Vent
 
 
 def main():
@@ -47,15 +55,15 @@ def main():
     sim = Simulation(chid="finite_rate_example")
 
     # Set up basic simulation parameters
-    sim.time(t_end=10.0)  # Shorter time for fast chemistry
-    sim.mesh(ijk=(20, 20, 20), xb=(0, 1, 0, 1, 0, 1))
+    sim.add(Time(t_end=10.0))  # Shorter time for fast chemistry
+    sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
     # Add species
     print("   - Adding species to simulation")
-    sim.add_species(hydrogen)
-    sim.add_species(oxygen)
-    sim.add_species(water_vapor)
-    sim.add_species(nitrogen)
+    sim.add(hydrogen)
+    sim.add(oxygen)
+    sim.add(water_vapor)
+    sim.add(nitrogen)
 
     # Define finite-rate reaction: H2 + O2 -> 2OH (chain initiation)
     # This is a simplified reaction for demonstration
@@ -63,67 +71,76 @@ def main():
     print("   - Reaction: H₂ + ½O₂ → H₂O")
     print("   - Using Arrhenius kinetics")
 
-    sim.reaction(
-        fuel="HYDROGEN",
-        # Basic stoichiometry
-        c=0,
-        h=2,
-        o=0,  # H2 composition
-        spec_id_nu=["HYDROGEN", "OXYGEN", "WATER_VAPOR"],
-        nu=[-1, -0.5, 1],  # H2 + 0.5O2 -> H2O
-        # Finite-rate parameters
-        a=1e12,  # Pre-exponential factor [cm³/mol·s]
-        e=30000,  # Activation energy [J/mol]
-        n_t=0.0,  # Temperature exponent
-        # Concentration exponents
-        spec_id_n_s=["HYDROGEN", "OXYGEN"],
-        n_s=[1.0, 0.5],  # Reaction orders: first order in H2, half order in O2
-        # Heat release
-        heat_of_combustion=120000,  # kJ/kg for H2
-        # Reaction priority
-        priority=1,
+    sim.add(
+        Reaction(
+            fuel="HYDROGEN",
+            # Basic stoichiometry
+            c=0,
+            h=2,
+            o=0,  # H2 composition
+            spec_id_nu=["HYDROGEN", "OXYGEN", "WATER_VAPOR"],
+            nu=[-1, -0.5, 1],  # H2 + 0.5O2 -> H2O
+            # Finite-rate parameters
+            a=1e12,  # Pre-exponential factor [cm³/mol·s]
+            e=30000,  # Activation energy [J/mol]
+            n_t=0.0,  # Temperature exponent
+            # Concentration exponents
+            spec_id_n_s=["HYDROGEN", "OXYGEN"],
+            n_s=[1.0, 0.5],  # Reaction orders: first order in H2, half order in O2
+            # Heat release
+            heat_of_combustion=120000,  # kJ/kg for H2
+            # Reaction priority
+            priority=1,
+        )
     )
 
     # Set combustion parameters for finite-rate chemistry
     print("   - Configuring combustion model")
-    sim.combustion(
-        finite_rate_min_temp=300.0,  # Minimum temperature for reaction [°C]
-        zz_min_global=1e-10,  # Species threshold
-        initial_unmixed_fraction=0.1,  # Some mixing
+    sim.add(
+        Combustion(
+            finite_rate_min_temp=300.0,  # Minimum temperature for reaction [°C]
+            zz_min_global=1e-10,  # Species threshold
+            initial_unmixed_fraction=0.1,  # Some mixing
+        )
     )
 
     # Add fuel injection source
     print("   - Adding hydrogen fuel injection")
-    sim.vent(
-        id="H2_INLET",
-        xb=(0.0, 0.0, 0.4, 0.6, 0.4, 0.6),  # Small inlet on left wall
-        surface="injector",  # Need to define this surface
+    sim.add(
+        Vent(
+            id="H2_INLET",
+            xb=Bounds3D.of(0.0, 0.0, 0.4, 0.6, 0.4, 0.6),  # Small inlet on left wall
+            surface="injector",  # Need to define this surface
+        )
     )
 
     # Define injector surface for hydrogen injection
-    sim.surface(
-        id="injector",
-        mass_flux=(0.01,),  # kg/m²/s hydrogen injection
-        species="HYDROGEN",
+    sim.add(
+        Surface(
+            id="injector",
+            mass_flux=(0.01,),  # kg/m²/s hydrogen injection
+            species="HYDROGEN",
+        )
     )
-
     # Add monitoring devices
     print("   - Adding reaction monitoring devices")
-    sim.device(id="H2_CONC", xyz=(0.5, 0.5, 0.5), quantity="MASS FRACTION HYDROGEN")
+    sim.add(Device(id="H2_CONC", xyz=Point3D.of(0.5, 0.5, 0.5), quantity="MASS FRACTION HYDROGEN"))
 
-    sim.device(id="O2_CONC", xyz=(0.5, 0.5, 0.5), quantity="VOLUME FRACTION OXYGEN")
+    sim.add(Device(id="O2_CONC", xyz=Point3D.of(0.5, 0.5, 0.5), quantity="VOLUME FRACTION OXYGEN"))
 
-    sim.device(id="H2O_CONC", xyz=(0.5, 0.5, 0.5), quantity="MASS FRACTION WATER VAPOR")
-
-    sim.device(id="TEMP", xyz=(0.5, 0.5, 0.5), quantity="TEMPERATURE")
+    sim.add(
+        Device(id="H2O_CONC", xyz=Point3D.of(0.5, 0.5, 0.5), quantity="MASS FRACTION WATER VAPOR")
+    )
+    sim.add(Device(id="TEMP", xyz=Point3D.of(0.5, 0.5, 0.5), quantity="TEMPERATURE"))
 
     # Add reaction rate monitoring (if available)
-    sim.device(
-        id="HRR",
-        xyz=(0.5, 0.5, 0.5),
-        quantity="HRRPUV",  # Heat release rate per unit volume
+    sim.add(
+        Device(
+            id="HRR",
+            xyz=Point3D.of(0.5, 0.5, 0.5),
+            quantity="HRRPUV",  # Heat release rate per unit volume
+        )
     )
-
     # Generate FDS input
     print("\n3. Generated FDS Input:")
     fds_content = sim.to_fds()

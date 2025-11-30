@@ -7,7 +7,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .exceptions import FDSNotFoundError
+from ..exceptions import FDSNotFoundError
 
 
 def find_fds_executable() -> Path:

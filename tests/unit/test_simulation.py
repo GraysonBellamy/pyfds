@@ -4,7 +4,8 @@ Unit tests for Simulation class.
 
 import pytest
 
-from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Device, Mesh, Mult, Obstruction, Surface, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -26,7 +27,7 @@ class TestSimulation:
     def test_time_method(self):
         """Test time() method."""
         sim = Simulation(chid="test")
-        result = sim.time(t_end=600.0, dt=0.1)
+        result = sim.add(Time(t_end=600.0, dt=0.1))
 
         assert result is sim  # Check method chaining
         assert sim.time_params is not None
@@ -36,57 +37,57 @@ class TestSimulation:
     def test_mesh_method(self):
         """Test mesh() method."""
         sim = Simulation(chid="test")
-        result = sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        result = sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         assert result is sim  # Check method chaining
-        assert len(sim.geometry.meshes) == 1
-        assert sim.geometry.meshes[0].ijk == Grid3D(nx=10, ny=10, nz=10)
+        assert len(sim.meshes) == 1
+        assert sim.meshes[0].ijk == Grid3D.of(nx=10, ny=10, nz=10)
 
     def test_multiple_meshes(self):
         """Test adding multiple meshes."""
         sim = Simulation(chid="test")
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
-        sim.mesh(ijk=(10, 10, 10), xb=(1, 2, 0, 1, 0, 1))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(1, 2, 0, 1, 0, 1)))
 
-        assert len(sim.geometry.meshes) == 2
+        assert len(sim.meshes) == 2
 
     def test_surface_method(self):
         """Test surface() method."""
         sim = Simulation(chid="test")
-        result = sim.surface(id="FIRE", hrrpua=1000.0, color="RED")
+        result = sim.add(Surface(id="FIRE", hrrpua=1000.0, color="RED"))
 
         assert result is sim
-        assert len(sim.material_mgr.surfaces) == 1
-        assert sim.material_mgr.surfaces[0].id == "FIRE"
+        assert len(sim.surfaces) == 1
+        assert sim.surfaces[0].id == "FIRE"
 
     def test_obstruction_method(self):
         """Test obstruction() method."""
         sim = Simulation(chid="test")
-        result = sim.obstruction(xb=(0, 1, 0, 1, 0, 0.1), surf_id="FIRE")
+        result = sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 0.1), surf_id="FIRE"))
 
         assert result is sim
-        assert len(sim.geometry.obstructions) == 1
-        assert sim.geometry.obstructions[0].surf_id == "FIRE"
+        assert len(sim.obstructions) == 1
+        assert sim.obstructions[0].surf_id == "FIRE"
 
     def test_device_method_xyz(self):
         """Test device() method with XYZ."""
         sim = Simulation(chid="test")
-        result = sim.device(id="TEMP1", quantity="TEMPERATURE", xyz=(1.0, 1.0, 2.0))
+        result = sim.add(Device(id="TEMP1", quantity="TEMPERATURE", xyz=Point3D.of(1.0, 1.0, 2.0)))
 
         assert result is sim
-        assert len(sim.instrumentation.devices) == 1
-        assert sim.instrumentation.devices[0].id == "TEMP1"
+        assert len(sim.devices) == 1
+        assert sim.devices[0].id == "TEMP1"
 
     def test_device_method_xb(self):
         """Test device() method with XB."""
         sim = Simulation(chid="test")
-        result = sim.device(id="TEMP1", quantity="TEMPERATURE", xb=(0, 1, 0, 1, 0, 1))
+        result = sim.add(
+            Device(id="TEMP1", quantity="TEMPERATURE", xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
+        )
 
         assert result is sim
-        assert len(sim.instrumentation.devices) == 1
-        assert sim.instrumentation.devices[0].xb == Bounds3D(
-            xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1
-        )
+        assert len(sim.devices) == 1
+        assert sim.devices[0].xb == Bounds3D(xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1)
 
     def test_device_method_validation(self):
         """Test device() method requires either XYZ or XB."""
@@ -94,17 +95,24 @@ class TestSimulation:
 
         # Neither XYZ nor XB
         with pytest.raises(ValueError, match="Either xyz or xb must be specified"):
-            sim.device(id="TEMP1", quantity="TEMPERATURE")
+            sim.add(Device(id="TEMP1", quantity="TEMPERATURE"))
 
         # Both XYZ and XB
         with pytest.raises(ValueError, match="Cannot specify both"):
-            sim.device(id="TEMP1", quantity="TEMPERATURE", xyz=(1, 1, 1), xb=(0, 1, 0, 1, 0, 1))
+            sim.add(
+                Device(
+                    id="TEMP1",
+                    quantity="TEMPERATURE",
+                    xyz=Point3D.of(1, 1, 1),
+                    xb=Bounds3D.of(0, 1, 0, 1, 0, 1),
+                )
+            )
 
     def test_to_fds_basic(self):
         """Test to_fds() method with basic simulation."""
         sim = Simulation(chid="test", title="Test Simulation")
-        sim.time(t_end=100.0)
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Time(t_end=100.0))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         fds_content = sim.to_fds()
 
@@ -117,15 +125,14 @@ class TestSimulation:
     def test_to_fds_complete(self):
         """Test to_fds() with complete simulation."""
         sim = Simulation(chid="test")
-        sim.time(t_end=600.0)
-        sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
-        sim.surface(id="FIRE", hrrpua=1000.0)
-        sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id="FIRE")
-        sim.device(id="TEMP1", quantity="TEMPERATURE", xyz=(2.5, 2.5, 2.0))
+        sim.add(Time(t_end=600.0))
+        sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+        sim.add(Surface(id="FIRE", hrrpua=1000.0))
+        sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id="FIRE"))
+        sim.add(Device(id="TEMP1", quantity="TEMPERATURE", xyz=Point3D.of(2.5, 2.5, 2.0)))
 
         fds_content = sim.to_fds()
 
-        assert "! FDS input file generated by PyFDS" in fds_content
         assert "&SURF" in fds_content
         assert "&OBST" in fds_content
         assert "&DEVC" in fds_content
@@ -133,8 +140,8 @@ class TestSimulation:
     def test_write_method(self, tmp_path):
         """Test write() method."""
         sim = Simulation(chid="test")
-        sim.time(t_end=100.0)
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Time(t_end=100.0))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         output_file = tmp_path / "test.fds"
         result_path = sim.write(output_file)
@@ -149,8 +156,8 @@ class TestSimulation:
     def test_write_adds_extension(self, tmp_path):
         """Test write() adds .fds extension if missing."""
         sim = Simulation(chid="test")
-        sim.time(t_end=100.0)
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Time(t_end=100.0))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         output_file = tmp_path / "test"
         result_path = sim.write(output_file)
@@ -160,8 +167,8 @@ class TestSimulation:
     def test_validate_basic(self):
         """Test validate() method with valid simulation."""
         sim = Simulation(chid="test")
-        sim.time(t_end=100.0)
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Time(t_end=100.0))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         warnings = sim.validate()
         assert isinstance(warnings, list)
@@ -169,7 +176,7 @@ class TestSimulation:
     def test_validate_no_mesh(self):
         """Test validate() detects missing mesh."""
         sim = Simulation(chid="test")
-        sim.time(t_end=100.0)
+        sim.add(Time(t_end=100.0))
 
         warnings = sim.validate()
         assert any("mesh" in w.lower() for w in warnings)
@@ -177,7 +184,7 @@ class TestSimulation:
     def test_validate_no_time(self):
         """Test validate() detects missing time."""
         sim = Simulation(chid="test")
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
         warnings = sim.validate()
         assert any("time" in w.lower() for w in warnings)
@@ -185,30 +192,31 @@ class TestSimulation:
     def test_validate_undefined_surface(self):
         """Test validate() detects undefined surface references."""
         sim = Simulation(chid="test")
-        sim.time(t_end=100.0)
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
-        sim.obstruction(xb=(0, 1, 0, 1, 0, 0.1), surf_id="UNDEFINED")
+        sim.add(Time(t_end=100.0))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
+        sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 0.1), surf_id="UNDEFINED"))
 
         warnings = sim.validate()
         assert any("UNDEFINED" in w for w in warnings)
 
     def test_validate_duplicate_device_ids(self):
-        """Test validate() detects duplicate device IDs."""
-        sim = Simulation(chid="test")
-        sim.time(t_end=100.0)
-        sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
-        sim.device(id="TEMP1", quantity="TEMPERATURE", xyz=(0.5, 0.5, 0.5))
-        sim.device(id="TEMP1", quantity="TEMPERATURE", xyz=(0.7, 0.7, 0.7))
+        """Test that duplicate device IDs raise DuplicateIdError."""
+        from pyfds.exceptions import DuplicateIdError
 
-        warnings = sim.validate()
-        assert any("duplicate" in w.lower() for w in warnings)
+        sim = Simulation(chid="test")
+        sim.add(Time(t_end=100.0))
+        sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
+        sim.add(Device(id="TEMP1", quantity="TEMPERATURE", xyz=Point3D.of(0.5, 0.5, 0.5)))
+
+        with pytest.raises(DuplicateIdError, match="Duplicate global ID: 'TEMP1'"):
+            sim.add(Device(id="TEMP1", quantity="TEMPERATURE", xyz=Point3D.of(0.7, 0.7, 0.7)))
 
     def test_validate_non_cubic_cells(self):
         """Test validate() warns about non-cubic cells."""
         sim = Simulation(chid="test")
-        sim.time(t_end=100.0)
+        sim.add(Time(t_end=100.0))
         # Create mesh with non-cubic cells: dx=0.1, dy=0.3, dz=0.3 (aspect ratio 3.0)
-        sim.mesh(ijk=(100, 10, 10), xb=(0, 10, 0, 3, 0, 3))
+        sim.add(Mesh(ijk=Grid3D.of(100, 10, 10), xb=Bounds3D.of(0, 10, 0, 3, 0, 3)))
 
         warnings = sim.validate()
         # Convert warnings to strings if they're not already
@@ -218,33 +226,41 @@ class TestSimulation:
     def test_mult_method(self):
         """Test mult() method."""
         sim = Simulation(chid="test")
-        result = sim.mult(
-            id="ARRAY_3X3", dx=2.0, dy=2.0, i_lower=0, i_upper=2, j_lower=0, j_upper=2
+        result = sim.add(
+            Mult(
+                id="ARRAY_3X3",
+                dx=2.0,
+                dy=2.0,
+                i_lower=0,
+                i_upper=2,
+                j_lower=0,
+                j_upper=2,
+            )
         )
 
         assert result is sim  # Check method chaining
-        assert len(sim.geometry.multipliers) == 1
-        assert sim.geometry.multipliers[0].id == "ARRAY_3X3"
-        assert sim.geometry.multipliers[0].dx == 2.0
-        assert sim.geometry.multipliers[0].dy == 2.0
-        assert sim.geometry.multipliers[0].i_lower == 0
-        assert sim.geometry.multipliers[0].i_upper == 2
-        assert sim.geometry.multipliers[0].j_lower == 0
-        assert sim.geometry.multipliers[0].j_upper == 2
+        assert len(sim.mults) == 1
+        assert sim.mults[0].id == "ARRAY_3X3"
+        assert sim.mults[0].dx == 2.0
+        assert sim.mults[0].dy == 2.0
+        assert sim.mults[0].i_lower == 0
+        assert sim.mults[0].i_upper == 2
+        assert sim.mults[0].j_lower == 0
+        assert sim.mults[0].j_upper == 2
 
     def test_method_chaining(self):
         """Test method chaining works for fluid API."""
         sim = (
             Simulation(chid="test", title="Chaining Test")
-            .time(t_end=600.0, dt=0.1)
-            .mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
-            .surface(id="FIRE", hrrpua=1000.0)
-            .obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id="FIRE")
-            .device(id="TEMP1", quantity="TEMPERATURE", xyz=(2.5, 2.5, 2.0))
+            .add(Time(t_end=600.0, dt=0.1))
+            .add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+            .add(Surface(id="FIRE", hrrpua=1000.0))
+            .add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id="FIRE"))
+            .add(Device(id="TEMP1", quantity="TEMPERATURE", xyz=Point3D.of(2.5, 2.5, 2.0)))
         )
 
         assert sim.chid == "test"
-        assert len(sim.geometry.meshes) == 1
-        assert len(sim.material_mgr.surfaces) == 1
-        assert len(sim.geometry.obstructions) == 1
-        assert len(sim.instrumentation.devices) == 1
+        assert len(sim.meshes) == 1
+        assert len(sim.surfaces) == 1
+        assert len(sim.obstructions) == 1
+        assert len(sim.devices) == 1

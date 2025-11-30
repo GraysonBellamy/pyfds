@@ -12,43 +12,45 @@ This example demonstrates more advanced PyFDS features including:
 from pathlib import Path
 
 from pyfds import Simulation
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Mesh, Time
+from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.obst import Obstruction
+from pyfds.core.namelists.reac import Reaction
+from pyfds.core.namelists.surf import Surface
 
 # Create simulation using method chaining
-sim = (
-    Simulation(chid="advanced_room", title="Advanced Room Fire with Walls")
-    .time(t_end=600.0, dt=0.1)
-    .mesh(ijk=(60, 60, 30), xb=(0, 6, 0, 6, 0, 3))
-)
+sim = Simulation(chid="advanced_room", title="Advanced Room Fire with Walls")
+sim.add(Time(t_end=600.0, dt=0.1))
+sim.add(Mesh(ijk=Grid3D.of(60, 60, 30), xb=Bounds3D.of(0, 6, 0, 6, 0, 3)))
 
 # Define multiple surfaces
-sim.surface(id="WALL", color="GRAY", tmp_front=20.0)
-sim.surface(id="CEILING", color="WHITE", tmp_front=20.0)
-sim.surface(id="FLOOR", color="TAN", tmp_front=20.0)
-sim.surface(id="FIRE", hrrpua=1000.0, color="RED")
+sim.add(Surface(id="WALL", color="GRAY", tmp_front=20.0))
+sim.add(Surface(id="CEILING", color="WHITE", tmp_front=20.0))
+sim.add(Surface(id="FLOOR", color="TAN", tmp_front=20.0))
+sim.add(Surface(id="FIRE", hrrpua=1000.0, color="RED"))
 
 # Add reaction for combustion
-sim.reaction(fuel="PROPANE")
+sim.add(Reaction(fuel="PROPANE"))
 
 # Build room geometry
 # Floor
-sim.obstruction(xb=(0, 6, 0, 6, 0, 0), surf_id="FLOOR")
-
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 6, 0, 0), surf_id="FLOOR"))
 # Ceiling
-sim.obstruction(xb=(0, 6, 0, 6, 3, 3), surf_id="CEILING")
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 6, 3, 3), surf_id="CEILING"))
 
 # Walls (with doorway opening at x=0)
-sim.obstruction(xb=(0, 0, 0, 6, 0, 3), surf_id="WALL")  # Left wall
-sim.obstruction(xb=(6, 6, 0, 6, 0, 3), surf_id="WALL")  # Right wall
-sim.obstruction(xb=(0, 6, 0, 0, 0, 3), surf_id="WALL")  # Front wall
-sim.obstruction(xb=(0, 6, 6, 6, 0, 3), surf_id="WALL")  # Back wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 0, 0, 6, 0, 3), surf_id="WALL"))  # Left wall
+sim.add(Obstruction(xb=Bounds3D.of(6, 6, 0, 6, 0, 3), surf_id="WALL"))  # Right wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 0, 0, 3), surf_id="WALL"))  # Front wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 6, 6, 0, 3), surf_id="WALL"))  # Back wall
 
 # Door opening (remove section of left wall)
 # This would typically be done with a VENT, but showing obstruction approach
 # Note: In a real scenario, you'd use VENT with SURF_ID='OPEN' for openings
 
 # Fire source in corner
-sim.obstruction(xb=(2.5, 3.5, 2.5, 3.5, 0, 0.2), surf_id="FIRE")
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2.5, 3.5, 0, 0.2), surf_id="FIRE"))
 
 # Add measurement devices in a grid at ceiling level
 print("Adding temperature measurement grid...")
@@ -60,8 +62,10 @@ device_count = 0
 for i, x in enumerate(x_positions):
     for j, y in enumerate(y_positions):
         device_count += 1
-        sim.device(
-            id=f"TEMP_X{i + 1}Y{j + 1}", quantity="TEMPERATURE", xyz=Point3D(x, y, z_ceiling)
+        sim.add(
+            Device(
+                id=f"TEMP_X{i + 1}Y{j + 1}", quantity="TEMPERATURE", xyz=Point3D.of(x, y, z_ceiling)
+            )
         )
 
 print(f"Added {device_count} temperature sensors")
@@ -69,7 +73,7 @@ print(f"Added {device_count} temperature sensors")
 # Add vertical temperature profile at room center
 z_positions = [0.5, 1.0, 1.5, 2.0, 2.5, 2.9]
 for i, z in enumerate(z_positions, start=1):
-    sim.device(id=f"TEMP_VERT_{i}", quantity="TEMPERATURE", xyz=Point3D(3.0, 3.0, z))
+    sim.add(Device(id=f"TEMP_VERT_{i}", quantity="TEMPERATURE", xyz=Point3D.of(3.0, 3.0, z)))
 
 print(f"Added {len(z_positions)} vertical profile sensors")
 
@@ -92,7 +96,7 @@ print(f"\n✓ FDS input file written to: {output_file}")
 print("\nSimulation Summary:")
 print("  - Domain: 6m x 6m x 3m")
 print("  - Grid cells: 60 x 60 x 30 (10 cm resolution)")
-print(f"  - Surfaces defined: {len(sim.material_mgr.surfaces)}")
-print(f"  - Obstructions: {len(sim.geometry.obstructions)}")
-print(f"  - Devices: {len(sim.instrumentation.devices)}")
+print(f"  - Surfaces defined: {len(sim.surfaces)}")
+print(f"  - Obstructions: {len(sim.obstructions)}")
+print(f"  - Devices: {len(sim.devices)}")
 print(f"  - Simulation time: {sim.time_params.t_end if sim.time_params else 'Not set'} seconds")

@@ -1,5 +1,7 @@
 """Integration tests for MULT functionality."""
 
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Mesh, Mult, Obstruction, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -9,14 +11,14 @@ class TestMultIntegration:
     def test_mult_in_simulation_output(self):
         """Test that MULT appears in FDS output."""
         sim = Simulation(chid="mult_test")
-        sim.time(t_end=10.0)
-        sim.mesh(ijk=(20, 20, 10), xb=(0, 10, 0, 10, 0, 5))
+        sim.add(Time(t_end=10.0))
+        sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add multiplier for 3x3 array
-        sim.mult(id="ARRAY_3X3", dx=2.0, dy=2.0, i_lower=0, i_upper=2, j_lower=0, j_upper=2)
+        sim.add(Mult(id="ARRAY_3X3", dx=2.0, dy=2.0, i_lower=0, i_upper=2, j_lower=0, j_upper=2))
 
         # Add obstruction that uses the multiplier
-        sim.obstruction(xb=(0, 1, 0, 1, 0, 0.5), mult_id="ARRAY_3X3")
+        sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 0.5), mult_id="ARRAY_3X3"))
 
         fds_output = sim.to_fds()
 
@@ -34,16 +36,16 @@ class TestMultIntegration:
     def test_multiple_mults_in_simulation(self):
         """Test multiple multipliers in a simulation."""
         sim = Simulation(chid="multi_mult_test")
-        sim.time(t_end=10.0)
-        sim.mesh(ijk=(20, 20, 10), xb=(0, 10, 0, 10, 0, 5))
+        sim.add(Time(t_end=10.0))
+        sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add two different multipliers
-        sim.mult(id="ROW_5", dx=1.0, n_lower=0, n_upper=4)
-        sim.mult(id="COLUMN_3", dy=2.0, n_lower=0, n_upper=2)
+        sim.add(Mult(id="ROW_5", dx=1.0, n_lower=0, n_upper=4))
+        sim.add(Mult(id="COLUMN_3", dy=2.0, n_lower=0, n_upper=2))
 
         # Add obstructions using different multipliers
-        sim.obstruction(xb=(0, 0.5, 0, 0.5, 0, 0.5), mult_id="ROW_5")
-        sim.obstruction(xb=(2, 2.5, 0, 0.5, 0, 0.5), mult_id="COLUMN_3")
+        sim.add(Obstruction(xb=Bounds3D.of(0, 0.5, 0, 0.5, 0, 0.5), mult_id="ROW_5"))
+        sim.add(Obstruction(xb=Bounds3D.of(2, 2.5, 0, 0.5, 0, 0.5), mult_id="COLUMN_3"))
 
         fds_output = sim.to_fds()
 
@@ -57,14 +59,23 @@ class TestMultIntegration:
     def test_mult_with_skip_ranges(self):
         """Test MULT with skip ranges for creating gaps."""
         sim = Simulation(chid="mult_skip_test")
-        sim.time(t_end=10.0)
-        sim.mesh(ijk=(20, 20, 10), xb=(0, 10, 0, 10, 0, 5))
+        sim.add(Time(t_end=10.0))
+        sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add multiplier with skip range (skip indices 2-3)
-        sim.mult(id="ARRAY_WITH_GAP", dx=1.0, n_lower=0, n_upper=9, n_lower_skip=2, n_upper_skip=3)
+        sim.add(
+            Mult(
+                id="ARRAY_WITH_GAP",
+                dx=1.0,
+                n_lower=0,
+                n_upper=9,
+                n_lower_skip=2,
+                n_upper_skip=3,
+            )
+        )
 
         # Add obstruction using the multiplier
-        sim.obstruction(xb=(0, 0.5, 0, 0.5, 0, 0.5), mult_id="ARRAY_WITH_GAP")
+        sim.add(Obstruction(xb=Bounds3D.of(0, 0.5, 0, 0.5, 0, 0.5), mult_id="ARRAY_WITH_GAP"))
 
         fds_output = sim.to_fds()
 

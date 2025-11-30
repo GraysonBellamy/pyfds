@@ -4,11 +4,9 @@ FDS GEOM namelist.
 Unstructured geometry using triangulated surfaces (Beta feature).
 """
 
-from typing import Any
+from pydantic import field_validator, model_validator
 
-from pydantic import Field, field_validator, model_validator
-
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Geom(NamelistBase):
@@ -62,73 +60,75 @@ class Geom(NamelistBase):
     """
 
     # Basic properties
-    id: str | None = Field(None, description="Geometry identifier")
-    surf_id: str = Field("INERT", description="Default surface ID")
-    surf_ids: tuple[str, str, str] | None = Field(
+    id: str | None = FdsField(None, description="Geometry identifier")
+    surf_id: str = FdsField("INERT", description="Default surface ID")
+    surf_ids: tuple[str, str, str] | None = FdsField(
         None, description="Surface IDs (top, sides, bottom)"
     )
-    surf_id6: tuple[str, str, str, str, str, str] | None = Field(
+    surf_id6: tuple[str, str, str, str, str, str] | None = FdsField(
         None, description="Surface IDs for 6 faces"
     )
 
     # Visualization
-    color: str | None = Field(None, description="Color")
-    rgb: tuple[int, int, int] | None = Field(None, description="RGB color")
-    transparency: float = Field(1.0, ge=0, le=1, description="Transparency")
+    color: str | None = FdsField(None, description="Color")
+    rgb: tuple[int, int, int] | None = FdsField(None, description="RGB color")
+    transparency: float = FdsField(1.0, ge=0, le=1, exclude_if=1.0, description="Transparency")
 
     # Mesh definition
-    verts: list[float] | None = Field(None, description="Vertex coordinates")
-    faces: list[int] | None = Field(None, description="Face definitions")
-    binary_file: str | None = Field(None, description="Binary geometry file")
+    verts: list[float] | None = FdsField(None, description="Vertex coordinates")
+    faces: list[int] | None = FdsField(None, description="Face definitions")
+    binary_file: str | None = FdsField(None, description="Binary geometry file")
 
     # Transformation
-    move_id: str | None = Field(None, description="MOVE transformation reference")
+    move_id: str | None = FdsField(None, description="MOVE transformation reference")
 
     # === Self-generated geometry ===
 
     # Block
-    xb: tuple[float, float, float, float, float, float] | None = Field(
+    xb: tuple[float, float, float, float, float, float] | None = FdsField(
         None, description="Block bounds"
     )
-    ijk: tuple[int, int, int] | None = Field(None, description="Block subdivisions")
+    ijk: tuple[int, int, int] | None = FdsField(None, description="Block subdivisions")
 
     # Sphere
-    sphere_origin: tuple[float, float, float] | None = Field(None, description="Sphere center")
-    sphere_radius: float | None = Field(None, gt=0, description="Sphere radius")
-    n_levels: int | None = Field(None, ge=0, description="Subdivision level")
-    n_lat: int | None = Field(None, ge=3, description="Latitude divisions")
-    n_long: int | None = Field(None, ge=3, description="Longitude divisions")
+    sphere_origin: tuple[float, float, float] | None = FdsField(None, description="Sphere center")
+    sphere_radius: float | None = FdsField(None, gt=0, description="Sphere radius")
+    n_levels: int | None = FdsField(None, ge=0, description="Subdivision level")
+    n_lat: int | None = FdsField(None, ge=3, description="Latitude divisions")
+    n_long: int | None = FdsField(None, ge=3, description="Longitude divisions")
 
     # Cylinder
-    cylinder_origin: tuple[float, float, float] | None = Field(
+    cylinder_origin: tuple[float, float, float] | None = FdsField(
         None, description="Cylinder bottom center"
     )
-    cylinder_axis: tuple[float, float, float] | None = Field(
+    cylinder_axis: tuple[float, float, float] | None = FdsField(
         None, description="Cylinder axis direction"
     )
-    cylinder_length: float | None = Field(None, gt=0, description="Cylinder length")
-    cylinder_radius: float | None = Field(None, gt=0, description="Cylinder radius")
-    cylinder_nseg_axis: int | None = Field(None, ge=1, description="Axial segments")
-    cylinder_nseg_theta: int | None = Field(None, ge=3, description="Angular segments")
+    cylinder_length: float | None = FdsField(None, gt=0, description="Cylinder length")
+    cylinder_radius: float | None = FdsField(None, gt=0, description="Cylinder radius")
+    cylinder_nseg_axis: int | None = FdsField(None, ge=1, description="Axial segments")
+    cylinder_nseg_theta: int | None = FdsField(None, ge=3, description="Angular segments")
 
     # Terrain
-    zvals: list[float] | None = Field(None, description="Terrain elevation data")
-    zmin: float | None = Field(None, description="Terrain bottom elevation")
-    is_terrain: bool = Field(False, description="Mark as terrain geometry")
-    extend_terrain: bool = Field(False, description="Extend to domain boundaries")
-    zval_horizon: float | None = Field(None, description="Horizon elevation")
+    zvals: list[float] | None = FdsField(None, description="Terrain elevation data")
+    zmin: float | None = FdsField(None, description="Terrain bottom elevation")
+    is_terrain: bool = FdsField(False, exclude_if=False, description="Mark as terrain geometry")
+    extend_terrain: bool = FdsField(
+        False, exclude_if=False, description="Extend to domain boundaries"
+    )
+    zval_horizon: float | None = FdsField(None, description="Horizon elevation")
 
     # Extrusion
-    poly: list[int] | None = Field(None, description="Polygon vertex indices")
-    extrude: float | None = Field(None, description="Extrusion distance")
+    poly: list[int] | None = FdsField(None, description="Polygon vertex indices")
+    extrude: float | None = FdsField(None, description="Extrusion distance")
 
     # Thin geometry
-    cell_block_ior: int | None = Field(None, description="Block direction (+/-1,2,3)")
+    cell_block_ior: int | None = FdsField(None, description="Block direction (+/-1,2,3)")
 
     # Texture mapping
-    texture_mapping: str | None = Field(None, description="RECTANGULAR or SPHERICAL")
-    texture_origin: tuple[float, float, float] | None = Field(None, description="Texture origin")
-    texture_scale: float = Field(1.0, gt=0, description="Texture scale")
+    texture_mapping: str | None = FdsField(None, description="RECTANGULAR or SPHERICAL")
+    texture_origin: tuple[float, float, float] | None = FdsField(None, description="Texture origin")
+    texture_scale: float = FdsField(1.0, gt=0, exclude_if=1.0, description="Texture scale")
 
     @field_validator("surf_id6")
     @classmethod
@@ -223,90 +223,6 @@ class Geom(NamelistBase):
 
         return self
 
-    def to_fds(self) -> str:
-        """Generate FDS GEOM namelist."""
-        params: dict[str, Any] = {}
-
-        if self.id:
-            params["id"] = self.id
-        params["surf_id"] = self.surf_id
-
-        if self.surf_ids:
-            params["surf_ids"] = self.surf_ids
-        if self.surf_id6:
-            params["surf_id6"] = self.surf_id6
-
-        if self.color:
-            params["color"] = self.color
-        if self.rgb:
-            params["rgb"] = self.rgb
-        if self.transparency != 1.0:
-            params["transparency"] = self.transparency
-
-        if self.verts:
-            params["verts"] = self.verts
-        if self.faces:
-            params["faces"] = self.faces
-        if self.binary_file:
-            params["binary_file"] = self.binary_file
-
-        if self.move_id:
-            params["move_id"] = self.move_id
-
-        # Self-generated geometry
-        if self.xb:
-            params["xb"] = self.xb
-        if self.ijk:
-            params["ijk"] = self.ijk
-
-        if self.sphere_origin:
-            params["sphere_origin"] = self.sphere_origin
-        if self.sphere_radius is not None:
-            params["sphere_radius"] = self.sphere_radius
-        if self.n_levels is not None:
-            params["n_levels"] = self.n_levels
-        if self.n_lat is not None:
-            params["n_lat"] = self.n_lat
-        if self.n_long is not None:
-            params["n_long"] = self.n_long
-
-        if self.cylinder_origin:
-            params["cylinder_origin"] = self.cylinder_origin
-        if self.cylinder_axis:
-            params["cylinder_axis"] = self.cylinder_axis
-        if self.cylinder_length is not None:
-            params["cylinder_length"] = self.cylinder_length
-        if self.cylinder_radius is not None:
-            params["cylinder_radius"] = self.cylinder_radius
-        if self.cylinder_nseg_axis is not None:
-            params["cylinder_nseg_axis"] = self.cylinder_nseg_axis
-        if self.cylinder_nseg_theta is not None:
-            params["cylinder_nseg_theta"] = self.cylinder_nseg_theta
-
-        if self.zvals:
-            params["zvals"] = self.zvals
-        if self.zmin is not None:
-            params["zmin"] = self.zmin
-        if self.is_terrain:
-            params["is_terrain"] = True
-        if self.extend_terrain:
-            params["extend_terrain"] = True
-        if self.zval_horizon is not None:
-            params["zval_horizon"] = self.zval_horizon
-
-        if self.poly:
-            params["poly"] = self.poly
-        if self.extrude is not None:
-            params["extrude"] = self.extrude
-
-        if self.cell_block_ior is not None:
-            params["cell_block_ior"] = self.cell_block_ior
-
-        if self.texture_mapping:
-            params["texture_mapping"] = self.texture_mapping
-        if self.texture_origin:
-            params["texture_origin"] = self.texture_origin
-        if self.texture_scale != 1.0:
-            params["texture_scale"] = self.texture_scale
-
-        return self._build_namelist("GEOM", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "GEOM"

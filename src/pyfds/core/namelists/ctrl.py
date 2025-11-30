@@ -4,24 +4,10 @@ FDS CTRL namelist.
 Control logic for devices.
 """
 
-from enum import Enum
-from typing import Any
+from pydantic import model_validator
 
-from pydantic import Field, model_validator
-
-from pyfds.core.namelists.base import NamelistBase
-
-
-class ControlFunction(str, Enum):
-    """Control function types."""
-
-    ANY = "ANY"
-    ALL = "ALL"
-    ONLY = "ONLY"
-    TIME_DELAY = "TIME_DELAY"
-    CUSTOM = "CUSTOM"
-    KILL = "KILL"
-    RESTART = "RESTART"
+from pyfds.core.enums import ControlFunction
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Ctrl(NamelistBase):
@@ -64,12 +50,12 @@ class Ctrl(NamelistBase):
     ... )
     """
 
-    id: str = Field(..., description="Control identifier")
-    function_type: ControlFunction = Field(..., description="Function type")
-    input_id: str | list[str] | None = Field(None, description="Input device ID(s)")
-    delay: float = Field(0.0, ge=0, description="Time delay [s]")
-    initial_state: bool = Field(False, description="Initial state")
-    latch: bool = Field(True, description="Latch on activation")
+    id: str = FdsField(..., description="Control identifier")
+    function_type: ControlFunction = FdsField(..., description="Function type")
+    input_id: str | list[str] | None = FdsField(None, description="Input device ID(s)")
+    delay: float = FdsField(0.0, description="Time delay [s]")
+    initial_state: bool = FdsField(False, description="Initial state")
+    latch: bool = FdsField(True, description="Latch on activation")
 
     @model_validator(mode="after")
     def validate_ctrl(self) -> "Ctrl":
@@ -84,17 +70,6 @@ class Ctrl(NamelistBase):
 
         return self
 
-    def to_fds(self) -> str:
-        """Generate FDS CTRL namelist."""
-        params: dict[str, Any] = {"id": self.id, "function_type": self.function_type.value}
-
-        if self.input_id:
-            params["input_id"] = self.input_id
-        if self.delay > 0:
-            params["delay"] = self.delay
-        if self.initial_state:
-            params["initial_state"] = self.initial_state
-        if not self.latch:
-            params["latch"] = self.latch
-
-        return self._build_namelist("CTRL", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "CTRL"

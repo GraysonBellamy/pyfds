@@ -4,10 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from pyfds.core.validator import ValidationError as CoreValidationError
-from pyfds.core.validator import validate_fds_file
-from pyfds.utils.validation import (
-    ValidationError,
+from pyfds.exceptions import ValidationError
+from pyfds.validation import validate_fds_file
+from pyfds.validation.input import (
     safe_read_text,
     validate_chid,
     validate_file_size,
@@ -280,7 +279,7 @@ class TestValidateFDSFile:
     def test_validate_fds_file_missing(self):
         """Test validate_fds_file with a missing file."""
         nonexistent = Path("/nonexistent/path/test.fds")
-        with pytest.raises(CoreValidationError, match="File not found"):
+        with pytest.raises(ValidationError, match="File not found"):
             validate_fds_file(nonexistent)
 
     def test_validate_fds_file_wrong_extension(self, tmp_path):
@@ -288,7 +287,7 @@ class TestValidateFDSFile:
         wrong_file = tmp_path / "test.txt"
         wrong_file.write_text("&HEAD CHID='test' /\n&TAIL /")
 
-        with pytest.raises(CoreValidationError, match=r"must have \.fds extension"):
+        with pytest.raises(ValidationError, match=r"must have \.fds extension"):
             validate_fds_file(wrong_file)
 
     def test_validate_fds_file_missing_head(self, tmp_path):
@@ -296,7 +295,7 @@ class TestValidateFDSFile:
         fds_file = tmp_path / "test.fds"
         fds_file.write_text("&TIME T_END=100.0 /\n&TAIL /")
 
-        with pytest.raises(CoreValidationError, match="Missing &HEAD"):
+        with pytest.raises(ValidationError, match="Missing &HEAD"):
             validate_fds_file(fds_file)
 
     def test_validate_fds_file_missing_tail(self, tmp_path):
@@ -304,7 +303,7 @@ class TestValidateFDSFile:
         fds_file = tmp_path / "test.fds"
         fds_file.write_text("&HEAD CHID='test' /\n&TIME T_END=100.0 /")
 
-        with pytest.raises(CoreValidationError, match="Missing &TAIL"):
+        with pytest.raises(ValidationError, match="Missing &TAIL"):
             validate_fds_file(fds_file)
 
     def test_validate_fds_file_unbalanced_namelists(self, tmp_path):
@@ -317,7 +316,7 @@ class TestValidateFDSFile:
 """
         fds_file.write_text(fds_content)
 
-        with pytest.raises(CoreValidationError, match="Unbalanced namelists"):
+        with pytest.raises(ValidationError, match="Unbalanced namelists"):
             validate_fds_file(fds_file)
 
     def test_validate_fds_file_complete(self, tmp_path):
@@ -340,7 +339,7 @@ class TestValidateFDSFile:
         fds_file = tmp_path / "empty.fds"
         fds_file.write_text("")
 
-        with pytest.raises(CoreValidationError, match="Missing &HEAD"):
+        with pytest.raises(ValidationError, match="Missing &HEAD"):
             validate_fds_file(fds_file)
 
     def test_validate_fds_file_case_insensitive(self, tmp_path):

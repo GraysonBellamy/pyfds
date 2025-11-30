@@ -8,10 +8,10 @@ The **REAC** (reaction) namelist specifies fuel properties and combustion chemis
 
 ```python
 # Use default propane
-sim.reaction(fuel='PROPANE')
+sim.add(Reaction(fuel='PROPANE')
 
 # Custom fuel with specific properties
-sim.reaction(
+sim.add(Reaction(
     id='WOOD',
     fuel='CELLULOSE',
     soot_yield=0.015,
@@ -27,20 +27,20 @@ FDS includes predefined fuels with realistic properties:
 
 ```python
 # Hydrocarbon fuels
-sim.reaction(fuel='METHANE')      # Natural gas
-sim.reaction(fuel='PROPANE')      # LPG
-sim.reaction(fuel='ETHYLENE')     # Polymer precursor
-sim.reaction(fuel='ACETYLENE')    # Welding gas
+sim.add(Reaction(fuel='METHANE')      # Natural gas
+sim.add(Reaction(fuel='PROPANE')      # LPG
+sim.add(Reaction(fuel='ETHYLENE')     # Polymer precursor
+sim.add(Reaction(fuel='ACETYLENE')    # Welding gas
 
 # Liquid fuels
-sim.reaction(fuel='N-HEPTANE')    # Gasoline surrogate
-sim.reaction(fuel='ETHANOL')      # Alcohol
-sim.reaction(fuel='METHANOL')     # Wood alcohol
+sim.add(Reaction(fuel='N-HEPTANE')    # Gasoline surrogate
+sim.add(Reaction(fuel='ETHANOL')      # Alcohol
+sim.add(Reaction(fuel='METHANOL')     # Wood alcohol
 
 # Solid fuels
-sim.reaction(fuel='CELLULOSE')    # Wood, paper
-sim.reaction(fuel='POLYURETHANE') # Foam
-sim.reaction(fuel='POLYSTYRENE')  # Plastic
+sim.add(Reaction(fuel='CELLULOSE')    # Wood, paper
+sim.add(Reaction(fuel='POLYURETHANE') # Foam
+sim.add(Reaction(fuel='POLYSTYRENE')  # Plastic
 ```
 
 ## Fuel Properties
@@ -49,7 +49,7 @@ sim.reaction(fuel='POLYSTYRENE')  # Plastic
 
 ```python
 # Heat released per kg of fuel burned
-sim.reaction(
+sim.add(Reaction(
     id='CUSTOM_FUEL',
     heat_of_combustion=25000.0  # kJ/kg
 )
@@ -59,14 +59,14 @@ sim.reaction(
 
 ```python
 # Mass of soot per mass of fuel
-sim.reaction(
+sim.add(Reaction(
     id='SOOTY_FUEL',
     fuel='N-HEPTANE',
     soot_yield=0.037  # 3.7% of fuel mass becomes soot
 )
 
 # Clean-burning fuel
-sim.reaction(
+sim.add(Reaction(
     id='CLEAN_FUEL',
     fuel='METHANE',
     soot_yield=0.001  # Very little soot
@@ -77,7 +77,7 @@ sim.reaction(
 
 ```python
 # Carbon monoxide production
-sim.reaction(
+sim.add(Reaction(
     id='FUEL_WITH_CO',
     fuel='PROPANE',
     co_yield=0.010  # 1% of fuel mass becomes CO
@@ -88,14 +88,14 @@ sim.reaction(
 
 ```python
 # Fraction of energy radiated (not convected)
-sim.reaction(
+sim.add(Reaction(
     id='FUEL_RAD',
     fuel='PROPANE',
     radiative_fraction=0.35  # 35% radiated, 65% convected
 )
 
 # Sooty fire (more radiation)
-sim.reaction(
+sim.add(Reaction(
     id='SOOTY_FIRE',
     fuel='N-HEPTANE',
     radiative_fraction=0.45  # Higher radiation
@@ -110,7 +110,7 @@ Define fuel chemical formula:
 
 ```python
 # Wood (approximated as cellulose C6H10O5)
-sim.reaction(
+sim.add(Reaction(
     id='WOOD',
     formula='C6H10O5',
     heat_of_combustion=15000.0,  # kJ/kg
@@ -120,7 +120,7 @@ sim.reaction(
 )
 
 # Polyethylene (C2H4)n
-sim.reaction(
+sim.add(Reaction(
     id='POLYETHYLENE',
     formula='C2H4',
     heat_of_combustion=43000.0,
@@ -149,11 +149,11 @@ sim.reaction(
 from pyfds import Simulation
 
 sim = Simulation(chid='pool_fire')
-sim.time(t_end=300.0)
-sim.mesh(ijk=(60, 60, 40), xb=(0, 6, 0, 6, 0, 4))
+sim.add(Time(t_end=300.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 60, 40), xb=Bounds3D.of(0, 6, 0, 6, 0, 4))
 
 # Custom gasoline surrogate (n-heptane)
-sim.reaction(
+sim.add(Reaction(
     id='GASOLINE',
     fuel='N-HEPTANE',
     heat_of_combustion=44600.0,  # kJ/kg
@@ -170,10 +170,10 @@ sim.surface(
 )
 
 # Circular pool (1m radius)
-sim.vent(
-    xb=(-2, 2, -2, 2, 0, 0),
+sim.add(Vent(
+    xb=Bounds3D.of(-2, 2, -2, 2, 0, 0),
     surf_id='POOL',
-    xyz=(3, 3, 0),
+    xyz=Point3D.of(3, 3, 0),
     radius=1.0
 )
 
@@ -181,14 +181,14 @@ sim.vent(
 sim.device(
     id='SOOT',
     quantity='SOOT DENSITY',
-    xyz=(3, 3, 2)
+    xyz=Point3D.of(3, 3, 2)
 )
 
 sim.device(
     id='CO',
     quantity='VOLUME FRACTION',
     spec_id='CARBON MONOXIDE',
-    xyz=(3, 3, 2)
+    xyz=Point3D.of(3, 3, 2)
 )
 
 sim.write('pool_fire.fds')
@@ -198,11 +198,11 @@ sim.write('pool_fire.fds')
 
 ```python
 sim = Simulation(chid='wood_fire')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 50, 30), xb=(0, 5, 0, 5, 0, 3))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 30), xb=Bounds3D.of(0, 5, 0, 5, 0, 3))
 
 # Wood fuel properties
-sim.reaction(
+sim.add(Reaction(
     id='WOOD',
     fuel='CELLULOSE',
     heat_of_combustion=15000.0,
@@ -218,8 +218,8 @@ sim.surface(
     color='BROWN'
 )
 
-sim.obstruction(
-    xb=(2, 3, 2, 3, 0, 0.5),
+sim.add(Obstruction(
+    xb=Bounds3D.of(2, 3, 2, 3, 0, 0.5),
     surf_id='WOOD_CRIB'
 )
 
@@ -227,7 +227,7 @@ sim.obstruction(
 sim.device(
     id='VISIBILITY',
     quantity='VISIBILITY',
-    xyz=(2.5, 2.5, 1.5)
+    xyz=Point3D.of(2.5, 2.5, 1.5)
 )
 
 sim.write('wood_fire.fds')
@@ -237,11 +237,11 @@ sim.write('wood_fire.fds')
 
 ```python
 sim = Simulation(chid='plastic_fire')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(60, 50, 30), xb=(0, 6, 0, 5, 0, 3))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3))
 
 # Polystyrene (very sooty)
-sim.reaction(
+sim.add(Reaction(
     id='POLYSTYRENE',
     fuel='POLYSTYRENE',
     heat_of_combustion=39800.0,
@@ -257,8 +257,8 @@ sim.surface(
     color='BLACK'
 )
 
-sim.obstruction(
-    xb=(2.5, 3.5, 2, 3, 0, 1),
+sim.add(Obstruction(
+    xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 1),
     surf_id='PLASTIC'
 )
 
@@ -266,19 +266,19 @@ sim.obstruction(
 sim.device(
     id='SOOT_CEILING',
     quantity='SOOT DENSITY',
-    xyz=(3, 2.5, 2.9)
+    xyz=Point3D.of(3, 2.5, 2.9)
 )
 
 sim.device(
     id='OPTICAL_DENSITY',
     quantity='OPTICAL DENSITY',
-    xyz=(3, 2.5, 2.9)
+    xyz=Point3D.of(3, 2.5, 2.9)
 )
 
 sim.device(
     id='VISIBILITY',
     quantity='VISIBILITY',
-    xyz=(3, 2.5, 1.5)
+    xyz=Point3D.of(3, 2.5, 1.5)
 )
 
 sim.write('plastic_fire.fds')
@@ -288,18 +288,18 @@ sim.write('plastic_fire.fds')
 
 ```python
 sim = Simulation(chid='multi_fuel')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(80, 60, 30), xb=(0, 8, 0, 6, 0, 3))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3))
 
 # Define multiple fuels
-sim.reaction(
+sim.add(Reaction(
     id='GASOLINE',
     fuel='N-HEPTANE',
     soot_yield=0.037,
     co_yield=0.010
 )
 
-sim.reaction(
+sim.add(Reaction(
     id='WOOD',
     fuel='CELLULOSE',
     soot_yield=0.015,
@@ -308,17 +308,17 @@ sim.reaction(
 
 # Gasoline pool fire
 sim.surface(id='GAS_POOL', hrrpua=2000.0, reac_id='GASOLINE')
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='GAS_POOL')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='GAS_POOL')
 
 # Wood pallet fire
 sim.surface(id='WOOD_PALLET', hrrpua=600.0, reac_id='WOOD')
-sim.obstruction(xb=(5, 6, 3, 4, 0, 1), surf_id='WOOD_PALLET')
+sim.add(Obstruction(xb=Bounds3D.of(5, 6, 3, 4, 0, 1), surf_id='WOOD_PALLET')
 
 # Monitor species from both fires
 sim.device(
     id='SOOT',
     quantity='SOOT DENSITY',
-    xyz=(4, 3, 2)
+    xyz=Point3D.of(4, 3, 2)
 )
 
 sim.write('multi_fuel.fds')
@@ -332,7 +332,7 @@ Soot increases radiative heat transfer:
 
 ```python
 # Clean fuel (low soot, low radiation)
-sim.reaction(
+sim.add(Reaction(
     id='METHANE',
     fuel='METHANE',
     soot_yield=0.001,
@@ -340,7 +340,7 @@ sim.reaction(
 )
 
 # Sooty fuel (high soot, high radiation)
-sim.reaction(
+sim.add(Reaction(
     id='HEPTANE',
     fuel='N-HEPTANE',
     soot_yield=0.037,
@@ -352,7 +352,7 @@ sim.reaction(
 
 ```python
 # Define sooty fuel
-sim.reaction(
+sim.add(Reaction(
     id='FUEL',
     fuel='N-HEPTANE',
     soot_yield=0.040,
@@ -361,20 +361,20 @@ sim.reaction(
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1500.0, reac_id='FUEL')
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 
 # Radiative heat flux at distance
 sim.device(
     id='RAD_HF_1M',
     quantity='RADIATIVE HEAT FLUX',
-    xyz=(4, 2.5, 1),
+    xyz=Point3D.of(4, 2.5, 1),
     ior=1  # Facing fire
 )
 
 sim.device(
     id='GAUGE_HF_1M',
     quantity='GAUGE HEAT FLUX',
-    xyz=(4, 2.5, 1),
+    xyz=Point3D.of(4, 2.5, 1),
     ior=1  # Total (rad + conv)
 )
 ```
@@ -384,28 +384,28 @@ sim.device(
 ### Oxygen Depletion
 
 ```python
-sim.reaction(fuel='PROPANE')
+sim.add(Reaction(fuel='PROPANE')
 
 # Monitor oxygen concentration
 sim.device(
     id='O2_UPPER',
     quantity='VOLUME FRACTION',
     spec_id='OXYGEN',
-    xyz=(3, 2.5, 2.5)
+    xyz=Point3D.of(3, 2.5, 2.5)
 )
 
 sim.device(
     id='O2_LOWER',
     quantity='VOLUME FRACTION',
     spec_id='OXYGEN',
-    xyz=(3, 2.5, 0.5)
+    xyz=Point3D.of(3, 2.5, 0.5)
 )
 ```
 
 ### CO and CO2 Production
 
 ```python
-sim.reaction(
+sim.add(Reaction(
     id='FUEL',
     fuel='PROPANE',
     co_yield=0.010,  # CO production
@@ -417,7 +417,7 @@ sim.device(
     id='CO_CONC',
     quantity='VOLUME FRACTION',
     spec_id='CARBON MONOXIDE',
-    xyz=(3, 2.5, 1.5)
+    xyz=Point3D.of(3, 2.5, 1.5)
 )
 
 # Track CO2 (asphyxiant)
@@ -425,7 +425,7 @@ sim.device(
     id='CO2_CONC',
     quantity='VOLUME FRACTION',
     spec_id='CARBON DIOXIDE',
-    xyz=(3, 2.5, 1.5)
+    xyz=Point3D.of(3, 2.5, 1.5)
 )
 ```
 
@@ -435,7 +435,7 @@ sim.device(
 
 ```python
 # Well-ventilated fire (complete combustion)
-sim.reaction(
+sim.add(Reaction(
     id='COMPLETE',
     fuel='PROPANE',
     co_yield=0.005,  # Low CO
@@ -443,7 +443,7 @@ sim.reaction(
 )
 
 # Under-ventilated fire (incomplete combustion)
-sim.reaction(
+sim.add(Reaction(
     id='INCOMPLETE',
     fuel='PROPANE',
     co_yield=0.020,  # Higher CO
@@ -457,7 +457,7 @@ sim.reaction(
 
 ```python
 # Good: Properties from literature/experiments
-sim.reaction(
+sim.add(Reaction(
     id='WOOD',
     fuel='CELLULOSE',
     heat_of_combustion=15000.0,  # From SFPE Handbook
@@ -466,7 +466,7 @@ sim.reaction(
 )
 
 # Avoid: Made-up values
-sim.reaction(
+sim.add(Reaction(
     id='MYSTERY_FUEL',
     heat_of_combustion=100000.0,  # Unrealistic!
     soot_yield=0.5
@@ -477,28 +477,28 @@ sim.reaction(
 
 ```python
 # Gasoline spill
-sim.reaction(fuel='N-HEPTANE')  # Good surrogate
+sim.add(Reaction(fuel='N-HEPTANE')  # Good surrogate
 
 # Natural gas leak
-sim.reaction(fuel='METHANE')  # Appropriate
+sim.add(Reaction(fuel='METHANE')  # Appropriate
 
 # Wood structure
-sim.reaction(fuel='CELLULOSE')  # Reasonable approximation
+sim.add(Reaction(fuel='CELLULOSE')  # Reasonable approximation
 ```
 
 ### 3. Consider Soot Impact
 
 ```python
 # For visibility/radiation studies, soot is critical
-sim.reaction(
+sim.add(Reaction(
     id='FUEL',
     soot_yield=0.037,  # Don't neglect!
     radiative_fraction=0.33
 )
 
 # Monitor soot effects
-sim.device(id='VISIBILITY', quantity='VISIBILITY', xyz=(3, 2.5, 1.5))
-sim.device(id='SOOT', quantity='SOOT DENSITY', xyz=(3, 2.5, 2))
+sim.device(id='VISIBILITY', quantity='VISIBILITY', xyz=Point3D.of(3, 2.5, 1.5))
+sim.device(id='SOOT', quantity='SOOT DENSITY', xyz=Point3D.of(3, 2.5, 2))
 ```
 
 ### 4. Document Fuel Sources
@@ -509,7 +509,7 @@ sim.device(id='SOOT', quantity='SOOT DENSITY', xyz=(3, 2.5, 2))
 # - Heat of combustion: SFPE Handbook, 5th Ed.
 # - Soot yield: Mulholland & Croarkin (2000)
 # - CO yield: Tewarson (2008)
-sim.reaction(
+sim.add(Reaction(
     id='POLYURETHANE',
     fuel='POLYURETHANE',
     heat_of_combustion=25000.0,
@@ -531,7 +531,7 @@ sim.reaction(
     # - Gasoline: 0.037
     # - Wood: 0.015
     # - Polystyrene: 0.164
-    sim.reaction(fuel='PROPANE', soot_yield=0.024)  # Realistic
+    sim.add(Reaction(fuel='PROPANE', soot_yield=0.024)  # Realistic
     ```
 
 ??? question "Wrong radiative fraction"
@@ -540,10 +540,10 @@ sim.reaction(
     **Solution**: Higher soot → higher radiation
     ```python
     # Clean fuel
-    sim.reaction(fuel='METHANE', soot_yield=0.001, radiative_fraction=0.15)
+    sim.add(Reaction(fuel='METHANE', soot_yield=0.001, radiative_fraction=0.15)
 
     # Sooty fuel
-    sim.reaction(fuel='N-HEPTANE', soot_yield=0.037, radiative_fraction=0.33)
+    sim.add(Reaction(fuel='N-HEPTANE', soot_yield=0.037, radiative_fraction=0.33)
     ```
 
 ??? question "Unrealistic CO levels"
@@ -552,10 +552,10 @@ sim.reaction(
     **Solution**: Use measured yields (typically 0.001-0.060)
     ```python
     # Well-ventilated
-    sim.reaction(co_yield=0.004)
+    sim.add(Reaction(co_yield=0.004)
 
     # Under-ventilated
-    sim.reaction(co_yield=0.020)
+    sim.add(Reaction(co_yield=0.020)
     ```
 
 ## Advanced Topics
@@ -566,7 +566,7 @@ FDS uses simplified combustion (mixture fraction approach):
 
 ```python
 # FDS default: Simple, fast
-sim.reaction(fuel='PROPANE')  # One-step chemistry
+sim.add(Reaction(fuel='PROPANE')  # One-step chemistry
 
 # For most fire simulations, this is sufficient
 # Detailed chemistry (not in FDS) needed only for:

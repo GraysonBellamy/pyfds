@@ -8,22 +8,13 @@ programmatically in Python.
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
-from pyfds.core.managers import (
-    ControlManager,
-    GeometryManager,
-    InstrumentationManager,
-    MaterialManager,
-    OutputManager,
-    PhysicsManager,
-    RampManager,
-    SpeciesManager,
-)
+from pyfds.core.registry import SimulationRegistry
+from pyfds.core.registry_view import RegistryView
+from pyfds.validation import Validator
 
 from ..utils import get_logger, validate_chid
 from .namelists import (
     Combustion,
-    ControlFunction,
     Ctrl,
     Device,
     Head,
@@ -33,6 +24,7 @@ from .namelists import (
     Mesh,
     Misc,
     Mult,
+    NamelistBase,
     Obstruction,
     Prop,
     Ramp,
@@ -42,10 +34,10 @@ from .namelists import (
     Time,
     Vent,
 )
-from .validator import BasicValidationStrategy, ValidationStrategy
 
 if TYPE_CHECKING:
     from ..analysis.results import Results
+    from ..config import RunConfig
     from ..execution.runner import Job
 
 logger = get_logger(__name__)
@@ -55,117 +47,329 @@ class Simulation:
     """
     Main class for building FDS simulations.
 
-    This class provides a Pythonic interface for creating FDS input files.
-    It manages all namelist groups through specialized manager classes.
+    This class mirrors the structure of an FDS input file, which consists
+    of namelist groups like MESH, SURF, MATL, etc. All components are added
+    using the unified `add()` method.
 
     Parameters
     ----------
     chid : str
-        Case identifier (filename prefix for all output files)
+        Case identifier (filename prefix for all output files).
+        Must be 50 characters or less, no spaces or periods (FDS requirement).
     title : str, optional
-        Descriptive title for the simulation
-    validation_strategy : ValidationStrategy, optional
-        Strategy for validating the simulation configuration.
-        Defaults to BasicValidationStrategy.
-
-    Examples
-    --------
-    >>> sim = Simulation(chid='room_fire', title='Room Fire Test')
-    >>> sim.time(t_end=600.0)
-    >>> sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
-    >>> sim.write('room_fire.fds')
+        Descriptive title for the simulation (256 characters max).
+    eager_validation : bool, optional
+        If True, validate cross-references when items are added.
+        If False (default), validation only occurs at write time.
 
     Attributes
     ----------
-    head : Head
-        HEAD namelist group
-    time_params : Time, optional
-        TIME namelist group
-    geometry : GeometryManager
-        Manager for meshes, obstructions, and vents
-    material_mgr : MaterialManager
-        Manager for materials, surfaces, and ramps
-    physics : PhysicsManager
-        Manager for reactions and misc parameters
-    species_mgr : SpeciesManager
-        Manager for species definitions and combustion parameters
-    instrumentation : InstrumentationManager
-        Manager for devices and props
-    controls : ControlManager
-        Manager for controls and initial conditions
+    meshes : RegistryView[Mesh]
+        Read-only view of registered meshes
+    surfaces : RegistryView[Surface]
+        Read-only view of registered surfaces
+    materials : RegistryView[Material]
+        Read-only view of registered materials
+    obstructions : RegistryView[Obstruction]
+        Read-only view of registered obstructions
+    vents : RegistryView[Vent]
+        Read-only view of registered vents
+    holes : RegistryView[Hole]
+        Read-only view of registered holes
+    devices : RegistryView[Device]
+        Read-only view of registered devices
+    props : RegistryView[Prop]
+        Read-only view of registered properties
+    ctrls : RegistryView[Ctrl]
+        Read-only view of registered controls
+    species : RegistryView[Species]
+        Read-only view of registered species
+    reactions : RegistryView[Reaction]
+        Read-only view of registered reactions
+    ramps : RegistryView[Ramp]
+        Read-only view of registered ramps
+    mults : RegistryView[Mult]
+        Read-only view of registered multipliers
+    inits : RegistryView[Init]
+        Read-only view of registered initial conditions
+
+    Examples
+    --------
+    Create a basic room fire simulation:
+
+    >>> from pyfds import Simulation
+    >>> from pyfds.core.geometry import Bounds3D, Grid3D
+    >>> from pyfds.core.namelists import Time, Mesh, Surface, Obstruction
+    >>>
+    >>> sim = Simulation(chid='room_fire', title='Simple Room Fire')
+    >>> sim.add(
+    ...     Time(t_end=600.0),
+    ...     Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)),
+    ...     Surface(id='FIRE', hrrpua=1000.0, color='RED'),
+    ...     Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+    ... )
+    >>> sim.write('room_fire.fds')
+
+    Notes
+    -----
+    This class uses a unified registry system to ensure all IDs are unique
+    across the entire simulation, matching FDS behavior. Validation is
+    performed automatically before writing or running simulations.
     """
 
     def __init__(
         self,
         chid: str,
         title: str | None = None,
-        validation_strategy: ValidationStrategy | None = None,
+        eager_validation: bool = False,
     ):
         """Initialize a new FDS simulation."""
         # Validate CHID
         chid = validate_chid(chid)
         logger.debug(f"Creating simulation with CHID: {chid}")
 
+        # Initialize registry
+        self._registry = SimulationRegistry()
+        self._eager_validation = eager_validation
+
         # Core simulation metadata
-        self.head = Head(chid=chid, title=title)
-        self.time_params: Time | None = None
+        self._head = Head(chid=chid, title=title)
+        self._time: Time | None = None
 
-        # Set validation strategy
-        self._validation_strategy = validation_strategy or BasicValidationStrategy()
+        # Register head in registry
+        self._registry.head = self._head
 
-        # Initialize managers
-        self._geometry = GeometryManager()
-        self._material_mgr = MaterialManager()
-        self._physics = PhysicsManager()
-        self._species_mgr = SpeciesManager()
-        self._instrumentation = InstrumentationManager()
-        self._controls = ControlManager()
-        self._ramps = RampManager()
+        # Initialize validator
+        self._validator = Validator(self)
+
+    # =========================================================================
+    # Read-only Registry Views
+    # =========================================================================
 
     @property
-    def geometry(self) -> GeometryManager:
-        """Get the geometry manager."""
-        return self._geometry
+    def meshes(self) -> RegistryView[Mesh]:
+        """Read-only view of registered meshes."""
+        return RegistryView(self._registry.meshes)
 
     @property
-    def material_mgr(self) -> MaterialManager:
-        """Get the material manager."""
-        return self._material_mgr
+    def surfaces(self) -> RegistryView[Surface]:
+        """Read-only view of registered surfaces."""
+        return RegistryView(self._registry.surfaces)
 
     @property
-    def physics(self) -> PhysicsManager:
-        """Get the physics manager."""
-        return self._physics
+    def materials(self) -> RegistryView[Material]:
+        """Read-only view of registered materials."""
+        return RegistryView(self._registry.materials)
 
     @property
-    def species_mgr(self) -> SpeciesManager:
-        """Get the species manager."""
-        return self._species_mgr
+    def obstructions(self) -> RegistryView[Obstruction]:
+        """Read-only view of registered obstructions."""
+        return RegistryView(self._registry.obstructions)
 
     @property
-    def instrumentation(self) -> InstrumentationManager:
-        """Get the instrumentation manager."""
-        return self._instrumentation
+    def vents(self) -> RegistryView[Vent]:
+        """Read-only view of registered vents."""
+        return RegistryView(self._registry.vents)
 
     @property
-    def controls(self) -> ControlManager:
-        """Get the control manager."""
-        return self._controls
+    def holes(self) -> RegistryView[Hole]:
+        """Read-only view of registered holes."""
+        return RegistryView(self._registry.holes)
 
     @property
-    def ramps(self) -> RampManager:
-        """Get the ramp manager."""
-        return self._ramps
+    def devices(self) -> RegistryView[Device]:
+        """Read-only view of registered devices."""
+        return RegistryView(self._registry.devices)
+
+    @property
+    def props(self) -> RegistryView[Prop]:
+        """Read-only view of registered properties."""
+        return RegistryView(self._registry.props)
+
+    @property
+    def ctrls(self) -> RegistryView[Ctrl]:
+        """Read-only view of registered controls."""
+        return RegistryView(self._registry.ctrls)
+
+    @property
+    def species(self) -> RegistryView[Species]:
+        """Read-only view of registered species."""
+        return RegistryView(self._registry.species)
+
+    @property
+    def reactions(self) -> RegistryView[Reaction]:
+        """Read-only view of registered reactions."""
+        return RegistryView(self._registry.reactions)
+
+    @property
+    def ramps(self) -> RegistryView[Ramp]:
+        """Read-only view of registered ramps."""
+        return RegistryView(self._registry.ramps)
+
+    @property
+    def mults(self) -> RegistryView[Mult]:
+        """Read-only view of registered multipliers."""
+        return RegistryView(self._registry.mults)
+
+    @property
+    def inits(self) -> RegistryView[Init]:
+        """Read-only view of registered initial conditions."""
+        return RegistryView(self._registry.inits)
+
+    # =========================================================================
+    # Singleton Accessors
+    # =========================================================================
+
+    @property
+    def head(self) -> Head:
+        """Get the HEAD namelist."""
+        return self._head
+
+    @property
+    def time_config(self) -> Time | None:
+        """Get the TIME namelist."""
+        return self._time
+
+    @property
+    def misc_config(self) -> Misc | None:
+        """Get the MISC namelist."""
+        return self._registry.misc
+
+    @property
+    def combustion_config(self) -> Combustion | None:
+        """Get the COMB namelist."""
+        return self._registry.combustion
 
     @property
     def chid(self) -> str:
         """Get the case identifier."""
-        return self.head.chid
+        return self._head.chid
 
-    def time(
+    # =========================================================================
+    # Unified Add Method
+    # =========================================================================
+
+    def add(self, *items: NamelistBase) -> "Simulation":
+        """
+        Add one or more namelist objects to the simulation.
+
+        This is the unified API for adding any type of namelist to the simulation.
+        The method automatically routes each item to the appropriate registry.
+
+        Parameters
+        ----------
+        *items : NamelistBase
+            One or more namelist objects to add
+
+        Returns
+        -------
+        Simulation
+            Self for method chaining
+
+        Examples
+        --------
+        >>> sim = Simulation('test')
+        >>> sim.add(
+        ...     Time(t_end=600.0),
+        ...     Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)),
+        ...     Surface(id='FIRE', hrrpua=1000.0)
+        ... )
+
+        >>> # Method chaining
+        >>> sim.add(mesh).add(surface).add(obstruction)
+
+        Raises
+        ------
+        TypeError
+            If an item is not a recognized namelist type
+        ValueError
+            If eager_validation is True and cross-references are invalid
+        """
+        for item in items:
+            self._add_item(item)
+        return self
+
+    def _add_item(self, item: NamelistBase) -> None:
+        """Route a single item to the appropriate registry."""
+        # Handle special singleton cases first
+        if isinstance(item, Time):
+            if self._time is not None:
+                raise ValueError("TIME namelist already set")
+            self._time = item
+            self._registry.time = item
+            return
+
+        if isinstance(item, Misc):
+            if self._registry.misc is not None:
+                raise ValueError("MISC namelist already set")
+            self._registry.misc = item
+            return
+
+        if isinstance(item, Combustion):
+            if self._registry.combustion is not None:
+                raise ValueError("COMB namelist already set")
+            self._registry.combustion = item
+            return
+
+        if isinstance(item, Head):
+            raise ValueError("HEAD namelist is set automatically via chid parameter")
+
+        # Register in the unified registry
+        try:
+            self._registry.register(item)
+        except TypeError as e:
+            raise TypeError(f"Unknown namelist type: {type(item).__name__}") from e
+
+        # Eager validation if enabled
+        if self._eager_validation:
+            self._validate_item_references(item)
+
+    def _validate_item_references(self, item: NamelistBase) -> None:
+        """Validate cross-references for a single item (eager validation)."""
+        builtin_surfaces = {"INERT", "OPEN", "MIRROR", "PERIODIC"}
+
+        # Validate SURF_ID references
+        if isinstance(item, (Obstruction, Vent)):
+            for attr in ["surf_id", "surf_id_top", "surf_id_bottom", "surf_id_sides"]:
+                surf_id = getattr(item, attr, None)
+                if (
+                    surf_id
+                    and surf_id not in builtin_surfaces
+                    and surf_id not in self._registry.surfaces
+                ):
+                    item_id = getattr(item, "id", "unnamed")
+                    raise ValueError(
+                        f"{type(item).__name__} '{item_id}' references undefined SURF '{surf_id}'"
+                    )
+
+        # Validate MATL_ID references
+        if isinstance(item, Surface) and getattr(item, "matl_id", None):
+            matl_id = item.matl_id
+            matl_ids = matl_id if isinstance(matl_id, list) else [matl_id]
+            for mid in matl_ids:
+                if isinstance(mid, list):
+                    for m in mid:
+                        if m and m not in self._registry.materials:
+                            raise ValueError(f"SURF '{item.id}' references undefined MATL '{m}'")
+                elif mid and mid not in self._registry.materials:
+                    raise ValueError(f"SURF '{item.id}' references undefined MATL '{mid}'")
+
+        # Validate PROP_ID references
+        if isinstance(item, Device) and item.prop_id and item.prop_id not in self._registry.props:
+            raise ValueError(f"DEVC '{item.id}' references undefined PROP '{item.prop_id}'")
+
+        # Validate CTRL_ID references
+        if isinstance(item, Device) and item.ctrl_id and item.ctrl_id not in self._registry.ctrls:
+            raise ValueError(f"DEVC '{item.id}' references undefined CTRL '{item.ctrl_id}'")
+
+    # =========================================================================
+    # Convenience Methods for Singletons
+    # =========================================================================
+
+    def set_time(
         self,
         t_end: float,
-        t_begin: float | None = None,
+        t_begin: float = 0.0,
         dt: float | None = None,
         wall_clock_time: float | None = None,
     ) -> "Simulation":
@@ -177,7 +381,7 @@ class Simulation:
         t_end : float
             End time for the simulation in seconds
         t_begin : float, optional
-            Start time for output (default: 0.0)
+            Start time in seconds (default: 0.0)
         dt : float, optional
             Initial time step in seconds
         wall_clock_time : float, optional
@@ -191,1022 +395,10 @@ class Simulation:
         Examples
         --------
         >>> sim = Simulation('test')
-        >>> sim.time(t_end=600.0, dt=0.1)
+        >>> sim.set_time(t_end=600.0, dt=0.1)
         """
-        self.time_params = Time(
-            t_end=t_end, t_begin=t_begin, dt=dt, wall_clock_time=wall_clock_time
-        )
-        return self
-
-    def mesh(
-        self,
-        ijk: tuple[int, int, int] | Grid3D,
-        xb: tuple[float, float, float, float, float, float] | Bounds3D,
-        id: str | None = None,
-        mpi_process: int | None = None,
-    ) -> "Simulation":
-        """
-        Add a computational mesh to the simulation.
-
-        This is the primary API for creating meshes. For advanced use cases,
-        use add_mesh() with a pre-constructed Mesh object.
-
-        Parameters
-        ----------
-        ijk : Tuple[int, int, int] or Grid3D
-            Number of grid cells in x, y, z directions
-        xb : Tuple[float, float, float, float, float, float] or Bounds3D
-            Domain bounds (xmin, xmax, ymin, ymax, zmin, zmax)
-        id : str, optional
-            Mesh identifier for multi-mesh simulations
-        mpi_process : int, optional
-            MPI process number for this mesh
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> sim = Simulation('test')
-        >>> sim.mesh(ijk=(100, 100, 50), xb=(0, 10, 0, 10, 0, 5))
-
-        See Also
-        --------
-        add_mesh : Advanced API for pre-constructed Mesh objects
-
-        Notes
-        -----
-        For best accuracy, grid cells should be cubic or near-cubic.
-        """
-        mesh_obj = Mesh(ijk=ijk, xb=xb, id=id, mpi_process=mpi_process)
-        self._geometry.add_mesh(mesh_obj)
-        return self
-
-    def add_mesh(self, mesh: Mesh) -> "Simulation":
-        """
-        Add a Mesh object to the simulation (advanced API).
-
-        For most use cases, prefer the mesh() builder method.
-
-        Parameters
-        ----------
-        mesh : Mesh
-            Mesh object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        See Also
-        --------
-        mesh : Primary API for creating meshes
-        """
-        self._geometry.add_mesh(mesh)
-        return self
-
-    def surface(
-        self,
-        id: str,
-        rgb: tuple[int, int, int] | None = None,
-        color: str | None = None,
-        hrrpua: float | None = None,
-        tmp_front: float | None = None,
-        matl_id: str | None = None,
-        thickness: float | None = None,
-        volume_flow: float | None = None,
-        vel: float | None = None,
-        mass_flow: float | None = None,
-    ) -> "Simulation":
-        """
-        Add a surface definition to the simulation.
-
-        This is the primary API for creating surfaces. For advanced use cases,
-        use add_surface() with a pre-constructed Surface object.
-
-        Parameters
-        ----------
-        id : str
-            Unique surface identifier
-        rgb : Tuple[int, int, int], optional
-            RGB color values (0-255)
-        color : str, optional
-            Named color (e.g., 'RED', 'BLUE')
-        hrrpua : float, optional
-            Heat release rate per unit area (kW/m²)
-        tmp_front : float, optional
-            Front surface temperature (°C)
-        matl_id : str, optional
-            Material identifier
-        thickness : float, optional
-            Material thickness (m)
-        volume_flow : float, optional
-            Volume flow rate (m³/s)
-        vel : float, optional
-            Velocity (m/s)
-        mass_flow : float, optional
-            Mass flow rate (kg/s)
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> sim = Simulation('test')
-        >>> sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
-        >>> sim.surface(id='SUPPLY', volume_flow=-0.5, color='BLUE')
-
-        See Also
-        --------
-        add_surface : Advanced API for pre-constructed Surface objects
-        """
-        surf_obj = Surface(
-            id=id,
-            rgb=rgb,
-            color=color,
-            hrrpua=hrrpua,
-            tmp_front=tmp_front,
-            matl_id=matl_id,
-            thickness=thickness,
-            volume_flow=volume_flow,
-            vel=vel,
-            mass_flow=mass_flow,
-        )
-        self._material_mgr.add_surface(surf_obj)
-        return self
-
-    def add_surface(self, surface: Surface) -> "Simulation":
-        """
-        Add a Surface object to the simulation (advanced API).
-
-        For most use cases, prefer the surface() builder method.
-
-        Parameters
-        ----------
-        surface : Surface
-            Surface object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        See Also
-        --------
-        surface : Primary API for creating surfaces
-        """
-        self._material_mgr.add_surface(surface)
-        return self
-
-    def obstruction(
-        self,
-        xb: tuple[float, float, float, float, float, float] | Bounds3D,
-        surf_id: str | None = None,
-        surf_id_top: str | None = None,
-        surf_id_bottom: str | None = None,
-        surf_id_sides: str | None = None,
-        color: str | None = None,
-        mult_id: str | None = None,
-    ) -> "Simulation":
-        """
-        Add an obstruction to the simulation.
-
-        This is the primary API for creating obstructions. For advanced use cases,
-        use add_obstruction() with a pre-constructed Obstruction object.
-
-        Parameters
-        ----------
-        xb : Tuple[float, float, float, float, float, float] or Bounds3D
-            Obstruction bounds (xmin, xmax, ymin, ymax, zmin, zmax)
-        surf_id : str, optional
-            Surface ID for all faces
-        surf_id_top : str, optional
-            Surface ID for top face
-        surf_id_bottom : str, optional
-            Surface ID for bottom face
-        surf_id_sides : str, optional
-            Surface ID for side faces
-        color : str, optional
-            Named color
-        mult_id : str, optional
-            Multiplier ID for array replication
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> sim = Simulation('test')
-        >>> sim.obstruction(xb=(4, 6, 4, 6, 0, 0.5), surf_id='FIRE')
-
-        See Also
-        --------
-        add_obstruction : Advanced API for pre-constructed Obstruction objects
-        """
-        obst_obj = Obstruction(
-            xb=xb,
-            surf_id=surf_id,
-            surf_id_top=surf_id_top,
-            surf_id_bottom=surf_id_bottom,
-            surf_id_sides=surf_id_sides,
-            color=color,
-            mult_id=mult_id,
-        )
-        self._geometry.add_obstruction(obst_obj)
-        return self
-
-    def add_obstruction(self, obstruction: Obstruction) -> "Simulation":
-        """
-        Add an Obstruction object to the simulation (advanced API).
-
-        For most use cases, prefer the obstruction() builder method.
-
-        Parameters
-        ----------
-        obstruction : Obstruction
-            Obstruction object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        See Also
-        --------
-        obstruction : Primary API for creating obstructions
-        """
-        self._geometry.add_obstruction(obstruction)
-        return self
-
-    def device(
-        self,
-        id: str,
-        quantity: str,
-        xyz: Point3D | tuple[float, float, float] | None = None,
-        xb: tuple[float, float, float, float, float, float] | Bounds3D | None = None,
-        prop_id: str | None = None,
-    ) -> "Simulation":
-        """
-        Add a measurement device to the simulation.
-
-        This is the primary API for creating devices. For advanced use cases,
-        use add_device() with a pre-constructed Device object.
-
-        Parameters
-        ----------
-        id : str
-            Unique device identifier
-        quantity : str
-            FDS quantity to measure (e.g., 'TEMPERATURE', 'VELOCITY')
-        xyz : Point3D or tuple[float, float, float], optional
-            Device location (x, y, z) in meters
-        xb : Tuple[float, float, float, float, float, float] or Bounds3D, optional
-            Device bounds for spatial averaging
-        prop_id : str, optional
-            Device property ID (for sprinklers, detectors)
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> from pyfds.core.geometry import Point3D
-        >>> sim = Simulation('test')
-        >>> sim.device(id='TEMP1', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 2.0))
-        >>> # Or using tuple (converted automatically)
-        >>> sim.device(id='TEMP2', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.0))
-
-        See Also
-        --------
-        add_device : Advanced API for pre-constructed Device objects
-
-        Notes
-        -----
-        Either xyz or xb must be specified, but not both.
-        """
-        if xyz is None and xb is None:
-            raise ValueError("Either xyz or xb must be specified")
-        if xyz is not None and xb is not None:
-            raise ValueError("Cannot specify both xyz and xb")
-
-        # Convert tuple to Point3D if necessary
-        if isinstance(xyz, tuple):
-            xyz = Point3D.from_tuple(xyz)
-
-        dev_obj = Device(id=id, quantity=quantity, xyz=xyz, xb=xb, prop_id=prop_id)
-        self._instrumentation.add_device(dev_obj)
-        return self
-
-    def add_device(self, device: Device) -> "Simulation":
-        """
-        Add a Device object to the simulation (advanced API).
-
-        For most use cases, prefer the device() builder method.
-
-        Parameters
-        ----------
-        device : Device
-            Device object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        See Also
-        --------
-        device : Primary API for creating devices
-        """
-        self._instrumentation.add_device(device)
-        return self
-
-    def ramp(self, id: str, points: list[tuple[float, float]]) -> "Simulation":
-        """
-        Add a ramp (time-varying function) to the simulation.
-
-        This is the primary API for creating ramps. For advanced use cases,
-        use add_ramp() with a pre-constructed Ramp object.
-
-        Parameters
-        ----------
-        id : str
-            Unique ramp identifier
-        points : list[tuple[float, float]]
-            List of (T, F) points defining the ramp function
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Linear HRR ramp from 0 to 1000 kW/m² over 300 seconds
-        >>> sim.ramp(id='FIRE_RAMP', points=[(0, 0), (300, 1000)])
-
-        >>> # Temperature ramp
-        >>> sim.ramp(id='TEMP_RAMP', points=[(20, 1.0), (100, 1.5), (200, 2.0)])
-
-        See Also
-        --------
-        add_ramp : Advanced API for pre-constructed Ramp objects
-        """
-        ramp_obj = Ramp(id=id, points=points)
-        self._ramps.add_ramp(ramp_obj)
-        return self
-
-    def add_ramp(self, ramp: Ramp) -> "Simulation":
-        """
-        Add a Ramp object to the simulation (advanced API).
-
-        For most use cases, prefer the ramp() builder method.
-
-        Parameters
-        ----------
-        ramp : Ramp
-            Ramp object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        See Also
-        --------
-        ramp : Primary API for creating ramps
-        """
-        self._ramps.add_ramp(ramp)
-        return self
-
-    def reaction(
-        self,
-        fuel: str | None = None,
-        c: float | None = None,
-        h: float | None = None,
-        o: float | None = None,
-        n: float | None = None,
-        heat_of_combustion: float | None = None,
-        soot_yield: float = 0.01,
-        co_yield: float = 0.0,
-        radiative_fraction: float | None = None,
-        **kwargs: Any,
-    ) -> "Simulation":
-        """
-        Add a combustion reaction to the simulation.
-
-        This is the primary API for creating reactions. For advanced use cases,
-        use add_reaction() with a pre-constructed Reaction object.
-
-        Parameters
-        ----------
-        fuel : str, optional
-            Fuel name for predefined fuels (e.g., 'PROPANE', 'METHANE')
-        c : float, optional
-            Number of carbon atoms in fuel molecule
-        h : float, optional
-            Number of hydrogen atoms in fuel molecule
-        o : float, optional
-            Number of oxygen atoms in fuel molecule
-        n : float, optional
-            Number of nitrogen atoms in fuel molecule
-        heat_of_combustion : float, optional
-            Heat of combustion [kJ/kg]
-        soot_yield : float, optional
-            Soot yield [kg soot/kg fuel], default: 0.01
-        co_yield : float, optional
-            CO yield [kg CO/kg fuel], default: 0.0
-        radiative_fraction : float, optional
-            Fraction of energy radiated, default: 0.35
-        **kwargs
-            Additional Reaction parameters
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Use predefined fuel
-        >>> sim.reaction(fuel='PROPANE')
-
-        >>> # Custom fuel with specific properties
-        >>> sim.reaction(c=7, h=16, heat_of_combustion=44600, soot_yield=0.015)
-
-        See Also
-        --------
-        add_reaction : Advanced API for pre-constructed Reaction objects
-
-        Notes
-        -----
-        Only one reaction is allowed per simulation.
-        """
-        reaction_obj = Reaction(
-            fuel=fuel,
-            c=c,
-            h=h,
-            o=o,
-            n=n,
-            heat_of_combustion=heat_of_combustion,
-            soot_yield=soot_yield,
-            co_yield=co_yield,
-            radiative_fraction=radiative_fraction,
-            **kwargs,
-        )
-        self._physics.add_reaction(reaction_obj)
-        return self
-
-    def add_reaction(self, reaction: Reaction) -> "Simulation":
-        """
-        Add a Reaction object to the simulation (advanced API).
-
-        For most use cases, prefer the reaction() builder method.
-
-        Parameters
-        ----------
-        reaction : Reaction
-            Reaction object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> reac = Reaction(fuel='PROPANE', soot_yield=0.01)
-        >>> sim.add_reaction(reac)
-
-        See Also
-        --------
-        reaction : Primary API for creating reactions
-        """
-        self._physics.add_reaction(reaction)
-        return self
-
-    def species(
-        self,
-        id: str,
-        formula: str | None = None,
-        mw: float | None = None,
-        background: bool = False,
-        lumped_component_only: bool = False,
-        **kwargs: Any,
-    ) -> "Simulation":
-        """
-        Add a species definition to the simulation.
-
-        This is the primary API for creating species. For advanced use cases,
-        use add_species() with a pre-constructed Species object.
-
-        Parameters
-        ----------
-        id : str
-            Unique species identifier
-        formula : str, optional
-            Chemical formula (e.g., 'C2H6O2')
-        mw : float, optional
-            Molecular weight [g/mol]
-        background : bool, optional
-            Use as background species, default: False
-        lumped_component_only : bool, optional
-            Treat as lumped component only, default: False
-        **kwargs
-            Additional Species parameters
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Simple species
-        >>> sim.species(id='PROPANE', formula='C3H8', mw=44.0)
-
-        >>> # Background species (air)
-        >>> sim.species(id='AIR', background=True)
-
-        See Also
-        --------
-        add_species : Advanced API for pre-constructed Species objects
-        """
-        species_obj = Species(
-            id=id,
-            formula=formula,
-            mw=mw,
-            background=background,
-            lumped_component_only=lumped_component_only,
-            **kwargs,
-        )
-        self._species_mgr.add_species(species_obj)
-        return self
-
-    def add_species(self, species: Species) -> "Simulation":
-        """
-        Add a Species object to the simulation (advanced API).
-
-        For most use cases, prefer the species() builder method.
-
-        Parameters
-        ----------
-        species : Species
-            Species object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> spec = Species(id='PROPANE', formula='C3H8', mw=44.0)
-        >>> sim.add_species(spec)
-
-        See Also
-        --------
-        species : Primary API for creating species
-        """
-        self._species_mgr.add_species(species)
-        return self
-
-    def combustion(self, **kwargs: Any) -> "Simulation":
-        """
-        Set combustion parameters for the simulation.
-
-        This is the primary API for setting combustion parameters. For advanced use cases,
-        use set_combustion() with a pre-constructed Combustion object.
-
-        Parameters
-        ----------
-        **kwargs
-            Combustion parameters (extinction_model, suppression, etc.)
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Enable extinction model 2
-        >>> sim.combustion(extinction_model='EXTINCTION 2')
-
-        >>> # Premixed combustion
-        >>> sim.combustion(initial_unmixed_fraction=0.0)
-
-        >>> # Finite-rate chemistry settings
-        >>> sim.combustion(
-        ...     finite_rate_min_temp=100.0,
-        ...     zz_min_global=1e-8
-        ... )
-
-        See Also
-        --------
-        set_combustion : Advanced API for pre-constructed Combustion objects
-        """
-        self._species_mgr.set_combustion(**kwargs)
-        return self
-
-    def material(
-        self,
-        id: str,
-        density: float,
-        conductivity: float | None = None,
-        conductivity_ramp: str | None = None,
-        specific_heat: float | None = None,
-        specific_heat_ramp: str | None = None,
-        emissivity: float = 0.9,
-        **kwargs: Any,
-    ) -> "Simulation":
-        """
-        Add a material definition to the simulation.
-
-        This is the primary API for creating materials. For advanced use cases,
-        use add_material() with a pre-constructed Material object.
-
-        Parameters
-        ----------
-        id : str
-            Unique material identifier
-        density : float
-            Material density [kg/m³]
-        conductivity : float, optional
-            Thermal conductivity [W/(m·K)]
-        conductivity_ramp : str, optional
-            RAMP ID for temperature-dependent conductivity
-        specific_heat : float, optional
-            Specific heat capacity [kJ/(kg·K)]
-        specific_heat_ramp : str, optional
-            RAMP ID for temperature-dependent specific heat
-        emissivity : float, optional
-            Surface emissivity [0-1], default: 0.9
-        **kwargs
-            Additional Material parameters
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Simple material with constant properties
-        >>> sim.material(id='PINE', density=500, conductivity=0.13, specific_heat=2.5)
-
-        >>> # Material with temperature-dependent conductivity
-        >>> sim.material(
-        ...     id='STEEL',
-        ...     density=7850,
-        ...     conductivity_ramp='STEEL_K',
-        ...     specific_heat=0.46
-        ... )
-
-        See Also
-        --------
-        add_material : Advanced API for pre-constructed Material objects
-        """
-        material_obj = Material(
-            id=id,
-            density=density,
-            conductivity=conductivity,
-            conductivity_ramp=conductivity_ramp,
-            specific_heat=specific_heat,
-            specific_heat_ramp=specific_heat_ramp,
-            emissivity=emissivity,
-            **kwargs,
-        )
-        self._material_mgr.add_material(material_obj)
-        return self
-
-    def add_material(self, material: Material) -> "Simulation":
-        """
-        Add a Material object to the simulation (advanced API).
-
-        For most use cases, prefer the material() builder method.
-
-        Parameters
-        ----------
-        material : Material
-            Material object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> mat = Material(id='WOOD', density=500, conductivity=0.13, specific_heat=2.5)
-        >>> sim.add_material(mat)
-
-        See Also
-        --------
-        material : Primary API for creating materials
-        """
-        self._material_mgr.add_material(material)
-        return self
-
-    def prop(
-        self,
-        id: str,
-        quantity: str | None = None,
-        activation_temperature: float | None = None,
-        activation_obscuration: float | None = None,
-        rti: float | None = None,
-        flow_rate: float | None = None,
-        **kwargs: Any,
-    ) -> "Simulation":
-        """
-        Add a device property (PROP) to the simulation.
-
-        This is the primary API for creating props. For advanced use cases,
-        use add_prop() with a pre-constructed Prop object.
-
-        Parameters
-        ----------
-        id : str
-            Unique property identifier
-        quantity : str, optional
-            Measured quantity (e.g., 'TEMPERATURE', 'CHAMBER_OBSCURATION')
-        activation_temperature : float, optional
-            Activation temperature for heat detectors/sprinklers [°C]
-        activation_obscuration : float, optional
-            Activation obscuration for smoke detectors [%/m]
-        rti : float, optional
-            Response Time Index [m^0.5·s^0.5]
-        flow_rate : float, optional
-            Sprinkler flow rate [L/min]
-        **kwargs
-            Additional Prop parameters
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Sprinkler property
-        >>> sim.prop(id='SPRINKLER', activation_temperature=68, rti=50, flow_rate=60)
-
-        >>> # Smoke detector property
-        >>> sim.prop(
-        ...     id='SMOKE_DETECTOR',
-        ...     quantity='CHAMBER_OBSCURATION',
-        ...     activation_obscuration=3.28
-        ... )
-
-        See Also
-        --------
-        add_prop : Advanced API for pre-constructed Prop objects
-        """
-        prop_obj = Prop(
-            id=id,
-            quantity=quantity,
-            activation_temperature=activation_temperature,
-            activation_obscuration=activation_obscuration,
-            rti=rti,
-            flow_rate=flow_rate,
-            **kwargs,
-        )
-        self._instrumentation.add_prop(prop_obj)
-        return self
-
-    def add_prop(self, prop: Prop) -> "Simulation":
-        """
-        Add a Prop (device property) object to the simulation (advanced API).
-
-        For most use cases, prefer the prop() builder method.
-
-        Parameters
-        ----------
-        prop : Prop
-            Prop object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> prop = Prop(id='SPRINKLER', activation_temperature=68, rti=50)
-        >>> sim.add_prop(prop)
-
-        See Also
-        --------
-        prop : Primary API for creating props
-        """
-        self._instrumentation.add_prop(prop)
-        return self
-
-    def ctrl(
-        self,
-        id: str,
-        function_type: "ControlFunction",
-        input_id: str | list[str] | None = None,
-        delay: float = 0.0,
-        initial_state: bool = False,
-        latch: bool = True,
-        **kwargs: Any,
-    ) -> "Simulation":
-        """
-        Add a control logic (CTRL) to the simulation.
-
-        This is the primary API for creating controls. For advanced use cases,
-        use add_ctrl() with a pre-constructed Ctrl object.
-
-        Parameters
-        ----------
-        id : str
-            Unique control identifier
-        function_type : ControlFunction
-            Type of control function
-        input_id : str | list[str], optional
-            Input device or control ID(s)
-        delay : float, optional
-            Time delay [s], default: 0.0
-        initial_state : bool, optional
-            Initial state, default: False
-        latch : bool, optional
-            Whether to latch on activation, default: True
-        **kwargs
-            Additional Ctrl parameters
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> from pyfds.core.namelists.ctrl import ControlFunction
-        >>> # ANY logic - activate if any input is true
-        >>> sim.ctrl(
-        ...     id='SMOKE_ALARM',
-        ...     function_type=ControlFunction.ANY,
-        ...     input_id=['SD_1', 'SD_2', 'SD_3']
-        ... )
-
-        >>> # Time delay
-        >>> sim.ctrl(
-        ...     id='DELAYED_ACTIVATION',
-        ...     function_type=ControlFunction.TIME_DELAY,
-        ...     input_id='SPRINKLER_1',
-        ...     delay=5.0
-        ... )
-
-        See Also
-        --------
-        add_ctrl : Advanced API for pre-constructed Ctrl objects
-        """
-        ctrl_obj = Ctrl(
-            id=id,
-            function_type=function_type,
-            input_id=input_id,
-            delay=delay,
-            initial_state=initial_state,
-            latch=latch,
-            **kwargs,
-        )
-        self._controls.add_ctrl(ctrl_obj)
-        return self
-
-    def add_ctrl(self, ctrl: Ctrl) -> "Simulation":
-        """
-        Add a Ctrl (control logic) object to the simulation (advanced API).
-
-        For most use cases, prefer the ctrl() builder method.
-
-        Parameters
-        ----------
-        ctrl : Ctrl
-            Ctrl object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> from pyfds.core.namelists.ctrl import ControlFunction
-        >>> ctrl = Ctrl(id='ALARM', function_type=ControlFunction.ANY, input_id=['SD_1', 'SD_2'])
-        >>> sim.add_ctrl(ctrl)
-
-        See Also
-        --------
-        ctrl : Primary API for creating controls
-        """
-        self._controls.add_ctrl(ctrl)
-        return self
-
-    def init(
-        self,
-        xb: tuple[float, float, float, float, float, float] | Bounds3D | None = None,
-        xyz: tuple[float, float, float] | None = None,
-        temperature: float | None = None,
-        density: float | None = None,
-        mass_fraction: list[float] | None = None,
-        volume_fraction: list[float] | None = None,
-        spec_id: list[str] | None = None,
-        **kwargs: Any,
-    ) -> "Simulation":
-        """
-        Add an initial condition (INIT) to the simulation.
-
-        This is the primary API for creating initial conditions. For advanced use cases,
-        use add_init() with a pre-constructed Init object.
-
-        Parameters
-        ----------
-        xb : tuple[float, float, float, float, float, float] or Bounds3D, optional
-            Region bounds (xmin, xmax, ymin, ymax, zmin, zmax)
-        xyz : tuple[float, float, float], optional
-            Point location (x, y, z)
-        temperature : float, optional
-            Initial temperature [°C]
-        density : float, optional
-            Initial density [kg/m³]
-        mass_fraction : list[float], optional
-            Species mass fractions
-        volume_fraction : list[float], optional
-            Species volume fractions
-        spec_id : list[str], optional
-            Species identifiers
-        **kwargs
-            Additional Init parameters
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Hot gas region
-        >>> sim.init(
-        ...     xb=(0, 10, 0, 10, 0, 0.1),
-        ...     temperature=500,
-        ...     spec_id=['PROPANE'],
-        ...     mass_fraction=[0.05]
-        ... )
-
-        >>> # Single point initialization
-        >>> sim.init(xyz=(5, 5, 1), temperature=300)
-
-        See Also
-        --------
-        add_init : Advanced API for pre-constructed Init objects
-        """
-        init_obj = Init(
-            xb=xb,
-            xyz=xyz,
-            temperature=temperature,
-            density=density,
-            mass_fraction=mass_fraction,
-            volume_fraction=volume_fraction,
-            spec_id=spec_id,
-            **kwargs,
-        )
-        self._controls.add_init(init_obj)
-        return self
-
-    def add_init(self, init: Init) -> "Simulation":
-        """
-        Add an Init (initial condition) object to the simulation (advanced API).
-
-        For most use cases, prefer the init() builder method.
-
-        Parameters
-        ----------
-        init : Init
-            Init object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> init = Init(xb=(0, 10, 0, 10, 0, 0.1), temperature=500)
-        >>> sim.add_init(init)
-
-        See Also
-        --------
-        init : Primary API for creating initial conditions
-        """
-        self._controls.add_init(init)
+        time_obj = Time(t_end=t_end, t_begin=t_begin, dt=dt, wall_clock_time=wall_clock_time)
+        self.add(time_obj)
         return self
 
     def set_misc(self, misc: Misc | None = None, **kwargs: Any) -> "Simulation":
@@ -1239,9 +431,11 @@ class Simulation:
         Notes
         -----
         Only one MISC namelist is allowed per simulation. Calling this method
-        multiple times will overwrite the previous settings.
+        multiple times will raise an error.
         """
-        self._physics.set_misc(misc, **kwargs)
+        if misc is None:
+            misc = Misc(**kwargs)
+        self.add(misc)
         return self
 
     def set_combustion(self, combustion: Combustion | None = None, **kwargs: Any) -> "Simulation":
@@ -1270,339 +464,19 @@ class Simulation:
         >>> # Premixed combustion
         >>> sim.set_combustion(initial_unmixed_fraction=0.0)
 
-        >>> # Finite-rate chemistry settings
-        >>> sim.set_combustion(
-        ...     finite_rate_min_temp=100.0,
-        ...     zz_min_global=1e-8
-        ... )
-
         Notes
         -----
         Only one COMB namelist is allowed per simulation. Calling this method
-        multiple times will overwrite the previous settings.
+        multiple times will raise an error.
         """
-        self._species_mgr.set_combustion(combustion, **kwargs)
+        if combustion is None:
+            combustion = Combustion(**kwargs)
+        self.add(combustion)
         return self
 
-    def add_vent(self, vent: Vent) -> "Simulation":
-        """
-        Add a Vent object to the simulation (advanced API).
-
-        For most use cases, prefer the vent() builder method.
-
-        Parameters
-        ----------
-        vent : Vent
-            Vent object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Opening to ambient
-        >>> door = Vent(xb=(5, 5, 2, 4, 0, 3), surf_id='OPEN')
-        >>> sim.add_vent(door)
-
-        >>> # HVAC supply vent
-        >>> supply = Vent(xb=(5, 6, 5, 6, 3, 3), surf_id='HVAC', volume_flow=0.5)
-        >>> sim.add_vent(supply)
-
-        >>> # Circular burner
-        >>> burner = Vent(
-        ...     xb=(-1, 1, -1, 1, 0, 0),
-        ...     surf_id='FIRE',
-        ...     xyz=(0, 0, 0),
-        ...     radius=0.5
-        ... )
-        >>> sim.add_vent(burner)
-
-        See Also
-        --------
-        vent : Primary API for creating vents
-        """
-        self._geometry.add_vent(vent)
-        return self
-
-    def vent(
-        self,
-        xb: tuple[float, float, float, float, float, float] | Bounds3D | None = None,
-        mb: str | None = None,
-        surf_id: str = "INERT",
-        **kwargs: Any,
-    ) -> "Simulation":
-        """
-        Add a vent to the simulation.
-
-        This is the primary API for creating vents. For advanced use cases,
-        use add_vent() with a pre-constructed Vent object.
-
-        Parameters
-        ----------
-        xb : tuple[float, float, float, float, float, float] or Bounds3D, optional
-            Bounding box coordinates (xmin, xmax, ymin, ymax, zmin, zmax)
-        mb : str, optional
-            Mesh boundary location ('XMIN', 'XMAX', etc.)
-        surf_id : str, optional
-            Surface properties ID, default: 'INERT'
-        **kwargs
-            Additional vent parameters (xyz, radius, volume_flow, etc.)
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Opening to ambient
-        >>> sim.vent(xb=(5, 5, 2, 4, 0, 3), surf_id='OPEN')
-
-        >>> # HVAC supply vent
-        >>> sim.vent(xb=(5, 6, 5, 6, 3, 3), surf_id='HVAC', volume_flow=0.5)
-
-        See Also
-        --------
-        add_vent : Advanced API for pre-constructed Vent objects
-        """
-        vent_obj = Vent(xb=xb, mb=mb, surf_id=surf_id, **kwargs)
-        self._geometry.add_vent(vent_obj)
-        return self
-
-    def hole(
-        self,
-        xb: tuple[float, float, float, float, float, float] | Bounds3D,
-        id: str | None = None,
-        ctrl_id: str | None = None,
-        devc_id: str | None = None,
-        color: str | None = None,
-        rgb: tuple[int, int, int] | None = None,
-        transparency: float | None = None,
-        mult_id: str | None = None,
-    ) -> "Simulation":
-        """
-        Add a hole to the simulation.
-
-        Holes create openings in obstructions such as doors, windows, and vents.
-        They can be controlled to open/close during the simulation.
-
-        Parameters
-        ----------
-        xb : tuple[float, float, float, float, float, float] or Bounds3D
-            Hole bounds (xmin, xmax, ymin, ymax, zmin, zmax)
-        id : str, optional
-            Hole identifier
-        ctrl_id : str, optional
-            Control ID for activation/deactivation
-        devc_id : str, optional
-            Device ID for activation/deactivation
-        color : str, optional
-            Color when hole is closed
-        rgb : tuple[int, int, int], optional
-            RGB color when closed (0-255)
-        transparency : float, optional
-            Transparency when closed (0-1)
-        mult_id : str, optional
-            Multiplier ID for array replication
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # Simple door
-        >>> sim.hole(xb=(5, 5.1, 2, 4, 0, 2.1), id='DOOR')
-
-        >>> # Controlled window
-        >>> sim.hole(xb=(5, 5.1, 2, 4, 0, 2.1), id='WINDOW', ctrl_id='WINDOW_CTRL')
-
-        See Also
-        --------
-        add_hole : Advanced API for pre-constructed Hole objects
-        """
-        hole_obj = Hole(
-            xb=xb,
-            id=id,
-            ctrl_id=ctrl_id,
-            devc_id=devc_id,
-            color=color,
-            rgb=rgb,
-            transparency=transparency,
-            mult_id=mult_id,
-        )
-        self._geometry.add_hole(hole_obj)
-        return self
-
-    def add_hole(self, hole: Hole) -> "Simulation":
-        """
-        Add a Hole object to the simulation (advanced API).
-
-        Parameters
-        ----------
-        hole : Hole
-            Hole object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> hole = Hole(xb=(5, 5.1, 2, 4, 0, 2.1), id='DOOR')
-        >>> sim.add_hole(hole)
-
-        See Also
-        --------
-        hole : Primary API for creating holes
-        """
-        self._geometry.add_hole(hole)
-        return self
-
-    def mult(
-        self,
-        id: str,
-        dx: float | None = None,
-        dy: float | None = None,
-        dz: float | None = None,
-        dx0: float = 0.0,
-        dy0: float = 0.0,
-        dz0: float = 0.0,
-        i_lower: int = 0,
-        i_upper: int = 0,
-        j_lower: int = 0,
-        j_upper: int = 0,
-        k_lower: int = 0,
-        k_upper: int = 0,
-        n_lower: int | None = None,
-        n_upper: int | None = None,
-        i_lower_skip: int | None = None,
-        i_upper_skip: int | None = None,
-        j_lower_skip: int | None = None,
-        j_upper_skip: int | None = None,
-        k_lower_skip: int | None = None,
-        k_upper_skip: int | None = None,
-        n_lower_skip: int | None = None,
-        n_upper_skip: int | None = None,
-        dxb: tuple[float, float, float, float, float, float] | None = None,
-    ) -> "Simulation":
-        """
-        Add a multiplier for creating arrays of repeated objects.
-
-        Multipliers allow creating regular arrays of meshes, obstructions,
-        vents, holes, and other objects without specifying each one individually.
-
-        Parameters
-        ----------
-        id : str
-            Multiplier identifier (referenced by MULT_ID on other namelists)
-        dx, dy, dz : float, optional
-            Spacing in each direction [m]
-        dx0, dy0, dz0 : float, optional
-            Initial offset [m] (default: 0.0)
-        i_lower, i_upper : int, optional
-            X-direction array bounds (default: 0)
-        j_lower, j_upper : int, optional
-            Y-direction array bounds (default: 0)
-        k_lower, k_upper : int, optional
-            Z-direction array bounds (default: 0)
-        n_lower, n_upper : int, optional
-            Sequential range (alternative to i,j,k bounds)
-        i_lower_skip, i_upper_skip : int, optional
-            X-direction skip ranges (for creating gaps)
-        j_lower_skip, j_upper_skip : int, optional
-            Y-direction skip ranges (for creating gaps)
-        k_lower_skip, k_upper_skip : int, optional
-            Z-direction skip ranges (for creating gaps)
-        n_lower_skip, n_upper_skip : int, optional
-            Sequential skip ranges (for creating gaps)
-        dxb : tuple[float, float, float, float, float, float], optional
-            Incremental XB offsets (xmin, xmax, ymin, ymax, zmin, zmax)
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> # 3x3 array of objects spaced 2m apart
-        >>> sim.mult(id='ARRAY_3X3', dx=2.0, dy=2.0,
-        ...          i_lower=0, i_upper=2, j_lower=0, j_upper=2)
-
-        >>> # Linear array of 10 objects
-        >>> sim.mult(id='ROW_10', dx=1.0, n_lower=0, n_upper=9)
-
-        >>> # Array with gaps (skip indices 2-3)
-        >>> sim.mult(id='ARRAY_WITH_GAPS', dx=1.0,
-        ...          n_lower=0, n_upper=9,
-        ...          n_lower_skip=2, n_upper_skip=3)
-
-        See Also
-        --------
-        add_multiplier : Advanced API for pre-constructed Mult objects
-        """
-        mult_obj = Mult(
-            id=id,
-            dx=dx,
-            dy=dy,
-            dz=dz,
-            dx0=dx0,
-            dy0=dy0,
-            dz0=dz0,
-            i_lower=i_lower,
-            i_upper=i_upper,
-            j_lower=j_lower,
-            j_upper=j_upper,
-            k_lower=k_lower,
-            k_upper=k_upper,
-            n_lower=n_lower,
-            n_upper=n_upper,
-            i_lower_skip=i_lower_skip,
-            i_upper_skip=i_upper_skip,
-            j_lower_skip=j_lower_skip,
-            j_upper_skip=j_upper_skip,
-            k_lower_skip=k_lower_skip,
-            k_upper_skip=k_upper_skip,
-            n_lower_skip=n_lower_skip,
-            n_upper_skip=n_upper_skip,
-            dxb=dxb,
-        )
-        self._geometry.add_multiplier(mult_obj)
-        return self
-
-    def add_multiplier(self, multiplier: Mult) -> "Simulation":
-        """
-        Add a Mult object to the simulation (advanced API).
-
-        For most use cases, prefer the mult() builder method.
-
-        Parameters
-        ----------
-        multiplier : Mult
-            Multiplier object to add
-
-        Returns
-        -------
-        Simulation
-            Self for method chaining
-
-        Examples
-        --------
-        >>> mult = Mult(id='ARRAY_3X3', dx=2.0, dy=2.0,
-        ...              i_lower=0, i_upper=2, j_lower=0, j_upper=2)
-        >>> sim.add_multiplier(mult)
-
-        See Also
-        --------
-        mult : Primary API for creating multipliers
-        """
-        self._geometry.add_multiplier(multiplier)
-        return self
+    # =========================================================================
+    # Output Generation
+    # =========================================================================
 
     def to_fds(self) -> str:
         """
@@ -1616,23 +490,123 @@ class Simulation:
         Examples
         --------
         >>> sim = Simulation('test')
-        >>> sim.time(t_end=100.0)
-        >>> sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        >>> sim.add(Time(t_end=100.0))
+        >>> sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
         >>> content = sim.to_fds()
         """
-        # Create output manager with all managers and current state
-        output_mgr = OutputManager(
-            self._geometry,
-            self._material_mgr,
-            self._physics,
-            self._species_mgr,
-            self._instrumentation,
-            self._controls,
-            self._ramps,
-            self.head,
-            self.time_params,
-        )
-        return output_mgr.to_fds()
+        lines = []
+
+        # Add header comment
+        lines.append("! FDS input file generated by PyFDS")
+        if self._head.title:
+            lines.append(f"! {self._head.title}")
+        lines.append("")
+
+        # HEAD namelist
+        lines.append(self._head.to_fds())
+
+        # TIME namelist
+        if self._time:
+            lines.append(self._time.to_fds())
+
+        # MISC namelist (should appear near top)
+        if self._registry.misc:
+            lines.append("! --- Miscellaneous Parameters ---")
+            lines.append(self._registry.misc.to_fds())
+
+        # MESH namelists
+        if self.meshes:
+            lines.append("! --- Meshes ---")
+            for mesh in self.meshes:
+                lines.append(mesh.to_fds())
+
+        # MULT namelists (must come before objects that reference them)
+        if self.mults:
+            lines.append("! --- Multipliers ---")
+            for mult in self.mults:
+                lines.append(mult.to_fds())
+
+        # RAMP namelists (must come before MATL that reference them)
+        if self.ramps:
+            lines.append("! --- Ramps ---")
+            for ramp in self.ramps:
+                lines.append(ramp.to_fds())
+
+        # SPEC namelists (after RAMP, before REAC)
+        if self.species:
+            lines.append("! --- Species ---")
+            for spec in self.species:
+                lines.append(spec.to_fds())
+
+        # REAC namelists (allow multiple REAC entries)
+        if self.reactions:
+            lines.append("! --- Reactions ---")
+            for reac in self.reactions:
+                lines.append(reac.to_fds())
+
+        # COMB namelist (after REAC)
+        if self._registry.combustion:
+            lines.append("! --- Combustion Parameters ---")
+            lines.append(self._registry.combustion.to_fds())
+
+        # MATL namelists
+        if self.materials:
+            lines.append("! --- Materials ---")
+            for material in self.materials:
+                lines.append(material.to_fds())
+
+        # SURF namelists
+        if self.surfaces:
+            lines.append("! --- Surfaces ---")
+            for surface in self.surfaces:
+                lines.append(surface.to_fds())
+
+        # OBST namelists
+        if self.obstructions:
+            lines.append("! --- Obstructions ---")
+            for obst in self.obstructions:
+                lines.append(obst.to_fds())
+
+        # HOLE namelists (must come after OBST)
+        if self.holes:
+            lines.append("! --- Holes ---")
+            for hole in self.holes:
+                lines.append(hole.to_fds())
+
+        # VENT namelists (after OBST and SURF)
+        if self.vents:
+            lines.append("! --- Vents ---")
+            for vent in self.vents:
+                lines.append(vent.to_fds())
+
+        # PROP namelists
+        if self.props:
+            lines.append("! --- Device Properties ---")
+            for prop in self.props:
+                lines.append(prop.to_fds())
+
+        # DEVC namelists
+        if self.devices:
+            lines.append("! --- Devices ---")
+            for device in self.devices:
+                lines.append(device.to_fds())
+
+        # CTRL namelists
+        if self.ctrls:
+            lines.append("! --- Controls ---")
+            for ctrl in self.ctrls:
+                lines.append(ctrl.to_fds())
+
+        # INIT namelists
+        if self.inits:
+            lines.append("! --- Initial Conditions ---")
+            for init in self.inits:
+                lines.append(init.to_fds())
+
+        # TAIL namelist
+        lines.append("\n&TAIL /")
+
+        return "\n".join(lines)
 
     def write(self, filename: str | Path) -> Path:
         """
@@ -1651,42 +625,31 @@ class Simulation:
         Examples
         --------
         >>> sim = Simulation('test')
-        >>> sim.time(t_end=100.0)
-        >>> sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        >>> sim.add(Time(t_end=100.0))
+        >>> sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
         >>> sim.write('test.fds')
         """
-        # Run cross-reference validation before generating output
-        from pyfds.core.validators.cross_references import CrossReferenceValidator
-
-        validator = CrossReferenceValidator(self)
-        errors, warnings = validator.validate_all()
-
-        for warning in warnings:
-            logger.warning(warning)
-
-        if errors:
-            error_msg = "\n".join(errors)
-            raise ValueError(f"Cross-reference validation failed:\n{error_msg}")
+        # Run validation
+        warnings = self.validate()
+        if warnings:
+            for warning in warnings:
+                logger.warning(warning)
 
         content = self.to_fds()
 
-        # Create output manager for file writing
-        output_mgr = OutputManager(
-            self._geometry,
-            self._material_mgr,
-            self._physics,
-            self._species_mgr,
-            self._instrumentation,
-            self._controls,
-            self._ramps,
-            self.head,
-            self.time_params,
-        )
-        return output_mgr.write(filename, content)
+        # Write to file
+        path = Path(filename)
+        if path.suffix != ".fds":
+            path = path.with_suffix(".fds")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+        logger.info(f"Wrote FDS input file: {path}")
+        return path
 
     def validate(self) -> list[str]:
         """
-        Validate the simulation configuration using the configured validation strategy.
+        Validate the simulation configuration.
 
         Returns
         -------
@@ -1701,20 +664,13 @@ class Simulation:
         ...     for w in warnings:
         ...         print(f"Warning: {w}")
         """
-        return self._validation_strategy.validate(self)
+        issues = self._validator.validate()
+        return [str(issue) for issue in issues]
 
     def run(
         self,
-        n_threads: int = 1,
-        n_mpi: int = 1,
-        mpiexec_path: str = "mpiexec",
-        output_dir: Path | str | None = None,
-        fds_executable: Path | None = None,
-        monitor: bool = True,
-        wait: bool = True,
-        timeout: float | None = None,
-        validate: bool = True,
-        strict: bool = False,
+        config: "RunConfig | None" = None,
+        **kwargs: Any,
     ) -> "Results | Job":
         """
         Write FDS file and execute simulation.
@@ -1725,26 +681,10 @@ class Simulation:
 
         Parameters
         ----------
-        n_threads : int
-            Number of OpenMP threads (default: 1)
-        n_mpi : int
-            Number of MPI processes (default: 1)
-        mpiexec_path : str
-            Path to mpiexec command (default: 'mpiexec')
-        output_dir : Path or str, optional
-            Output directory (default: current directory)
-        fds_executable : Path, optional
-            Path to FDS executable (auto-detected if not provided)
-        monitor : bool
-            Enable progress monitoring (default: True)
-        wait : bool
-            Wait for completion (default: True)
-        timeout : float, optional
-            Timeout in seconds (only used if wait=True)
-        validate : bool
-            Validate simulation before running (default: True)
-        strict : bool
-            Raise exception on validation warnings (default: False)
+        config : RunConfig, optional
+            Execution configuration (default: RunConfig())
+        **kwargs
+            Additional keyword arguments passed to RunConfig()
 
         Returns
         -------
@@ -1755,7 +695,7 @@ class Simulation:
         ------
         ValueError
             If validation fails and strict=True
-        FDSExecutionError
+        ExecutionError
             If FDS execution fails
         FDSNotFoundError
             If FDS executable cannot be found
@@ -1763,8 +703,8 @@ class Simulation:
         Examples
         --------
         >>> sim = Simulation('test')
-        >>> sim.time(t_end=100.0)
-        >>> sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+        >>> sim.add(Time(t_end=100.0))
+        >>> sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
         >>> results = sim.run(n_threads=4)
         >>> print(f"Peak HRR: {results.hrr['HRR'].max()}")
 
@@ -1776,22 +716,29 @@ class Simulation:
         >>> results = job.get_results()
         """
         # Import here to avoid circular import
+        from ..config import RunConfig
         from ..execution import FDSRunner
 
+        # Create config from kwargs if not provided
+        if config is None:
+            config = RunConfig(**kwargs)
+        elif kwargs:
+            raise ValueError("Cannot specify both 'config' and keyword arguments")
+
         # Validate if requested
-        if validate:
+        if config.validate:
             warnings = self.validate()
             if warnings:
                 logger.warning(f"Simulation validation found {len(warnings)} warning(s)")
                 for warning in warnings:
                     logger.warning(f"  - {warning}")
-                if strict:
+                if config.strict:
                     raise ValueError(
                         "Simulation validation failed:\n" + "\n".join(f"  - {w}" for w in warnings)
                     )
 
         # Determine output directory
-        output_dir = Path.cwd() if output_dir is None else Path(output_dir)
+        output_dir = Path.cwd() if config.output_dir is None else Path(config.output_dir)
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1800,19 +747,35 @@ class Simulation:
         self.write(fds_file)
 
         logger.info(f"Running simulation: {self.chid}")
-        logger.debug(f"  Threads: {n_threads}, MPI processes: {n_mpi}")
+        logger.debug(f"  Threads: {config.n_threads}, MPI processes: {config.n_mpi}")
         logger.debug(f"  Output directory: {output_dir}")
 
         # Create runner and execute
-        runner = FDSRunner(fds_executable=fds_executable)
+        runner = FDSRunner(fds_executable=config.fds_executable)
         return runner.run(
             fds_file=fds_file,
-            n_threads=n_threads,
-            n_mpi=n_mpi,
-            mpiexec_path=mpiexec_path,
+            n_threads=config.n_threads,
+            n_mpi=config.n_mpi,
+            mpiexec_path=config.mpiexec_path,
             output_dir=output_dir,
-            monitor=monitor,
-            wait=wait,
-            timeout=timeout,
+            monitor=config.monitor,
+            wait=config.wait,
+            timeout=config.timeout,
             simulation=self,  # Pass simulation for parallel validation
         )
+
+    # =========================================================================
+    # Legacy Compatibility Properties (Deprecated - to be removed)
+    # =========================================================================
+
+    @property
+    def time_params(self) -> Time | None:
+        """Deprecated: use time_config instead."""
+        return self._time
+
+    @time_params.setter
+    def time_params(self, value: Time | None) -> None:
+        """Deprecated: use add(Time(...)) instead."""
+        if value is not None:
+            self._time = value
+            self._registry.time = value

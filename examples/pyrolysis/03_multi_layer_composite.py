@@ -28,10 +28,10 @@ def main():
     # Mesh
     mesh = Mesh(
         id="MESH",
-        ijk=Grid3D(40, 20, 20),
-        xb=Bounds3D(0.0, 2.0, 0.0, 1.0, 0.0, 1.0),
+        ijk=Grid3D.of(40, 20, 20),
+        xb=Bounds3D.of(0.0, 2.0, 0.0, 1.0, 0.0, 1.0),
     )
-    sim.geometry.add_mesh(mesh)
+    sim.add(mesh)
 
     # Define pyrolysis gas species
     gypsum_gas = Species(
@@ -46,9 +46,9 @@ def main():
         id="INSULATION_GAS",
         formula="CH2O0.5",  # Typical polymer-based insulation
     )
-    sim.add_species(gypsum_gas)
-    sim.add_species(wood_gas)
-    sim.add_species(insulation_gas)
+    sim.add(gypsum_gas)
+    sim.add(wood_gas)
+    sim.add(insulation_gas)
 
     # Materials
     # Front gypsum board layer
@@ -131,7 +131,7 @@ def main():
     # Wall obstruction
     wall = Obstruction(
         id="WALL",
-        xb=Bounds3D(0.0, 0.134, 0.0, 1.0, 0.0, 1.0),  # Wall thickness = sum of layers
+        xb=Bounds3D.of(0.0, 0.134, 0.0, 1.0, 0.0, 1.0),  # Wall thickness = sum of layers
         surf_id="COMPOSITE_WALL",
     )
 
@@ -155,17 +155,17 @@ def main():
     )
 
     # Add components to simulation
-    sim.material_mgr.add_material(gypsum)
-    sim.material_mgr.add_material(gypsum_back)
-    sim.material_mgr.add_material(wood)
-    sim.material_mgr.add_material(insulation)
-    sim.material_mgr.add_material(calcined_gypsum)
-    sim.material_mgr.add_material(char)
-    sim.material_mgr.add_surface(composite_wall)
-    sim.geometry.add_obstruction(wall)
+    sim.add(gypsum)
+    sim.add(gypsum_back)
+    sim.add(wood)
+    sim.add(insulation)
+    sim.add(calcined_gypsum)
+    sim.add(char)
+    sim.add(composite_wall)
+    sim.add(wall)
     # Don't add gypsum_combustion since GYPSUM_GAS (H2O) doesn't combust
-    sim.physics.add_reaction(wood_combustion)
-    sim.physics.add_reaction(insulation_combustion)
+    sim.add(wood_combustion)
+    sim.add(insulation_combustion)
 
     # Create output directory
     output_dir = Path(__file__).parent.parent / "fds"

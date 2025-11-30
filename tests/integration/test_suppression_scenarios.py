@@ -4,7 +4,7 @@ Tests real-world fire simulation scenarios using PART, SURF particle generation,
 PROP device properties, and MATL pyrolysis enhancements.
 """
 
-from pyfds.builders import MaterialBuilder, PartBuilder, PropBuilder, SurfBuilder
+from pyfds.builders import MaterialBuilder, PartBuilder, PropBuilder
 from pyfds.core.namelists import Material, Part, Prop, Surface
 
 
@@ -55,16 +55,13 @@ class TestWaterSpraySuppressionSystem:
 
     def test_sprinkler_surface_with_particles(self):
         """Test sprinkler surface that generates water droplets."""
-        sprinkler_surf = (
-            SurfBuilder("SPRINKLER_HEAD")
-            .as_sprinkler(
-                part_id="WATER_DROP",
-                mass_flux=0.015,
-                median_diameter=0.001,
-                velocity=5.0,
-            )
-            .with_color("CYAN")
-            .build()
+        sprinkler_surf = Surface(
+            id="SPRINKLER_HEAD",
+            part_id="WATER_DROP",
+            particle_mass_flux=0.015,
+            median_diameter=0.001,
+            vel_part=5.0,
+            color="CYAN",
         )
 
         assert sprinkler_surf.part_id == "WATER_DROP"
@@ -87,10 +84,12 @@ class TestWaterSpraySuppressionSystem:
         sprinkler_prop = PropBuilder.quick_response_sprinkler(id="QR_SPRINKLER")
 
         # Sprinkler surface
-        sprinkler_surf = (
-            SurfBuilder("SPRINKLER")
-            .as_sprinkler(part_id="WATER_DROP", mass_flux=0.02, median_diameter=0.001, velocity=6.0)
-            .build()
+        sprinkler_surf = Surface(
+            id="SPRINKLER",
+            part_id="WATER_DROP",
+            particle_mass_flux=0.02,
+            median_diameter=0.001,
+            vel_part=6.0,
         )
 
         # Verify all components created successfully
@@ -138,11 +137,8 @@ class TestSmokeDetectionSystem:
 
     def test_smoke_generation_surface(self):
         """Test surface that generates smoke particles."""
-        smoke_surf = (
-            SurfBuilder("SMOKE_SOURCE")
-            .with_particle_generation("SMOKE", mass_flux=0.001, nppc=3)
-            .with_color("BLACK")
-            .build()
+        smoke_surf = Surface(
+            id="SMOKE_SOURCE", part_id="SMOKE", particle_mass_flux=0.001, nppc=3, color="BLACK"
         )
 
         assert smoke_surf.part_id == "SMOKE"
@@ -193,16 +189,21 @@ class TestPyrolysisMaterialSystems:
 
         assert wood.id == "WOOD"
         assert wood.n_reactions == 2
-        assert wood.a == [1e10, 5e8]
-        assert wood.e == [100000, 120000]
-        assert wood.spec_id == ["WOOD_VAPOR", ""]
-        assert wood.nu_spec == [1.0, 0.0]
-        assert wood.matl_id_products == ["", "CHAR"]
-        assert wood.nu_matl == [0.0, 1.0]
+        assert len(wood.reactions) == 2
+        assert wood.reactions[0].a == 1e10
+        assert wood.reactions[0].e == 100000
+        assert wood.reactions[0].heat_of_reaction == 1800
+        assert wood.reactions[0].products[0].spec_id == "WOOD_VAPOR"
+        assert wood.reactions[0].products[0].nu_spec == 1.0
+        assert wood.reactions[1].a == 5e8
+        assert wood.reactions[1].e == 120000
+        assert wood.reactions[1].heat_of_reaction == 500
+        assert wood.reactions[1].products[0].matl_id == "CHAR"
+        assert wood.reactions[1].products[0].nu_matl == 1.0
 
         fds_output = wood.to_fds()
         assert "WOOD" in fds_output
-        assert "N_REACTIONS=2" in fds_output or "n_reactions=2" in fds_output.lower()
+        assert "REACTIONS=" in fds_output
 
     def test_predefined_materials(self):
         """Test predefined common materials."""
@@ -239,16 +240,18 @@ class TestFuelVaporCombustionSystem:
 
     def test_burning_liquid_pool(self):
         """Test liquid pool that generates fuel vapor."""
-        pool_surf = (
-            SurfBuilder("FUEL_POOL")
-            .with_particle_generation("PROPANE_VAPOR", mass_flux=0.005, nppc=2)
-            .with_heat_release(2000.0)
-            .with_color("ORANGE")
-            .build()
+        pool_surf = Surface(
+            id="FUEL_POOL",
+            part_id="PROPANE_VAPOR",
+            particle_mass_flux=0.005,
+            nppc=2,
+            hrrpua=2000.0,
+            color="ORANGE",
         )
 
         assert pool_surf.part_id == "PROPANE_VAPOR"
         assert pool_surf.particle_mass_flux == 0.005
+        assert pool_surf.nppc == 2
         assert pool_surf.hrrpua == 2000.0
 
 
@@ -305,14 +308,15 @@ class TestNozzleSpraySystem:
 
     def test_spray_surface_with_distribution(self):
         """Test spray surface with droplet distribution."""
-        spray_surf = (
-            SurfBuilder("SPRAY")
-            .with_particle_generation("WATER_DROP", mass_flux=0.01, nppc=5)
-            .with_droplet_distribution(
-                median_diameter=0.0008, gamma_d=2.4, spray_pattern="GAUSSIAN"
-            )
-            .with_particle_velocity((0.0, 0.0, -3.0))
-            .build()
+        spray_surf = Surface(
+            id="SPRAY",
+            part_id="WATER_DROP",
+            particle_mass_flux=0.01,
+            nppc=5,
+            median_diameter=0.0008,
+            gamma_d=2.4,
+            spray_pattern="GAUSSIAN",
+            particle_velocity=(0.0, 0.0, -3.0),
         )
 
         assert spray_surf.median_diameter == 0.0008
@@ -396,22 +400,26 @@ class TestComplexFireSuppressionScenario:
         )
 
         # Fire surface generating smoke
-        fire_surf = (
-            SurfBuilder("BURNING_WOOD")
-            .with_particle_generation("SMOKE", mass_flux=0.002, nppc=2)
-            .with_heat_release(500.0, ramp_id="fire_growth")
-            .with_color("ORANGE")
-            .build()
+        fire_surf = Surface(
+            id="BURNING_WOOD",
+            part_id="SMOKE",
+            particle_mass_flux=0.002,
+            nppc=2,
+            hrrpua=500.0,
+            ramp_q="fire_growth",
+            color="ORANGE",
         )
 
         # Sprinkler property
         sprinkler_prop = PropBuilder.quick_response_sprinkler(id="QR_SPRINKLER")
 
         # Sprinkler surface
-        sprinkler_surf = (
-            SurfBuilder("SPRINKLER_HEAD")
-            .as_sprinkler(part_id="WATER_DROP", mass_flux=0.02, median_diameter=0.001, velocity=6.0)
-            .build()
+        sprinkler_surf = Surface(
+            id="SPRINKLER_HEAD",
+            part_id="WATER_DROP",
+            particle_mass_flux=0.02,
+            median_diameter=0.001,
+            vel_part=6.0,
         )
 
         # Smoke detector
@@ -429,8 +437,8 @@ class TestComplexFireSuppressionScenario:
         # Verify linkage between components
         assert fire_surf.part_id == smoke.id
         assert sprinkler_surf.part_id == water.id
-        assert wood_material.spec_id == ["WOOD_VAPOR"]
-        assert wood_material.nu_spec == [1.0]
+        assert wood_material.reactions[0].products[0].spec_id == "WOOD_VAPOR"
+        assert wood_material.reactions[0].products[0].nu_spec == 1.0
 
         # Verify FDS output generation
         assert all(
@@ -452,27 +460,28 @@ class TestParticleVelocityControls:
 
     def test_particle_with_velocity_magnitude(self):
         """Test surface with particle velocity magnitude."""
-        surf = SurfBuilder("VENT").with_particle_velocity(5.0).build()
+        surf = Surface(id="VENT", vel_part=5.0)
 
         assert surf.vel_part == 5.0
         assert surf.particle_velocity is None
 
     def test_particle_with_velocity_vector(self):
         """Test surface with particle velocity vector."""
-        surf = SurfBuilder("SPRAY").with_particle_velocity((1.0, 0.0, -2.0)).build()
+        surf = Surface(id="SPRAY", particle_velocity=(1.0, 0.0, -2.0))
 
         assert surf.particle_velocity == (1.0, 0.0, -2.0)
         assert surf.vel_part is None
 
     def test_spray_with_angle_control(self):
         """Test spray with angle control."""
-        sprinkler = (
-            SurfBuilder("SPRINKLER")
-            .as_sprinkler(
-                part_id="WATER_DROP", mass_flux=0.015, median_diameter=0.001, velocity=5.0
-            )
-            .with_droplet_distribution(median_diameter=0.001, gamma_d=2.4, spray_pattern="GAUSSIAN")
-            .build()
+        sprinkler = Surface(
+            id="SPRINKLER",
+            part_id="WATER_DROP",
+            particle_mass_flux=0.015,
+            median_diameter=0.001,
+            vel_part=5.0,
+            gamma_d=2.4,
+            spray_pattern="GAUSSIAN",
         )
 
         assert sprinkler.spray_pattern == "GAUSSIAN"

@@ -4,11 +4,9 @@ FDS REAC namelist.
 Combustion reaction definition.
 """
 
-from typing import Any
+from pydantic import field_validator, model_validator
 
-from pydantic import Field, field_validator, model_validator
-
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Reaction(NamelistBase):
@@ -129,114 +127,128 @@ class Reaction(NamelistBase):
     - Yields must sum to less than 1.0
     """
 
-    fuel: str | None = Field(None, description="Fuel name")
-    c: float | None = Field(None, gt=0, description="Carbon atoms")
-    h: float | None = Field(None, gt=0, description="Hydrogen atoms")
-    o: float | None = Field(None, ge=0, description="Oxygen atoms")
-    n: float | None = Field(None, ge=0, description="Nitrogen atoms")
-    heat_of_combustion: float | None = Field(None, gt=0, description="Heat of combustion [kJ/kg]")
-    soot_yield: float = Field(0.01, ge=0, le=1, description="Soot yield")
-    co_yield: float = Field(0.0, ge=0, le=1, description="CO yield")
-    radiative_fraction: float | None = Field(None, ge=0, le=1, description="Radiative fraction")
-    auto_ignition_temperature: float | None = Field(None, description="Auto-ignition temp [°C]")
+    fuel: str | None = FdsField(None, description="Fuel name")
+    c: float | None = FdsField(None, gt=0, description="Carbon atoms")
+    h: float | None = FdsField(None, gt=0, description="Hydrogen atoms")
+    o: float | None = FdsField(None, ge=0, exclude_if=0, description="Oxygen atoms")
+    n: float | None = FdsField(None, ge=0, exclude_if=0, description="Nitrogen atoms")
+    heat_of_combustion: float | None = FdsField(
+        None, gt=0, description="Heat of combustion [kJ/kg]"
+    )
+    soot_yield: float = FdsField(0.01, ge=0, le=1, exclude_if=0.01, description="Soot yield")
+    co_yield: float = FdsField(0.0, ge=0, le=1, exclude_if=0.0, description="CO yield")
+    radiative_fraction: float | None = FdsField(None, ge=0, le=1, description="Radiative fraction")
+    auto_ignition_temperature: float | None = FdsField(None, description="Auto-ignition temp [°C]")
 
-    # Reaction identification (Phase 3)
-    id: str | None = Field(None, description="Reaction identifier")
+    # Reaction identification
+    id: str | None = FdsField(None, description="Reaction identifier")
 
-    # Product yields (Phase 3)
-    hcn_yield: float = Field(0.0, ge=0, le=1, description="HCN yield [kg/kg fuel]")
+    # Product yields
+    hcn_yield: float = FdsField(
+        0.0, ge=0, le=1, exclude_if=0.0, description="HCN yield [kg/kg fuel]"
+    )
 
-    # Energy parameters (Phase 3)
-    epumo2: float | None = Field(
+    # Energy parameters
+    epumo2: float | None = FdsField(
         None, gt=0, description="Energy per unit mass of O2 consumed [kJ/kg]"
     )
-    hoc_complete: float | None = Field(
+    hoc_complete: float | None = FdsField(
         None, gt=0, description="Complete heat of combustion [kJ/kg]"
     )
 
-    # Two-step chemistry (Phase 3)
-    n_simple_chemistry_reactions: int = Field(
-        1, ge=1, le=2, description="Number of simple chemistry reactions (1 or 2)"
+    # Two-step chemistry
+    n_simple_chemistry_reactions: int = FdsField(
+        1, ge=1, le=2, exclude_if=1, description="Number of simple chemistry reactions (1 or 2)"
     )
 
-    # Product fractions for incomplete combustion (Phase 3)
-    fuel_c_to_co_fraction: float = Field(
-        0.0, ge=0, le=1, description="Fraction of fuel carbon converted to CO"
+    # Product fractions for incomplete combustion
+    fuel_c_to_co_fraction: float = FdsField(
+        0.0, ge=0, le=1, exclude_if=0.0, description="Fraction of fuel carbon converted to CO"
     )
-    fuel_n_to_hcn_fraction: float = Field(
-        0.0, ge=0, le=1, description="Fraction of fuel nitrogen converted to HCN"
+    fuel_n_to_hcn_fraction: float = FdsField(
+        0.0, ge=0, le=1, exclude_if=0.0, description="Fraction of fuel nitrogen converted to HCN"
     )
-    fuel_h_to_h2_fraction: float = Field(
-        0.0, ge=0, le=1, description="Fraction of fuel hydrogen converted to H2"
-    )
-
-    # Validation options (Phase 3)
-    check_atom_balance: bool = Field(True, description="Check atom balance in reaction")
-    reac_atom_error: float = Field(1e-4, gt=0, description="Atom balance error tolerance")
-    reac_mass_error: float = Field(1e-4, gt=0, description="Mass balance error tolerance")
-
-    # Oxygen limit (Phase 3)
-    lower_oxygen_limit: float = Field(
-        0.0, ge=0, le=1, description="Lower oxygen index for extinction"
+    fuel_h_to_h2_fraction: float = FdsField(
+        0.0, ge=0, le=1, exclude_if=0.0, description="Fraction of fuel hydrogen converted to H2"
     )
 
-    # Auto-ignition exclusion zones (Phase 3)
-    ait_exclusion_zone: tuple[float, ...] | None = Field(
+    # Validation options
+    check_atom_balance: bool = FdsField(
+        True, exclude_if=True, description="Check atom balance in reaction"
+    )
+    reac_atom_error: float = FdsField(
+        1e-4, gt=0, exclude_if=1e-4, description="Atom balance error tolerance"
+    )
+    reac_mass_error: float = FdsField(
+        1e-4, gt=0, exclude_if=1e-4, description="Mass balance error tolerance"
+    )
+
+    # Oxygen limit
+    lower_oxygen_limit: float = FdsField(
+        0.0, ge=0, le=1, exclude_if=0.0, description="Lower oxygen index for extinction"
+    )
+
+    # Auto-ignition exclusion zones
+    ait_exclusion_zone: tuple[float, ...] | None = FdsField(
         None, description="XB bounds for auto-ignition exclusion zone"
     )
-    ait_exclusion_zone_temperature: float | None = Field(
+    ait_exclusion_zone_temperature: float | None = FdsField(
         None, description="Temperature above which ignition is allowed [°C]"
     )
-    ait_exclusion_zone_devc_id: str | None = Field(
+    ait_exclusion_zone_devc_id: str | None = FdsField(
         None, description="Device to control exclusion zone"
     )
-    ait_exclusion_zone_ctrl_id: str | None = Field(
+    ait_exclusion_zone_ctrl_id: str | None = FdsField(
         None, description="Control logic for exclusion zone"
     )
 
-    # Extinction Parameters (Stage 1.3)
-    extinction_model: str | None = Field(
+    # Extinction Parameters
+    extinction_model: str | None = FdsField(
         None, description="Extinction model: EXTINCTION_1, EXTINCTION_2"
     )
-    critical_flame_temperature: float | None = Field(
+    critical_flame_temperature: float | None = FdsField(
         None, gt=0, description="Critical flame temperature for extinction (K)"
     )
 
-    # Suppression Parameters (Stage 1.3)
-    suppression: bool = Field(False, description="Enable suppression model")
-    k_suppression: float | None = Field(None, ge=0, description="Suppression rate constant")
+    # Suppression Parameters
+    suppression: bool = FdsField(False, exclude_if=False, description="Enable suppression model")
+    k_suppression: float | None = FdsField(None, ge=0, description="Suppression rate constant")
 
-    # Heat of Combustion Mode (Stage 1.3)
-    ideal: bool = Field(True, description="Use ideal heat of combustion")
+    # Heat of Combustion Mode
+    ideal: bool = FdsField(True, exclude_if=True, description="Use ideal heat of combustion")
 
-    # Species Tracking (Stage 1.3)
-    spec_id_nu: list[str] = Field(default_factory=list, description="Species IDs for stoichiometry")
-    nu: list[float] = Field(default_factory=list, description="Stoichiometric coefficients")
+    # Species Tracking
+    spec_id_nu: list[str] = FdsField(
+        default_factory=list, description="Species IDs for stoichiometry"
+    )
+    nu: list[float] = FdsField(default_factory=list, description="Stoichiometric coefficients")
 
     # Finite-rate kinetics parameters
-    a: float | None = Field(None, gt=0, description="Pre-exponential factor [(mol/cm³)^(1-n)/s]")
-    e: float | None = Field(None, ge=0, description="Activation energy [J/mol]")
-    n_t: float = Field(0.0, description="Temperature exponent in rate equation")
+    a: float | None = FdsField(None, gt=0, description="Pre-exponential factor [(mol/cm³)^(1-n)/s]")
+    e: float | None = FdsField(None, ge=0, description="Activation energy [J/mol]")
+    n_t: float = FdsField(0.0, exclude_if=0.0, description="Temperature exponent in rate equation")
 
     # Concentration exponents
-    spec_id_n_s: list[str] | None = Field(
+    spec_id_n_s: list[str] | None = FdsField(
         None, description="Species IDs for concentration exponents"
     )
-    n_s: list[float] | None = Field(None, description="Concentration exponents for each species")
+    n_s: list[float] | None = FdsField(None, description="Concentration exponents for each species")
 
     # Reaction specification
-    equation: str | None = Field(None, description="Reaction equation in text form")
-    priority: int | None = Field(None, ge=1, description="Reaction priority for multi-step schemes")
-    reverse: bool = Field(False, description="Enable reversible reaction")
+    equation: str | None = FdsField(None, description="Reaction equation in text form")
+    priority: int | None = FdsField(
+        None, ge=1, description="Reaction priority for multi-step schemes"
+    )
+    reverse: bool = FdsField(False, exclude_if=False, description="Enable reversible reaction")
 
     # Radiation
-    fuel_radcal_id: str | None = Field(
+    fuel_radcal_id: str | None = FdsField(
         None, description="RadCal species for fuel radiation absorption"
     )
 
     # Mixing time bounds (COMB parameters, but can be set on REAC for convenience)
-    tau_chem: float | None = Field(None, gt=0, description="Minimum mixing time bound [s]")
-    tau_flame: float | None = Field(None, gt=0, description="Maximum mixing time bound [s]")
+    tau_chem: float | None = FdsField(None, gt=0, description="Minimum mixing time bound [s]")
+    tau_flame: float | None = FdsField(None, gt=0, description="Maximum mixing time bound [s]")
 
     @field_validator("extinction_model")
     @classmethod
@@ -287,107 +299,13 @@ class Reaction(NamelistBase):
 
         return self
 
-    def to_fds(self) -> str:
-        """Generate FDS REAC namelist."""
-        params: dict[str, Any] = {}
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "REAC"
 
-        if self.fuel:
-            params["fuel"] = self.fuel
-        if self.c is not None:
-            params["c"] = self.c
-        if self.h is not None:
-            params["h"] = self.h
-        if self.o and self.o > 0:
-            params["o"] = self.o
-        if self.n and self.n > 0:
-            params["n"] = self.n
-        if self.heat_of_combustion:
-            params["heat_of_combustion"] = self.heat_of_combustion
-        if self.soot_yield != 0.01:
-            params["soot_yield"] = self.soot_yield
-        if self.co_yield > 0:
-            params["co_yield"] = self.co_yield
-        if self.radiative_fraction is not None:
-            params["radiative_fraction"] = self.radiative_fraction
-        if self.auto_ignition_temperature is not None:
-            params["auto_ignition_temperature"] = self.auto_ignition_temperature
-
-        # Extinction and suppression parameters
-        if self.extinction_model is not None:
-            params["extinction_model"] = self.extinction_model
-        if self.critical_flame_temperature is not None:
-            params["critical_flame_temperature"] = self.critical_flame_temperature
-        if self.suppression:
-            params["suppression"] = self.suppression
-        if self.k_suppression is not None:
-            params["k_suppression"] = self.k_suppression
-        if not self.ideal:
-            params["ideal"] = self.ideal
-
-        # New Phase 3 parameters
-        if self.id is not None:
-            params["id"] = self.id
-        if self.hcn_yield > 0:
-            params["hcn_yield"] = self.hcn_yield
-        if self.epumo2 is not None:
-            params["epumo2"] = self.epumo2
-        if self.hoc_complete is not None:
-            params["hoc_complete"] = self.hoc_complete
-        if self.n_simple_chemistry_reactions != 1:
-            params["n_simple_chemistry_reactions"] = self.n_simple_chemistry_reactions
-        if self.fuel_c_to_co_fraction > 0:
-            params["fuel_c_to_co_fraction"] = self.fuel_c_to_co_fraction
-        if self.fuel_n_to_hcn_fraction > 0:
-            params["fuel_n_to_hcn_fraction"] = self.fuel_n_to_hcn_fraction
-        if self.fuel_h_to_h2_fraction > 0:
-            params["fuel_h_to_h2_fraction"] = self.fuel_h_to_h2_fraction
-        if not self.check_atom_balance:
-            params["check_atom_balance"] = self.check_atom_balance
-        if self.reac_atom_error != 1e-4:
-            params["reac_atom_error"] = self.reac_atom_error
-        if self.reac_mass_error != 1e-4:
-            params["reac_mass_error"] = self.reac_mass_error
-        if self.lower_oxygen_limit > 0:
-            params["lower_oxygen_limit"] = self.lower_oxygen_limit
-
-        # Auto-ignition exclusion zone parameters
+    def _extra_fds_params(self) -> list[str]:
+        """Handle special formatting cases for FDS parameters."""
+        params = []
         if self.ait_exclusion_zone is not None:
-            params["ait_exclusion_zone"] = list(self.ait_exclusion_zone)
-        if self.ait_exclusion_zone_temperature is not None:
-            params["ait_exclusion_zone_temperature"] = self.ait_exclusion_zone_temperature
-        if self.ait_exclusion_zone_devc_id is not None:
-            params["ait_exclusion_zone_devc_id"] = self.ait_exclusion_zone_devc_id
-        if self.ait_exclusion_zone_ctrl_id is not None:
-            params["ait_exclusion_zone_ctrl_id"] = self.ait_exclusion_zone_ctrl_id
-
-        # Finite-rate kinetics parameters
-        if self.a is not None:
-            params["a"] = self.a
-        if self.e is not None:
-            params["e"] = self.e
-        if self.n_t != 0.0:
-            params["n_t"] = self.n_t
-        if self.spec_id_n_s is not None:
-            params["spec_id_n_s"] = self.spec_id_n_s
-        if self.n_s is not None:
-            params["n_s"] = self.n_s
-
-        # Reaction specification
-        if self.equation is not None:
-            params["equation"] = self.equation
-        if self.priority is not None:
-            params["priority"] = self.priority
-        if self.reverse:
-            params["reverse"] = self.reverse
-
-        # Radiation
-        if self.fuel_radcal_id is not None:
-            params["fuel_radcal_id"] = self.fuel_radcal_id
-
-        # Mixing time bounds
-        if self.tau_chem is not None:
-            params["tau_chem"] = self.tau_chem
-        if self.tau_flame is not None:
-            params["tau_flame"] = self.tau_flame
-
-        return self._build_namelist("REAC", params)
+            params.append(f"AIT_EXCLUSION_ZONE={list(self.ait_exclusion_zone)}")
+        return params

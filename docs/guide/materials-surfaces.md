@@ -64,7 +64,7 @@ FDS includes predefined surfaces:
 
 ```python
 # Use predefined
-sim.obstruction(xb=(0, 1, 0, 1, 0, 1), surf_id='INERT')
+sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id='INERT')
 ```
 
 ## Material Properties
@@ -227,7 +227,7 @@ sim.surface(
 from pyfds import Simulation
 
 sim = Simulation(chid='wall_material')
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Define gypsum material
 sim.material(
@@ -246,7 +246,7 @@ sim.surface(
 )
 
 # Apply to walls
-sim.obstruction(xb=(0, 0.2, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL')
 
 sim.write('wall_material.fds')
 ```
@@ -255,7 +255,7 @@ sim.write('wall_material.fds')
 
 ```python
 sim = Simulation(chid='composite_wall')
-sim.mesh(ijk=(50, 40, 25), xb=(0, 5, 0, 4, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5))
 
 # Define materials
 sim.material(id='GYPSUM', conductivity=0.48, specific_heat=0.84, density=1440.0)
@@ -271,7 +271,7 @@ sim.surface(
 )
 
 # Apply to wall
-sim.obstruction(xb=(0, 0.2, 0, 4, 0, 2.5), surf_id='EXTERIOR_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 2.5), surf_id='EXTERIOR_WALL')
 
 sim.write('composite_wall.fds')
 ```
@@ -280,7 +280,7 @@ sim.write('composite_wall.fds')
 
 ```python
 sim = Simulation(chid='temp_dependent')
-sim.mesh(ijk=(30, 30, 15), xb=(0, 3, 0, 3, 0, 1.5))
+sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5))
 
 # Conductivity increases with temperature
 sim.ramp(
@@ -306,8 +306,8 @@ sim.surface(
 
 # Fire and wall
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
-sim.obstruction(xb=(0, 0.1, 0, 3, 0, 1.5), surf_id='TEMP_SURF')
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.1, 0, 3, 0, 1.5), surf_id='TEMP_SURF')
 
 sim.write('temp_dependent.fds')
 ```

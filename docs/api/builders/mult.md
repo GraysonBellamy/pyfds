@@ -134,7 +134,7 @@ rack_array = (
 )
 
 # Individual rack definition
-single_rack = Obstruction(xb=(0, 1, 0, 2, 0, 4), surf_id='STEEL', mult_id='STORAGE_RACKS')
+single_rack = Obstruction(xb=Bounds3D.of(0, 1, 0, 2, 0, 4), surf_id='STEEL', mult_id='STORAGE_RACKS')
 ```
 
 ### Window Arrays
@@ -150,7 +150,7 @@ window_grid = (
 )
 
 # Window definition
-window = HoleBuilder('WINDOW').bounds(xb=(0, 0.1, 0, 1.5, 0, 1.2)).mult_id('FACADE_WINDOWS').build()
+window = HoleBuilder('WINDOW').bounds(xb=Bounds3D.of(0, 0.1, 0, 1.5, 0, 1.2)).mult_id('FACADE_WINDOWS').build()
 ```
 
 ### Sprinkler Systems
@@ -166,7 +166,7 @@ sprinkler_array = (
 )
 
 # Sprinkler definition
-sprinkler = Device(xb=(0, 0, 0, 0, 0, 0), prop_id='SPRINKLER', mult_id='SPRINKLERS')
+sprinkler = Device(xb=Bounds3D.of(0, 0, 0, 0, 0, 0), prop_id='SPRINKLER', mult_id='SPRINKLERS')
 ```
 
 ### Ventilation Grids
@@ -182,7 +182,7 @@ vent_array = (
 )
 
 # Vent definition
-vent = Vent(xb=(0, 0.1, 0, 0.1, 0, 0.05), surf_id='EXHAUST', mult_id='CEILING_VENTS')
+vent = Vent(xb=Bounds3D.of(0, 0.1, 0, 0.1, 0, 0.05), surf_id='EXHAUST', mult_id='CEILING_VENTS')
 ```
 
 ## Complex Arrays

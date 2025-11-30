@@ -6,6 +6,13 @@ of obstructions, holes, vents, and other geometry objects without specifying
 each one individually.
 """
 
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists.hole import Hole
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.mult import Mult
+from pyfds.core.namelists.obst import Obstruction
+from pyfds.core.namelists.time import Time
+from pyfds.core.namelists.vent import Vent
 from pyfds.core.simulation import Simulation
 
 
@@ -14,22 +21,23 @@ def main():
 
     # Create a basic simulation
     sim = Simulation(chid="mult_example", title="MULT Array Example")
-    sim.time(t_end=60.0)
-    sim.mesh(ijk=(100, 100, 50), xb=(0, 10, 0, 10, 0, 5))
+    sim.add(Time(t_end=60.0))
+    sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
     # Example 1: 3x3 array of obstructions (pillars)
-    sim.mult(id="PILLARS", dx=3.0, dy=3.0, i_lower=0, i_upper=2, j_lower=0, j_upper=2)
-    sim.obstruction(xb=(0.2, 0.8, 0.2, 0.8, 0, 3), mult_id="PILLARS")
-
+    sim.add(Mult(id="PILLARS", dx=3.0, dy=3.0, i_lower=0, i_upper=2, j_lower=0, j_upper=2))
+    sim.add(Obstruction(xb=Bounds3D.of(0.2, 0.8, 0.2, 0.8, 0, 3), mult_id="PILLARS"))
     # Example 2: Linear array of windows along a wall
-    sim.mult(id="WINDOWS", dx=1.5, n_lower=0, n_upper=4)
-    sim.hole(xb=(0, 0.1, 1.5, 2.5, 1.8, 2.2), mult_id="WINDOWS")
+    sim.add(Mult(id="WINDOWS", dx=1.5, n_lower=0, n_upper=4))
+    sim.add(Hole(xb=Bounds3D.of(0, 0.1, 1.5, 2.5, 1.8, 2.2), mult_id="WINDOWS"))
 
     # Example 3: Array with gaps (skip some positions)
-    sim.mult(
-        id="SPARSE_ARRAY", dx=2.0, n_lower=0, n_upper=9, n_lower_skip=2, n_upper_skip=3
+    sim.add(
+        Mult(id="SPARSE_ARRAY", dx=2.0, n_lower=0, n_upper=9, n_lower_skip=2, n_upper_skip=3)
     )  # Skip positions 2-3
-    sim.vent(xb=(0.1, 0.9, 0.1, 0.9, 5.0, 5.0), surf_id="OPEN", mult_id="SPARSE_ARRAY")
+    sim.add(
+        Vent(xb=Bounds3D.of(0.1, 0.9, 0.1, 0.9, 5.0, 5.0), surf_id="OPEN", mult_id="SPARSE_ARRAY")
+    )
 
     # Generate FDS input
     fds_content = sim.to_fds()

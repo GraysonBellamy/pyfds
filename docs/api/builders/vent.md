@@ -25,7 +25,7 @@ from pyfds.builders import VentBuilder
 
 # Factory methods (not fluent)
 door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0)
-supply = VentBuilder.hvac_supply(xb=(5, 6, 5, 6, 3, 3), volume_flow=0.5)
+supply = VentBuilder.hvac_supply(xb=Bounds3D.of(5, 6, 5, 6, 3, 3), volume_flow=0.5)
 
 # Not: VentBuilder().door()...  # This doesn't exist
 ```
@@ -37,7 +37,7 @@ supply = VentBuilder.hvac_supply(xb=(5, 6, 5, 6, 3, 3), volume_flow=0.5)
 ```python
 # Generic opening to ambient
 opening = VentBuilder.opening(
-    xb=(5, 5, 2, 4, 0, 2.1),
+    xb=Bounds3D.of(5, 5, 2, 4, 0, 2.1),
     id='DOOR'
 )
 
@@ -67,14 +67,14 @@ window = VentBuilder.window(
 ```python
 # Supply vent (positive flow)
 supply = VentBuilder.hvac_supply(
-    xb=(5, 6, 5, 6, 3, 3),
+    xb=Bounds3D.of(5, 6, 5, 6, 3, 3),
     volume_flow=0.5,  # m³/s
     id='SUPPLY_1'
 )
 
 # Exhaust vent (negative flow)
 exhaust = VentBuilder.hvac_exhaust(
-    xb=(0, 1, 0, 1, 3, 3),
+    xb=Bounds3D.of(0, 1, 0, 1, 3, 3),
     volume_flow=0.3,  # m³/s (automatically negated)
     id='EXHAUST_1'
 )
@@ -127,13 +127,13 @@ Most flexible - specify exact bounding box:
 ```python
 # Rectangular opening
 opening = VentBuilder.opening(
-    xb=(5, 5, 2, 4, 0, 2.1),  # (x1, x2, y1, y2, z1, z2)
+    xb=Bounds3D.of(5, 5, 2, 4, 0, 2.1),  # (x1, x2, y1, y2, z1, z2)
     id='OPENING_1'
 )
 
 # Opening with custom surface
 opening = VentBuilder.opening(
-    xb=(5, 5, 2, 4, 0, 2.1),
+    xb=Bounds3D.of(5, 5, 2, 4, 0, 2.1),
     surf_id='CUSTOM_SURF',
     id='CUSTOM_OPENING'
 )
@@ -207,14 +207,14 @@ Adds air to the domain:
 ```python
 # Supply vent (positive flow)
 supply = VentBuilder.hvac_supply(
-    xb=(5, 6, 5, 6, 3, 3),  # 1m x 1m at ceiling
+    xb=Bounds3D.of(5, 6, 5, 6, 3, 3),  # 1m x 1m at ceiling
     volume_flow=0.5,        # 0.5 m³/s
     id='SUPPLY_1'
 )
 
 # Supply with temperature
 supply_temp = VentBuilder.hvac_supply(
-    xb=(5, 6, 5, 6, 3, 3),
+    xb=Bounds3D.of(5, 6, 5, 6, 3, 3),
     volume_flow=0.5,
     id='SUPPLY_TEMP'
 )
@@ -229,14 +229,14 @@ Removes air from domain:
 ```python
 # Exhaust vent (negative flow)
 exhaust = VentBuilder.hvac_exhaust(
-    xb=(0, 1, 0, 1, 3, 3),
+    xb=Bounds3D.of(0, 1, 0, 1, 3, 3),
     volume_flow=0.3,  # Automatically negated to -0.3
     id='EXHAUST_1'
 )
 
 # Already negative input
 exhaust = VentBuilder.hvac_exhaust(
-    xb=(0, 1, 0, 1, 3, 3),
+    xb=Bounds3D.of(0, 1, 0, 1, 3, 3),
     volume_flow=-0.3,  # Stays -0.3
     id='EXHAUST_2'
 )
@@ -257,10 +257,10 @@ Conversion: 1 m³/s = 2118.88 CFM
 
 ```python
 # Small room ventilation (200 CFM ≈ 0.094 m³/s)
-small = VentBuilder.hvac_supply(xb=(5, 6, 5, 6, 3, 3), volume_flow=0.094, id='SMALL')
+small = VentBuilder.hvac_supply(xb=Bounds3D.of(5, 6, 5, 6, 3, 3), volume_flow=0.094, id='SMALL')
 
 # Large room (2000 CFM ≈ 0.944 m³/s)
-large = VentBuilder.hvac_supply(xb=(5, 7, 5, 7, 3, 3), volume_flow=0.944, id='LARGE')
+large = VentBuilder.hvac_supply(xb=Bounds3D.of(5, 7, 5, 7, 3, 3), volume_flow=0.944, id='LARGE')
 ```
 
 ## Circular and Annular Vents
@@ -382,7 +382,7 @@ from pyfds import Simulation
 from pyfds.builders import VentBuilder
 
 sim = Simulation('natural_vent')
-sim.mesh(ijk=(100, 100, 50), xb=(0, 10, 0, 10, 0, 5))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
 
 # Openings for natural ventilation
 door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0, id='DOOR')
@@ -399,12 +399,12 @@ sim.add_vent(window_2)
 ```python
 # HVAC system
 supply = VentBuilder.hvac_supply(
-    xb=(2, 3, 2, 3, 5, 5),
+    xb=Bounds3D.of(2, 3, 2, 3, 5, 5),
     volume_flow=0.5,
     id='SUPPLY'
 )
 exhaust = VentBuilder.hvac_exhaust(
-    xb=(8, 9, 8, 9, 5, 5),
+    xb=Bounds3D.of(8, 9, 8, 9, 5, 5),
     volume_flow=0.3,
     id='EXHAUST'
 )
@@ -473,15 +473,15 @@ sim.add_vent(VentBuilder.mesh_boundary(mb='ZMAX', surf_id='OPEN'))
 door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0, id='DOOR')
 
 # Avoid: Manual XB for standard geometries
-opening = VentBuilder.opening(xb=(5, 5, 2, 3, 0, 2.1), id='DOOR')  # Less clear
+opening = VentBuilder.opening(xb=Bounds3D.of(5, 5, 2, 3, 0, 2.1), id='DOOR')  # Less clear
 ```
 
 ### Match HVAC Flow Rates
 
 ```python
 # Good: Balanced system
-supply = VentBuilder.hvac_supply(xb=(2, 3, 2, 3, 5, 5), volume_flow=0.5, id='SUP')
-exhaust = VentBuilder.hvac_exhaust(xb=(8, 9, 8, 9, 5, 5), volume_flow=0.5, id='EXH')
+supply = VentBuilder.hvac_supply(xb=Bounds3D.of(2, 3, 2, 3, 5, 5), volume_flow=0.5, id='SUP')
+exhaust = VentBuilder.hvac_exhaust(xb=Bounds3D.of(8, 9, 8, 9, 5, 5), volume_flow=0.5, id='EXH')
 
 # Avoid: Large imbalance (causes pressure issues)
 # supply = VentBuilder.hvac_supply(..., volume_flow=1.0)

@@ -33,22 +33,22 @@ import numpy as np
 def create_grid_study(chid_base, mesh_multiplier):
     """Create simulation with scaled mesh resolution."""
     sim = Simulation(chid=f'{chid_base}_mesh{mesh_multiplier}')
-    sim.time(t_end=300.0)
+    sim.add(Time(t_end=300.0)
 
     # Base resolution: 0.1m cells
     # Multiply to get finer/coarser meshes
     base_ijk = (50, 50, 25)  # 5m × 5m × 2.5m domain
     ijk = tuple(int(n * mesh_multiplier) for n in base_ijk)
 
-    sim.mesh(ijk=ijk, xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=ijk, xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
     # Fire (same in all cases)
     sim.surface(id='FIRE', hrrpua=1000.0)
-    sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 
     # Measurement devices
-    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 2.4))
-    sim.device(id='TEMP_MID', quantity='TEMPERATURE', xyz=Point3D(2.5, 2.5, 1.25))
+    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
+    sim.device(id='TEMP_MID', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 1.25))
 
     return sim
 
@@ -100,20 +100,20 @@ from pyfds import Simulation
 def create_fire_sensitivity(hrr):
     """Create simulation with specified HRR."""
     sim = Simulation(chid=f'fire_hrr{hrr}')
-    sim.time(t_end=600.0)
-    sim.mesh(ijk=(60, 50, 25), xb=(0, 6, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0)
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
 
     # Variable fire intensity
     sim.surface(id='FIRE', hrrpua=hrr, color='ORANGE')
-    sim.obstruction(xb=(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
 
     # Fixed measurements
-    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=(3, 2.5, 2.4))
-    sim.device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=(0.1, 2.5, 1.5), ior=1)
-    sim.device(id='VIS', quantity='VISIBILITY', xyz=(3, 2.5, 1.5))
+    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4))
+    sim.device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=Point3D.of(0.1, 2.5, 1.5), ior=1)
+    sim.device(id='VIS', quantity='VISIBILITY', xyz=Point3D.of(3, 2.5, 1.5))
 
     # Door
-    sim.vent(xb=(6, 6, 2, 3, 0, 2.1), surf_id='OPEN')
+    sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN')
 
     return sim
 
@@ -166,24 +166,24 @@ from pyfds import Simulation
 def create_ventilation_study(door_width):
     """Create simulation with variable door width."""
     sim = Simulation(chid=f'vent_w{int(door_width*10)}')
-    sim.time(t_end=600.0)
-    sim.mesh(ijk=(60, 50, 25), xb=(0, 6, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0)
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
 
     # Fixed fire
     sim.surface(id='FIRE', hrrpua=1000.0)
-    sim.obstruction(xb=(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
 
     # Variable door width (centered at y=2.5, height 2.1m)
     y_center = 2.5
     y_min = y_center - door_width / 2
     y_max = y_center + door_width / 2
 
-    sim.vent(xb=(6, 6, y_min, y_max, 0, 2.1), surf_id='OPEN')
+    sim.add(Vent(xb=Bounds3D.of(6, 6, y_min, y_max, 0, 2.1), surf_id='OPEN')
 
     # Measurements
-    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=(3, 2.5, 2.4))
-    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=(3, 2.5, 1.25))
-    sim.device(id='O2', quantity='VOLUME FRACTION', spec_id='OXYGEN', xyz=(3, 2.5, 1.5))
+    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4))
+    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=Point3D.of(3, 2.5, 1.25))
+    sim.device(id='O2', quantity='VOLUME FRACTION', spec_id='OXYGEN', xyz=Point3D.of(3, 2.5, 1.5))
 
     return sim
 
@@ -206,8 +206,8 @@ from pyfds import Simulation
 def create_material_study(conductivity, label):
     """Create simulation with variable wall conductivity."""
     sim = Simulation(chid=f'wall_{label}')
-    sim.time(t_end=600.0)
-    sim.mesh(ijk=(60, 50, 25), xb=(0, 6, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0)
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
 
     # Variable wall material
     sim.material(
@@ -224,15 +224,15 @@ def create_material_study(conductivity, label):
     )
 
     # Wall
-    sim.obstruction(xb=(0, 0.15, 0, 5, 0, 2.5), surf_id='WALL_SURF')
+    sim.add(Obstruction(xb=Bounds3D.of(0, 0.15, 0, 5, 0, 2.5), surf_id='WALL_SURF')
 
     # Fire
     sim.surface(id='FIRE', hrrpua=1000.0)
-    sim.obstruction(xb=(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
 
     # Wall temperature measurements
-    sim.device(id='WALL_TEMP_FRONT', quantity='WALL TEMPERATURE', xyz=(0.1, 2.5, 1.5), ior=1)
-    sim.device(id='WALL_TEMP_BACK', quantity='WALL TEMPERATURE', xyz=(0.14, 2.5, 1.5), ior=-1)
+    sim.device(id='WALL_TEMP_FRONT', quantity='WALL TEMPERATURE', xyz=Point3D.of(0.1, 2.5, 1.5), ior=1)
+    sim.device(id='WALL_TEMP_BACK', quantity='WALL TEMPERATURE', xyz=Point3D.of(0.14, 2.5, 1.5), ior=-1)
 
     return sim
 
@@ -263,25 +263,25 @@ def create_multi_param_study(hrr, door_width, wall_k):
     """Create simulation with multiple parameters."""
     chid = f'multi_h{hrr}_w{int(door_width*10)}_k{int(wall_k*100)}'
     sim = Simulation(chid=chid)
-    sim.time(t_end=600.0)
-    sim.mesh(ijk=(60, 50, 25), xb=(0, 6, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0)
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
 
     # Wall material
     sim.material(id='WALL', conductivity=wall_k, specific_heat=0.84, density=1440.0)
     sim.surface(id='WALL_SURF', matl_id='WALL', thickness=0.0127)
-    sim.obstruction(xb=(0, 0.15, 0, 5, 0, 2.5), surf_id='WALL_SURF')
+    sim.add(Obstruction(xb=Bounds3D.of(0, 0.15, 0, 5, 0, 2.5), surf_id='WALL_SURF')
 
     # Fire
     sim.surface(id='FIRE', hrrpua=hrr)
-    sim.obstruction(xb=(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
 
     # Door
     y_center = 2.5
-    sim.vent(xb=(6, 6, y_center-door_width/2, y_center+door_width/2, 0, 2.1), surf_id='OPEN')
+    sim.add(Vent(xb=Bounds3D.of(6, 6, y_center-door_width/2, y_center+door_width/2, 0, 2.1), surf_id='OPEN')
 
     # Measurements
-    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=(3, 2.5, 2.4))
-    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=(3, 2.5, 1.25))
+    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4))
+    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=Point3D.of(3, 2.5, 1.25))
 
     return sim
 

@@ -10,39 +10,47 @@ from pathlib import Path
 
 from pyfds import Simulation
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.obst import Obstruction
+from pyfds.core.namelists.reac import Reaction
+from pyfds.core.namelists.surf import Surface
+from pyfds.core.namelists.time import Time
 
 # Create simulation
 sim = Simulation(chid="room_fire", title="Room Fire Test")
 
 # Set time parameters
-sim.time(t_end=600.0)  # 10 minutes simulation
+sim.add(Time(t_end=600.0))  # 10 minutes simulation
 
 # Define computational domain
 # Room dimensions: 5m x 5m x 2.5m high
 # Grid resolution: 50 x 50 x 25 cells (10 cm cell size)
-sim.mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Create fire surface
 # Heat release rate per unit area: 1000 kW/m²
-sim.surface(
-    id="BURNER",
-    hrrpua=1000.0,  # kW/m²
-    color="RED",
+sim.add(
+    Surface(
+        id="BURNER",
+        hrrpua=1000.0,  # kW/m²
+        color="RED",
+    )
 )
 
 # Add reaction for combustion
-sim.reaction(fuel="PROPANE")
+sim.add(Reaction(fuel="PROPANE"))
 
 # Add fire source (1m x 1m burner at floor level)
-sim.obstruction(xb=Bounds3D(2, 3, 2, 3, 0, 0.1), surf_id="BURNER")
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id="BURNER"))
 
 # Add measurement device at ceiling
 # Using Point3D for better type safety and operations
-ceiling_sensor = Point3D(2.5, 2.5, 2.4)
-sim.device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=ceiling_sensor)
+ceiling_sensor = Point3D.of(2.5, 2.5, 2.4)
+sim.add(Device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=ceiling_sensor))
 
 # You can also use tuples (backward compatible):
-# sim.device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=(2.5, 2.5, 2.4))
+# sim.add(Device(id="TEMP_CEILING", quantity="TEMPERATURE", xyz=Point3D.of(2.5, 2.5, 2.4)))
 
 # Validate the simulation
 warnings = sim.validate()

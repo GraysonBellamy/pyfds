@@ -39,13 +39,13 @@ sim = Simulation(
 Define how long the simulation will run:
 
 ```python
-sim.time(t_end=600.0)  # 10 minutes
+sim.add(Time(t_end=600.0)  # 10 minutes
 ```
 
 You can also specify:
 
 ```python
-sim.time(
+sim.add(Time(
     t_end=600.0,      # End time (seconds)
     t_begin=0.0,      # Start time (default: 0.0)
     dt=0.1            # Initial time step (optional)
@@ -57,9 +57,9 @@ sim.time(
 Create a mesh that defines the simulation space:
 
 ```python
-sim.mesh(
-    ijk=Grid3D(50, 50, 25),              # Grid cells in each direction
-    xb=Bounds3D(0, 5, 0, 5, 0, 2.5)        # Domain bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
+sim.add(Mesh(
+    ijk=Grid3D.of(50, 50, 25),              # Grid cells in each direction
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)        # Domain bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
 )
 ```
 
@@ -96,8 +96,8 @@ sim.surface(
 Create a 1m × 1m burner in the center of the room:
 
 ```python
-sim.obstruction(
-    xb=Bounds3D(2.0, 3.0, 2.0, 3.0, 0.0, 0.1),  # Bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
+sim.add(Obstruction(
+    xb=Bounds3D.of(2.0, 3.0, 2.0, 3.0, 0.0, 0.1),  # Bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
     surf_id='FIRE'                        # Apply fire surface to top
 )
 ```
@@ -116,7 +116,7 @@ Add a temperature sensor at the ceiling:
 sim.device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
-    xyz=(2.5, 2.5, 2.4)    # Location: center of room, near ceiling
+    xyz=Point3D.of(2.5, 2.5, 2.4)    # Location: center of room, near ceiling
 )
 ```
 
@@ -140,19 +140,19 @@ from pyfds import Simulation
 sim = Simulation(chid='my_first_fire', title='My First Room Fire Simulation')
 
 # Set time
-sim.time(t_end=600.0)
+sim.add(Time(t_end=600.0)
 
 # Define domain (5m × 5m × 2.5m room)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Create fire surface
 sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
 
 # Place 1m × 1m fire in center
-sim.obstruction(xb=(2.0, 3.0, 2.0, 3.0, 0.0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2.0, 3.0, 2.0, 3.0, 0.0, 0.1), surf_id='FIRE')
 
 # Add ceiling temperature sensor
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
+sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
 
 # Write FDS file
 sim.write('my_first_fire.fds')
@@ -223,10 +223,10 @@ from pyfds import Simulation
 
 sim = (Simulation(chid='my_first_fire', title='My First Room Fire')
        .time(t_end=600.0)
-       .mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+       .mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
        .surface(id='FIRE', hrrpua=1000.0, color='RED')
-       .obstruction(xb=(2.0, 3.0, 2.0, 3.0, 0.0, 0.1), surf_id='FIRE')
-       .device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4)))
+       .obstruction(xb=Bounds3D.of(2.0, 3.0, 2.0, 3.0, 0.0, 0.1), surf_id='FIRE')
+       .device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4)))
 
 sim.write('my_first_fire.fds')
 ```
@@ -256,7 +256,7 @@ sim.write('my_first_fire.fds')
 
 ```python
 # Larger fire (2m × 2m)
-sim.obstruction(xb=(1.5, 3.5, 1.5, 3.5, 0.0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(1.5, 3.5, 1.5, 3.5, 0.0, 0.1), surf_id='FIRE')
 ```
 
 ### Change Fire Intensity
@@ -273,32 +273,32 @@ sim.surface(id='FIRE', hrrpua=500.0, color='ORANGE')
 
 ```python
 # Add multiple temperature sensors
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.4))
-sim.device(id='TEMP_DOOR', quantity='TEMPERATURE', xyz=(5.0, 2.5, 2.0))
-sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=(2.5, 2.5, 0.1))
+sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
+sim.device(id='TEMP_DOOR', quantity='TEMPERATURE', xyz=Point3D.of(5.0, 2.5, 2.0))
+sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 0.1))
 
 # Add velocity sensor
-sim.device(id='VEL_CEILING', quantity='VELOCITY', xyz=(2.5, 2.5, 2.4))
+sim.device(id='VEL_CEILING', quantity='VELOCITY', xyz=Point3D.of(2.5, 2.5, 2.4))
 ```
 
 ### Longer/Shorter Simulation
 
 ```python
 # 30 second quick test
-sim.time(t_end=30.0)
+sim.add(Time(t_end=30.0)
 
 # 1 hour simulation
-sim.time(t_end=3600.0)
+sim.add(Time(t_end=3600.0)
 ```
 
 ### Finer/Coarser Mesh
 
 ```python
 # Finer mesh (0.05m cells, 4x more cells)
-sim.mesh(ijk=(100, 100, 50), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Coarser mesh (0.2m cells, faster but less accurate)
-sim.mesh(ijk=(25, 25, 12), xb=(0, 5, 0, 5, 0, 2.4))
+sim.add(Mesh(ijk=Grid3D.of(25, 25, 12), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.4))
 ```
 
 ## What You Learned

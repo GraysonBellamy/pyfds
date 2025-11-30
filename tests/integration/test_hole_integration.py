@@ -1,5 +1,7 @@
 """Integration tests for hole functionality."""
 
+from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.namelists import Hole, Mesh, Obstruction, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -9,12 +11,12 @@ class TestHoleIntegration:
     def test_hole_in_simulation_output(self):
         """Test that holes appear in FDS output."""
         sim = Simulation(chid="hole_test")
-        sim.time(t_end=10.0)
-        sim.mesh(ijk=(20, 20, 10), xb=(0, 10, 0, 10, 0, 5))
+        sim.add(Time(t_end=10.0))
+        sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add wall with door
-        sim.obstruction(xb=(5, 5.2, 0, 10, 0, 3), surf_id="CONCRETE")
-        sim.hole(xb=(5, 5.2, 4, 6, 0, 2.1), id="DOOR")
+        sim.add(Obstruction(xb=Bounds3D.of(5, 5.2, 0, 10, 0, 3), surf_id="CONCRETE"))
+        sim.add(Hole(xb=Bounds3D.of(5, 5.2, 4, 6, 0, 2.1), id="DOOR"))
 
         fds_output = sim.to_fds()
 
@@ -31,16 +33,16 @@ class TestHoleIntegration:
     def test_multiple_holes_in_simulation(self):
         """Test multiple holes in a simulation."""
         sim = Simulation(chid="multi_hole_test")
-        sim.time(t_end=10.0)
-        sim.mesh(ijk=(20, 20, 10), xb=(0, 10, 0, 10, 0, 5))
+        sim.add(Time(t_end=10.0))
+        sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add walls with multiple openings
-        sim.obstruction(xb=(0, 0.2, 0, 10, 0, 5), surf_id="CONCRETE")  # Left wall
-        sim.obstruction(xb=(9.8, 10, 0, 10, 0, 5), surf_id="CONCRETE")  # Right wall
+        sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 10, 0, 5), surf_id="CONCRETE"))  # Left wall
+        sim.add(Obstruction(xb=Bounds3D.of(9.8, 10, 0, 10, 0, 5), surf_id="CONCRETE"))  # Right wall
 
         # Add door and window
-        sim.hole(xb=(0, 0.2, 3, 5, 0, 2.1), id="DOOR")
-        sim.hole(xb=(9.8, 10, 2, 4, 2.5, 4.5), id="WINDOW")
+        sim.add(Hole(xb=Bounds3D.of(0, 0.2, 3, 5, 0, 2.1), id="DOOR"))
+        sim.add(Hole(xb=Bounds3D.of(9.8, 10, 2, 4, 2.5, 4.5), id="WINDOW"))
 
         fds_output = sim.to_fds()
 
@@ -52,14 +54,21 @@ class TestHoleIntegration:
     def test_controlled_hole_integration(self):
         """Test controlled holes."""
         sim = Simulation(chid="controlled_hole_test")
-        sim.time(t_end=10.0)
-        sim.mesh(ijk=(20, 20, 10), xb=(0, 10, 0, 10, 0, 5))
+        sim.add(Time(t_end=10.0))
+        sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add wall
-        sim.obstruction(xb=(5, 5.2, 0, 10, 0, 5), surf_id="CONCRETE")
+        sim.add(Obstruction(xb=Bounds3D.of(5, 5.2, 0, 10, 0, 5), surf_id="CONCRETE"))
 
         # Add controlled door
-        sim.hole(xb=(5, 5.2, 4, 6, 0, 2.1), id="DOOR", ctrl_id="DOOR_CONTROL", color="GRAY")
+        sim.add(
+            Hole(
+                xb=Bounds3D.of(5, 5.2, 4, 6, 0, 2.1),
+                id="DOOR",
+                ctrl_id="DOOR_CONTROL",
+                color="GRAY",
+            )
+        )
 
         fds_output = sim.to_fds()
 
@@ -71,15 +80,21 @@ class TestHoleIntegration:
     def test_hole_with_visualization(self):
         """Test hole with visualization parameters."""
         sim = Simulation(chid="visual_hole_test")
-        sim.time(t_end=10.0)
-        sim.mesh(ijk=(20, 20, 10), xb=(0, 10, 0, 10, 0, 5))
+        sim.add(Time(t_end=10.0))
+        sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add wall
-        sim.obstruction(xb=(5, 5.2, 0, 10, 0, 5), surf_id="CONCRETE")
+        sim.add(Obstruction(xb=Bounds3D.of(5, 5.2, 0, 10, 0, 5), surf_id="CONCRETE"))
 
         # Add hole with full visualization
-        sim.hole(
-            xb=(5, 5.2, 4, 6, 0, 2.1), id="WINDOW", color="BLUE", rgb=(0, 0, 255), transparency=0.8
+        sim.add(
+            Hole(
+                xb=Bounds3D.of(5, 5.2, 4, 6, 0, 2.1),
+                id="WINDOW",
+                color="BLUE",
+                rgb=(0, 0, 255),
+                transparency=0.8,
+            )
         )
 
         fds_output = sim.to_fds()
@@ -92,14 +107,14 @@ class TestHoleIntegration:
     def test_hole_bounds_validation(self):
         """Test that hole bounds are properly validated."""
         sim = Simulation(chid="bounds_test")
-        sim.time(t_end=10.0)
-        sim.mesh(ijk=(20, 20, 10), xb=(0, 10, 0, 10, 0, 5))
+        sim.add(Time(t_end=10.0))
+        sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add wall
-        sim.obstruction(xb=(5, 5.2, 0, 10, 0, 5), surf_id="CONCRETE")
+        sim.add(Obstruction(xb=Bounds3D.of(5, 5.2, 0, 10, 0, 5), surf_id="CONCRETE"))
 
         # Add hole within wall bounds - should work
-        sim.hole(xb=(5, 5.2, 4, 6, 0, 2.1), id="VALID_HOLE")
+        sim.add(Hole(xb=Bounds3D.of(5, 5.2, 4, 6, 0, 2.1), id="VALID_HOLE"))
 
         # This should not raise an error during FDS generation
         fds_output = sim.to_fds()

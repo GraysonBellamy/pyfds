@@ -3,6 +3,8 @@
 import pytest
 
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Device, Mesh, Obstruction, Surface, Time
 
 
 @pytest.fixture
@@ -16,8 +18,8 @@ def basic_simulation():
         A minimal valid simulation with CHID, TIME, and MESH
     """
     sim = Simulation(chid="test", title="Test Simulation")
-    sim.time(t_end=100.0)
-    sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+    sim.add(Time(t_end=100.0))
+    sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
     return sim
 
 
@@ -32,18 +34,18 @@ def fire_simulation():
         A simulation with fire source and measurements
     """
     sim = Simulation(chid="fire_test", title="Fire Test")
-    sim.time(t_end=600.0)
-    sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
     # Add fire surface
-    sim.surface(id="FIRE", hrrpua=1000.0, color="RED")
+    sim.add(Surface(id="FIRE", hrrpua=1000.0, color="RED"))
 
     # Add burner obstruction
-    sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id="FIRE")
+    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id="FIRE"))
 
     # Add temperature devices
-    sim.device(id="TEMP_1", quantity="TEMPERATURE", xyz=(2.5, 2.5, 1.0))
-    sim.device(id="TEMP_2", quantity="TEMPERATURE", xyz=(2.5, 2.5, 2.0))
+    sim.add(Device(id="TEMP_1", quantity="TEMPERATURE", xyz=Point3D.of(2.5, 2.5, 1.0)))
+    sim.add(Device(id="TEMP_2", quantity="TEMPERATURE", xyz=Point3D.of(2.5, 2.5, 2.0)))
 
     return sim
 
@@ -59,19 +61,19 @@ def room_simulation():
         A simulation with walls, floor, and ceiling
     """
     sim = Simulation(chid="room", title="Room Enclosure")
-    sim.time(t_end=300.0)
-    sim.mesh(ijk=(30, 30, 25), xb=(0, 6, 0, 6, 0, 3))
+    sim.add(Time(t_end=300.0))
+    sim.add(Mesh(ijk=Grid3D.of(30, 30, 25), xb=Bounds3D.of(0, 6, 0, 6, 0, 3)))
 
     # Add wall surface
-    sim.surface(id="WALL", color="GRAY")
+    sim.add(Surface(id="WALL", color="GRAY"))
 
     # Add walls
-    sim.obstruction(xb=(0, 0, 0, 6, 0, 3), surf_id="WALL")  # Left wall
-    sim.obstruction(xb=(6, 6, 0, 6, 0, 3), surf_id="WALL")  # Right wall
-    sim.obstruction(xb=(0, 6, 0, 0, 0, 3), surf_id="WALL")  # Front wall
-    sim.obstruction(xb=(0, 6, 6, 6, 0, 3), surf_id="WALL")  # Back wall
-    sim.obstruction(xb=(0, 6, 0, 6, 0, 0), surf_id="WALL")  # Floor
-    sim.obstruction(xb=(0, 6, 0, 6, 3, 3), surf_id="WALL")  # Ceiling
+    sim.add(Obstruction(xb=Bounds3D.of(0, 0, 0, 6, 0, 3), surf_id="WALL"))  # Left wall
+    sim.add(Obstruction(xb=Bounds3D.of(6, 6, 0, 6, 0, 3), surf_id="WALL"))  # Right wall
+    sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 0, 0, 3), surf_id="WALL"))  # Front wall
+    sim.add(Obstruction(xb=Bounds3D.of(0, 6, 6, 6, 0, 3), surf_id="WALL"))  # Back wall
+    sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 6, 0, 0), surf_id="WALL"))  # Floor
+    sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 6, 3, 3), surf_id="WALL"))  # Ceiling
 
     return sim
 
@@ -132,12 +134,20 @@ def multi_mesh_simulation():
         A simulation with multiple meshes for parallel processing
     """
     sim = Simulation(chid="multi_mesh", title="Multi-Mesh Test")
-    sim.time(t_end=100.0)
+    sim.add(Time(t_end=100.0))
 
     # Add multiple meshes
-    sim.mesh(id="MESH1", ijk=(20, 20, 20), xb=(0, 2, 0, 2, 0, 2), mpi_process=0)
-    sim.mesh(id="MESH2", ijk=(20, 20, 20), xb=(2, 4, 0, 2, 0, 2), mpi_process=1)
-    sim.mesh(id="MESH3", ijk=(20, 20, 20), xb=(0, 2, 2, 4, 0, 2), mpi_process=2)
-    sim.mesh(id="MESH4", ijk=(20, 20, 20), xb=(2, 4, 2, 4, 0, 2), mpi_process=3)
+    sim.add(
+        Mesh(id="MESH1", ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2), mpi_process=0)
+    )
+    sim.add(
+        Mesh(id="MESH2", ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(2, 4, 0, 2, 0, 2), mpi_process=1)
+    )
+    sim.add(
+        Mesh(id="MESH3", ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 2, 4, 0, 2), mpi_process=2)
+    )
+    sim.add(
+        Mesh(id="MESH4", ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(2, 4, 2, 4, 0, 2), mpi_process=3)
+    )
 
     return sim

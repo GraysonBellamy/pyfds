@@ -4,12 +4,15 @@ FDS MESH namelist.
 Computational domain definition.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pydantic import Field, field_validator
+from pydantic import field_validator
 
 from pyfds.core.geometry import Bounds3D, Grid3D
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
+
+if TYPE_CHECKING:
+    from pyfds.builders import MeshBuilder
 
 
 class Mesh(NamelistBase):
@@ -40,7 +43,7 @@ class Mesh(NamelistBase):
     Examples
     --------
     >>> from pyfds.core.geometry import Grid3D, Bounds3D
-    >>> mesh = Mesh(ijk=Grid3D(100, 100, 50), xb=Bounds3D(0, 10, 0, 10, 0, 5))
+    >>> mesh = Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5) 5))
     >>> print(mesh.to_fds())
     &MESH IJK=100,100,50, XB=0,10,0,10,0,5 /
 
@@ -49,75 +52,111 @@ class Mesh(NamelistBase):
     Grid cells should ideally be cubic or near-cubic for best accuracy.
     """
 
-    ijk: Grid3D = Field(..., description="Grid cell counts (i,j,k)")
-    xb: Bounds3D = Field(..., description="Domain bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
-    id: str | None = Field(None, description="Mesh identifier")
-    mpi_process: int | None = Field(None, ge=0, description="MPI process number")
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "MESH"
 
-    # Parallel Processing (Stage 1.4)
-    n_threads: int | None = Field(None, ge=1, description="Number of OpenMP threads")
-
-    # Mesh Refinement (Stage 1.4)
-    mult_id: str | None = Field(None, description="MULT ID for mesh replication")
-
-    # Performance Parameters (Stage 1.4)
-    maximum_internal_iterations: int = Field(10, ge=1, description="Max pressure iterations")
-
-    # Cylindrical Coordinates (Stage 1.4)
-    cylindrical: bool = Field(False, description="Use cylindrical coordinates")
-
-    # Stability Controls (MISC parameters, but can be set on MESH for convenience)
-    cfl_max: float | None = Field(None, gt=0.1, le=10, description="Maximum CFL number")
-    cfl_min: float | None = Field(None, gt=0, description="Minimum CFL number")
-    vn_max: float | None = Field(None, gt=0, description="Maximum Von Neumann number")
-    check_vn: bool | None = Field(None, description="Enable Von Neumann check")
-    restrict_time_step: bool | None = Field(None, description="Restrict time step")
-
-    @field_validator("ijk", mode="before")
     @classmethod
-    def validate_ijk(cls, v: Any) -> Grid3D:
-        """Validate and convert grid dimensions."""
-        if isinstance(v, Grid3D):
-            return v
-        if isinstance(v, tuple):
-            return Grid3D.from_tuple(v)
-        raise ValueError("IJK must be a Grid3D or tuple of 3 ints")
+    def builder(cls) -> "MeshBuilder":
+        """Return a fluent builder for Mesh.
 
-    @field_validator("xb", mode="before")
+        Returns
+        -------
+        MeshBuilder
+            A builder instance for fluent construction
+
+        Examples
+        --------
+        >>> mesh = Mesh.builder() \\
+        ...     .with_bounds(0, 10, 0, 10, 0, 3) \\
+        ...     .with_grid(100, 100, 30) \\
+        ...     .build()
+        """
+        from pyfds.builders import MeshBuilder
+
+        return MeshBuilder()
+
+    ijk: Grid3D = FdsField(..., description="Grid cell counts (i,j,k)")
+    xb: Bounds3D = FdsField(..., description="Domain bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
+
+    @field_validator("ijk")
     @classmethod
-    def validate_xb(cls, v: Any) -> Bounds3D:
-        """Validate and convert domain bounds."""
-        if isinstance(v, Bounds3D):
-            return v
-        if isinstance(v, tuple):
-            return Bounds3D.from_tuple(v)
-        raise ValueError("XB must be a Bounds3D or tuple of 6 floats")
+    def validate_ijk(cls, v: Grid3D) -> Grid3D:
+        if any(x <= 0 for x in v.as_tuple()):
+            raise ValueError("IJK values must be positive integers")
+        return v
 
-    def to_fds(self) -> str:
-        """Generate FDS MESH namelist."""
-        params: dict[str, Any] = {"ijk": self.ijk.as_tuple(), "xb": self.xb.as_tuple()}
-        if self.id:
-            params["id"] = self.id
-        if self.mpi_process is not None:
-            params["mpi_process"] = self.mpi_process
+    @field_validator("xb")
+    @classmethod
+    def validate_xb(cls, v: Bounds3D) -> Bounds3D:
+        xb_tuple = v.as_tuple()
+        if xb_tuple[0] >= xb_tuple[1] or xb_tuple[2] >= xb_tuple[3] or xb_tuple[4] >= xb_tuple[5]:
+            raise ValueError("XB bounds must have min < max for each dimension")
+        return v
 
-        # Parallel Processing
-        if self.n_threads is not None:
-            params["n_threads"] = self.n_threads
+    # Optional ID for multi-mesh simulations
+    id: str | None = FdsField(None, description="Mesh identifier for multi-mesh simulations")
 
-        # Mesh Refinement
-        if self.mult_id:
-            params["mult_id"] = self.mult_id
+    # Stability control parameters
+    vn_max: float | None = FdsField(None, description="Maximum Von Neumann number")
+    cfl_max: float | None = FdsField(None, description="Maximum CFL number")
+    vn_min: float | None = FdsField(None, description="Minimum Von Neumann number")
+    cfl_min: float | None = FdsField(None, description="Minimum CFL number")
 
-        # Performance Parameters (only output if not default)
-        if self.maximum_internal_iterations != 10:
-            params["maximum_internal_iterations"] = self.maximum_internal_iterations
+    # Time stepping
+    check_vn: bool = FdsField(True, description="Check Von Neumann stability")
+    restrict_time_step: bool = FdsField(True, description="Restrict time step")
 
-        # Cylindrical Coordinates
-        if self.cylindrical:
-            params["cylindrical"] = self.cylindrical
+    # MPI parameters
+    mpi_process: int | None = FdsField(None, description="MPI process number")
+    n_threads: int | None = FdsField(None, description="Number of OpenMP threads")
 
-        return self._build_namelist("MESH", params)
+    # Other mesh parameters
+    maximum_internal_iterations: int = FdsField(10, description="Maximum pressure iterations")
+    mult_id: str | None = FdsField(None, description="Multiplier ID")
+    cylindrical: bool = FdsField(False, description="Cylindrical coordinates")
+
+    def _collect_fds_params(self) -> dict[str, Any]:
+        """
+        Collect FDS parameters, converting geometry objects to tuples.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary of parameter name-value pairs
+        """
+        params = {}
+
+        for field_name, field_info in self.__class__.model_fields.items():
+            value = getattr(self, field_name)
+
+            # Get FDS metadata
+            extra = field_info.json_schema_extra
+            if not isinstance(extra, dict):
+                extra = {}
+            fds_name = extra.get("fds_name") or field_name
+            fds_format = extra.get("fds_format")
+            if not isinstance(fds_format, (str, type(None))):
+                fds_format = None
+            exclude_if = extra.get("exclude_if")
+
+            # Skip if value matches exclude condition
+            if value is None or value == exclude_if:
+                continue
+
+            # Skip if value equals the field's default value (but not for required fields)
+            if field_info.default != ... and value == field_info.default:
+                continue
+
+            # Convert geometry objects to tuples
+            if field_name == "ijk" or field_name == "xb":
+                formatted_value = self._format_value(value.as_tuple(), fds_format)
+            else:
+                formatted_value = self._format_value(value, fds_format)
+
+            params[str(fds_name).upper()] = formatted_value
+
+        return params
 
     def get_cell_size(self) -> tuple[float, float, float]:
         """
@@ -128,4 +167,4 @@ class Mesh(NamelistBase):
         Tuple[float, float, float]
             Cell sizes (dx, dy, dz) in meters
         """
-        return self.ijk.get_cell_sizes(self.xb)
+        return self.ijk.cell_sizes(self.xb)

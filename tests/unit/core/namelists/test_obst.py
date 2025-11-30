@@ -12,17 +12,17 @@ class TestObstruction:
 
     def test_basic_creation(self):
         """Test basic Obstruction creation."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1))
-        assert obst.xb == Bounds3D(0, 1, 0, 1, 0, 1)
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
+        assert obst.xb == Bounds3D.of(0, 1, 0, 1, 0, 1)
 
     def test_with_surf_id(self):
         """Test Obstruction with surface ID."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), surf_id="FIRE")
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id="FIRE")
         assert obst.surf_id == "FIRE"
 
     def test_to_fds(self):
         """Test FDS output format."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), surf_id="FIRE")
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id="FIRE")
         fds_str = obst.to_fds()
         assert "&OBST" in fds_str
         assert "XB=" in fds_str
@@ -30,31 +30,31 @@ class TestObstruction:
 
     def test_thin_obstruction(self):
         """Test thin obstruction (equal bounds allowed)."""
-        obst = Obstruction(xb=(0, 0, 0, 1, 0, 1))
-        assert obst.xb == Bounds3D(0, 0, 0, 1, 0, 1)
+        obst = Obstruction(xb=Bounds3D.of(0, 0, 0, 1, 0, 1))
+        assert obst.xb == Bounds3D.of(0, 0, 0, 1, 0, 1)
 
     def test_xb_validation(self):
         """Test XB validation."""
-        with pytest.raises(ValidationError):
-            Obstruction(xb=(1, 0, 0, 1, 0, 1))
+        with pytest.raises(ValueError):
+            Obstruction(xb=Bounds3D.of(1, 0, 0, 1, 0, 1))
 
     def test_burn_away_basic(self):
         """Test basic burn-away functionality."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), burn_away=True)
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), burn_away=True)
         assert obst.burn_away is True
         fds_str = obst.to_fds()
         assert "BURN_AWAY=.TRUE." in fds_str
 
     def test_bulk_density(self):
         """Test bulk density parameter."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), bulk_density=500.0)
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), bulk_density=500.0)
         assert obst.bulk_density == 500.0
         fds_str = obst.to_fds()
         assert "BULK_DENSITY=500.0" in fds_str
 
     def test_surf_id_interior(self):
         """Test surface ID for interior."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), surf_id_interior="CHAR")
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id_interior="CHAR")
         assert obst.surf_id_interior == "CHAR"
         fds_str = obst.to_fds()
         assert "SURF_ID_INTERIOR='CHAR'" in fds_str
@@ -62,18 +62,18 @@ class TestObstruction:
     def test_bulk_density_validation(self):
         """Test bulk density validation (must be positive)."""
         with pytest.raises(ValidationError):
-            Obstruction(xb=(0, 1, 0, 1, 0, 1), bulk_density=-100)
+            Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), bulk_density=-100)
 
     def test_id_parameter(self):
         """Test ID parameter."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), id="WALL_1")
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), id="WALL_1")
         assert obst.id == "WALL_1"
         fds_str = obst.to_fds()
         assert "ID='WALL_1'" in fds_str
 
     def test_rgb_parameter(self):
         """Test RGB color parameter."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), rgb=(255, 0, 0))
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), rgb=(255, 0, 0))
         assert obst.rgb == (255, 0, 0)
         fds_str = obst.to_fds()
         assert "RGB=255,0,0" in fds_str
@@ -81,13 +81,13 @@ class TestObstruction:
     def test_rgb_validation(self):
         """Test RGB validation (must be 0-255)."""
         with pytest.raises(ValidationError):
-            Obstruction(xb=(0, 1, 0, 1, 0, 1), rgb=(256, 0, 0))
+            Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), rgb=(256, 0, 0))
         with pytest.raises(ValidationError):
-            Obstruction(xb=(0, 1, 0, 1, 0, 1), rgb=(-1, 0, 0))
+            Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), rgb=(-1, 0, 0))
 
     def test_transparency_parameter(self):
         """Test transparency parameter."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), transparency=0.5)
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), transparency=0.5)
         assert obst.transparency == 0.5
         fds_str = obst.to_fds()
         assert "TRANSPARENCY=0.5" in fds_str
@@ -95,13 +95,13 @@ class TestObstruction:
     def test_transparency_validation(self):
         """Test transparency validation (must be 0-1)."""
         with pytest.raises(ValidationError):
-            Obstruction(xb=(0, 1, 0, 1, 0, 1), transparency=1.5)
+            Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), transparency=1.5)
         with pytest.raises(ValidationError):
-            Obstruction(xb=(0, 1, 0, 1, 0, 1), transparency=-0.1)
+            Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), transparency=-0.1)
 
     def test_outline_parameter(self):
         """Test outline parameter."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), outline=True)
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), outline=True)
         assert obst.outline is True
         fds_str = obst.to_fds()
         assert "OUTLINE=.TRUE." in fds_str
@@ -109,7 +109,7 @@ class TestObstruction:
     def test_geometry_control_parameters(self):
         """Test geometry control parameters."""
         obst = Obstruction(
-            xb=(0, 1, 0, 1, 0, 1),
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 1),
             thicken=True,
             overlay=False,
             permit_hole=False,
@@ -130,7 +130,7 @@ class TestObstruction:
 
     def test_control_parameters(self):
         """Test control and device parameters."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), ctrl_id="CTRL1", devc_id="DEVC1")
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), ctrl_id="CTRL1", devc_id="DEVC1")
         assert obst.ctrl_id == "CTRL1"
         assert obst.devc_id == "DEVC1"
         fds_str = obst.to_fds()
@@ -139,14 +139,14 @@ class TestObstruction:
 
     def test_mult_id_parameter(self):
         """Test multiplier ID parameter."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), mult_id="MULT1")
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), mult_id="MULT1")
         assert obst.mult_id == "MULT1"
         fds_str = obst.to_fds()
         assert "MULT_ID='MULT1'" in fds_str
 
     def test_texture_origin_parameter(self):
         """Test texture origin parameter."""
-        obst = Obstruction(xb=(0, 1, 0, 1, 0, 1), texture_origin=(1.0, 2.0, 3.0))
+        obst = Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), texture_origin=(1.0, 2.0, 3.0))
         assert obst.texture_origin == (1.0, 2.0, 3.0)
         fds_str = obst.to_fds()
         assert "TEXTURE_ORIGIN=1.0,2.0,3.0" in fds_str
@@ -154,7 +154,7 @@ class TestObstruction:
     def test_ht3d_parameters(self):
         """Test HT3D heat transfer parameters."""
         obst = Obstruction(
-            xb=(0, 1, 0, 1, 0, 1),
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 1),
             ht3d=True,
             matl_id="CONCRETE",
             cell_size=0.05,
@@ -185,7 +185,9 @@ class TestObstruction:
     def test_matl_mass_fraction(self):
         """Test material mass fraction parameter."""
         obst = Obstruction(
-            xb=(0, 1, 0, 1, 0, 1), matl_id=["MAT1", "MAT2"], matl_mass_fraction=[0.7, 0.3]
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 1),
+            matl_id=["MAT1", "MAT2"],
+            matl_mass_fraction=[0.7, 0.3],
         )
         assert obst.matl_id == ["MAT1", "MAT2"]
         assert obst.matl_mass_fraction == [0.7, 0.3]
@@ -196,7 +198,7 @@ class TestObstruction:
     def test_shape_parameters(self):
         """Test shape-based geometry parameters."""
         obst = Obstruction(
-            xb=(0, 1, 0, 1, 0, 1),
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 1),
             shape="SPHERE",
             xyz=(0.5, 0.5, 0.5),
             radius=0.4,
@@ -227,12 +229,12 @@ class TestObstruction:
     def test_shape_validation(self):
         """Test shape parameter validation."""
         with pytest.raises(ValidationError):
-            Obstruction(xb=(0, 1, 0, 1, 0, 1), shape="INVALID_SHAPE")
+            Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), shape="INVALID_SHAPE")
 
     def test_surf_id_individual_faces(self):
         """Test individual surface IDs for faces."""
         obst = Obstruction(
-            xb=(0, 1, 0, 1, 0, 1),
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 1),
             surf_id_top="CEILING",
             surf_id_bottom="FLOOR",
             surf_id_sides="WALL",
@@ -248,7 +250,7 @@ class TestObstruction:
     def test_complex_obstruction(self):
         """Test complex obstruction with multiple parameters."""
         obst = Obstruction(
-            xb=(0, 2, 0, 1, 0, 0.5),
+            xb=Bounds3D.of(0, 2, 0, 1, 0, 0.5),
             id="COMPLEX_WALL",
             surf_id="CONCRETE",
             rgb=(128, 128, 128),

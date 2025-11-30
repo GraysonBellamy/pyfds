@@ -35,8 +35,8 @@ class TestPredefinedSpecies:
         for species in essential_species:
             assert species in PREDEFINED_SPECIES
 
-    def test_species_have_required_fields(self):
-        """Test that all species have required fields."""
+    def test_species_have_required_FdsFields(self):
+        """Test that all species have required FdsFields."""
         for _name, info in PREDEFINED_SPECIES.items():
             assert "formula" in info
             assert "mw" in info

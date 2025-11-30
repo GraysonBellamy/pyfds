@@ -34,8 +34,8 @@ class TestPyrolysisScenarios:
             nu_matl=[0.25],
         )
 
-        sim.material_mgr.add_material(char)
-        sim.material_mgr.add_material(wood)
+        sim.add(char)
+        sim.add(wood)
 
         # Validate cross-references
         warnings = sim.validate()
@@ -56,7 +56,7 @@ class TestPyrolysisScenarios:
             absorption_coefficient=140.0,
         )
 
-        sim.material_mgr.add_material(methanol)
+        sim.add(methanol)
 
         # Validate liquid fuel parameters
         assert methanol.boiling_temperature == 64.7
@@ -87,9 +87,9 @@ class TestPyrolysisScenarios:
             nu_matl=[[0.3], [0.05]],
         )
 
-        sim.material_mgr.add_material(char)
-        sim.material_mgr.add_material(ash)
-        sim.material_mgr.add_material(composite)
+        sim.add(char)
+        sim.add(ash)
+        sim.add(composite)
 
         # Validate yields sum correctly for each reaction
         # Reaction 1: 0.4 + 0.3 = 0.7
@@ -123,7 +123,7 @@ class TestPyrolysisScenarios:
             nu_matl=[0.2],
         )
 
-        sim.material_mgr.add_material(sample)
+        sim.add(sample)
 
         # Validate material properties
         assert sample.density == 600.0

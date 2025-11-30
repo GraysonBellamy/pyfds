@@ -78,10 +78,10 @@ from pyfds.core.namelists import Mesh
 sim = Simulation(chid='test')
 
 # Convenience method (recommended)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Direct manager access (advanced)
-mesh = Mesh(ijk=(100, 100, 50), xb=(0, 10, 0, 10, 0, 5))
+mesh = Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
 sim.geometry.add_mesh(mesh)
 
 # Inspect
@@ -255,7 +255,7 @@ warnings = sim.instrumentation.validate()
 **Example**:
 ```python
 # Add temperature sensor
-sim.device(id='TEMP_1', quantity='TEMPERATURE', xyz=(2.5, 2.5, 2.0))
+sim.device(id='TEMP_1', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.0))
 
 # Check all devices
 for dev in sim.instrumentation.devices:
@@ -352,8 +352,8 @@ For most use cases, use the convenience methods on `Simulation`:
 
 ```python
 sim = Simulation(chid='fire')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 sim.surface(id='FIRE', hrrpua=1000.0)
 sim.add_ramp(ramp)
 ```
@@ -382,7 +382,7 @@ for ramp in sim.ramps.ramps:
 
 # Add pre-constructed namelists
 from pyfds.core.namelists import Mesh, Surface
-mesh = Mesh(ijk=(100, 100, 50), xb=(0, 10, 0, 10, 0, 5))
+mesh = Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
 sim.geometry.add_mesh(mesh)
 
 surf = Surface(id='CUSTOM', hrrpua=500.0)
@@ -431,7 +431,7 @@ Test managers in isolation:
 ```python
 def test_geometry_manager():
     manager = GeometryManager()
-    mesh = Mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    mesh = Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     manager.add_mesh(mesh)
     assert len(manager.meshes) == 1
 
@@ -498,7 +498,7 @@ sim.instrumentation.devices     # ✅ Correct
 sim.ramps.ramps                 # ✅ Correct
 
 # Convenience methods still work
-sim.mesh(...)           # ✅ Still available (delegates to manager)
+sim.add(Mesh(...)           # ✅ Still available (delegates to manager)
 sim.surface(...)        # ✅ Still available (delegates to manager)
 sim.device(...)         # ✅ Still available (delegates to manager)
 sim.add_ramp(...)       # ✅ Still available (delegates to manager)

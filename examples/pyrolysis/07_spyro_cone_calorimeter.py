@@ -10,8 +10,13 @@ heat flux conditions.
 from pathlib import Path
 
 from pyfds import Simulation
-from pyfds.builders import MaterialBuilder, RampBuilder, ReactionBuilder, SurfBuilder
+from pyfds.builders import MaterialBuilder, RampBuilder, ReactionBuilder
+from pyfds.core.geometry import Bounds3D, Grid3D
 from pyfds.core.namelists import Surface
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.obst import Obstruction
+from pyfds.core.namelists.time import Time
+from pyfds.core.namelists.vent import Vent
 
 
 def main():
@@ -20,10 +25,12 @@ def main():
     sim = Simulation(chid="spyro_example", title="SPyro Cone Calorimeter Scaling")
 
     # Time parameters
-    sim.time(t_end=600.0)  # 10 minutes simulation
+    sim.add(Time(t_end=600.0))  # 10 minutes simulation
 
     # Mesh - small domain for cone calorimeter
-    sim.mesh(ijk=(20, 20, 20), xb=(0.0, 0.2, 0.0, 0.2, 0.0, 0.2))  # 20cm x 20cm x 20cm domain
+    sim.add(
+        Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0.0, 0.2, 0.0, 0.2, 0.0, 0.2))
+    )  # 20cm x 20cm x 20cm domain
 
     # Material properties (from material characterization)
     plywood = (
@@ -51,16 +58,14 @@ def main():
     )
 
     # Surface with SPyro model
-    plywood_surf = (
-        SurfBuilder("PLYWOOD_SURF")
-        .with_material("PLYWOOD", thickness=0.012)
-        .with_spyro_model(
-            reference_heat_flux=50.0,  # Test was at 50 kW/m²
-            ramp_q="PLYWOOD_HRR_50",
-            reference_thickness=0.012,
-        )
-        .with_ignition(temperature=350)
-        .build()
+    plywood_surf = Surface(
+        id="PLYWOOD_SURF",
+        matl_id="PLYWOOD",
+        thickness=0.012,
+        reference_heat_flux=50.0,  # Test was at 50 kW/m²
+        ramp_q="PLYWOOD_HRR_50",
+        reference_thickness=0.012,
+        ignition_temperature=350,
     )
 
     # Add HRRPUA required for SPyro model
@@ -76,27 +81,26 @@ def main():
         .build()
     )
 
-    sim.add_reaction(reaction)
+    sim.add(reaction)
 
-    sim.add_material(plywood)
-    sim.add_ramp(hrr_data)
-    sim.add_surface(plywood_surf)
-
+    sim.add(plywood)
+    sim.add(hrr_data)
+    sim.add(plywood_surf)
     # Sample obstruction - 10cm x 10cm x 1.2cm plywood sample
-    sim.obstruction(xb=(0.05, 0.15, 0.05, 0.15, 0.0, 0.012), surf_id="PLYWOOD_SURF")
+    sim.add(Obstruction(xb=Bounds3D.of(0.05, 0.15, 0.05, 0.15, 0.0, 0.012), surf_id="PLYWOOD_SURF"))
 
     # Ventilation vents - open boundaries for cone calorimeter
-    sim.vent(xb=(0.0, 0.2, 0.0, 0.2, 0.2, 0.2), surf_id="OPEN")  # Top vent
-    sim.vent(xb=(0.0, 0.0, 0.0, 0.2, 0.0, 0.2), surf_id="OPEN")  # Left vent
-    sim.vent(xb=(0.2, 0.2, 0.0, 0.2, 0.0, 0.2), surf_id="OPEN")  # Right vent
-    sim.vent(xb=(0.0, 0.2, 0.0, 0.0, 0.0, 0.2), surf_id="OPEN")  # Front vent
-    sim.vent(xb=(0.0, 0.2, 0.2, 0.2, 0.0, 0.2), surf_id="OPEN")  # Back vent
-
+    sim.add(Vent(xb=Bounds3D.of(0.0, 0.2, 0.0, 0.2, 0.2, 0.2), surf_id="OPEN"))  # Top vent
+    sim.add(Vent(xb=Bounds3D.of(0.0, 0.0, 0.0, 0.2, 0.0, 0.2), surf_id="OPEN"))  # Left vent
+    sim.add(Vent(xb=Bounds3D.of(0.2, 0.2, 0.0, 0.2, 0.0, 0.2), surf_id="OPEN"))  # Right vent
+    sim.add(Vent(xb=Bounds3D.of(0.0, 0.2, 0.0, 0.0, 0.0, 0.2), surf_id="OPEN"))  # Front vent
+    sim.add(Vent(xb=Bounds3D.of(0.0, 0.2, 0.2, 0.2, 0.0, 0.2), surf_id="OPEN"))  # Back vent
     # Heat flux boundary condition (cone heater)
     cone_heater = Surface(id="CONE_HEATER", external_flux=75.0)  # 75 kW/m² incident heat flux
-    sim.add_surface(cone_heater)
-    sim.vent(xb=(0.0, 0.2, 0.0, 0.2, 0.0, 0.0), surf_id="CONE_HEATER")  # Bottom boundary
-
+    sim.add(cone_heater)
+    sim.add(
+        Vent(xb=Bounds3D.of(0.0, 0.2, 0.0, 0.2, 0.0, 0.0), surf_id="CONE_HEATER")
+    )  # Bottom boundary
     output_dir = Path(__file__).parent.parent / "fds"
     output_dir.mkdir(exist_ok=True)
     sim.write(output_dir / "spyro_example.fds")

@@ -20,10 +20,10 @@ Large-scale outdoor fire with vegetation and wind.
 from pyfds import Simulation
 
 sim = Simulation(chid='wildfire')
-sim.time(t_end=1800.0)  # 30 minutes
+sim.add(Time(t_end=1800.0)  # 30 minutes
 
 # Large outdoor domain (100m × 100m × 30m)
-sim.mesh(ijk=(100, 100, 30), xb=(0, 100, 0, 100, 0, 30))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 30), xb=Bounds3D.of(0, 100, 0, 100, 0, 30))
 
 # Hot, dry, windy conditions
 sim.set_misc(
@@ -35,10 +35,10 @@ sim.set_misc(
 
 # Open boundaries for wind flow
 for mb in ['XMIN', 'XMAX', 'YMIN', 'YMAX', 'ZMAX']:
-    sim.vent(mb=mb, surf_id='OPEN')
+    sim.add(Vent(mb=mb, surf_id='OPEN')
 
 # Vegetation fuel (grass/brush)
-sim.reaction(
+sim.add(Reaction(
     id='VEGETATION',
     fuel='CELLULOSE',
     heat_of_combustion=15000.0,
@@ -55,8 +55,8 @@ sim.surface(
 )
 
 # Fire starts along western edge
-sim.obstruction(
-    xb=(10, 15, 45, 55, 0, 0.5),
+sim.add(Obstruction(
+    xb=Bounds3D.of(10, 15, 45, 55, 0, 0.5),
     surf_id='IGNITION'
 )
 
@@ -65,7 +65,7 @@ for x in [30, 50, 70, 90]:
     sim.device(
         id=f'TEMP_X{x}',
         quantity='TEMPERATURE',
-        xyz=(x, 50, 2)
+        xyz=Point3D.of(x, 50, 2)
     )
 
 # Heat flux to potential targets
@@ -73,7 +73,7 @@ for x in [60, 80]:
     sim.device(
         id=f'HF_X{x}',
         quantity='GAUGE HEAT FLUX',
-        xyz=(x, 50, 2),
+        xyz=Point3D.of(x, 50, 2),
         ior=1  # Facing fire
     )
 
@@ -94,8 +94,8 @@ Thermal analysis without combustion (pure conduction/radiation).
 from pyfds import Simulation
 
 sim = Simulation(chid='heat_transfer')
-sim.time(t_end=3600.0)  # 1 hour
-sim.mesh(ijk=(60, 40, 30), xb=(0, 3, 0, 2, 0, 1.5))
+sim.add(Time(t_end=3600.0)  # 1 hour
+sim.add(Mesh(ijk=Grid3D.of(60, 40, 30), xb=Bounds3D.of(0, 3, 0, 2, 0, 1.5))
 
 # Disable combustion
 sim.set_misc(no_combustion=True)
@@ -123,20 +123,20 @@ sim.surface(
 )
 
 # Steel plate between hot and cold sides
-sim.obstruction(
-    xb=(1.45, 1.55, 0, 2, 0, 1.5),
+sim.add(Obstruction(
+    xb=Bounds3D.of(1.45, 1.55, 0, 2, 0, 1.5),
     surf_id='STEEL_SURF'
 )
 
 # Hot side exposure
-sim.vent(
-    xb=(0, 0, 0, 2, 0, 1.5),
+sim.add(Vent(
+    xb=Bounds3D.of(0, 0, 0, 2, 0, 1.5),
     surf_id='HOT_BC'
 )
 
 # Cold side (ambient)
-sim.vent(
-    xb=(3, 3, 0, 2, 0, 1.5),
+sim.add(Vent(
+    xb=Bounds3D.of(3, 3, 0, 2, 0, 1.5),
     surf_id='OPEN'
 )
 
@@ -145,14 +145,14 @@ for i, x in enumerate([1.45, 1.475, 1.50, 1.525, 1.55]):
     sim.device(
         id=f'TEMP_STEEL_{i}',
         quantity='TEMPERATURE',
-        xyz=(x, 1, 0.75)
+        xyz=Point3D.of(x, 1, 0.75)
     )
 
 # Heat flux on cold side
 sim.device(
     id='HF_COLD_SIDE',
     quantity='GAUGE HEAT FLUX',
-    xyz=(1.56, 1, 0.75),
+    xyz=Point3D.of(1.56, 1, 0.75),
     ior=1
 )
 
@@ -173,13 +173,13 @@ Automatic sprinkler activation with suppression.
 from pyfds import Simulation
 
 sim = Simulation(chid='sprinkler_system')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(80, 60, 30), xb=(0, 8, 0, 6, 0, 3))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3))
 
 # Fire growing over time
 sim.ramp(id='FIRE_GROWTH', t=[0, 120, 300], f=[0, 0.5, 1.0])
 sim.surface(id='FIRE', hrrpua=2000.0, ramp_q='FIRE_GROWTH')
-sim.obstruction(xb=(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
 
 # Sprinkler heads (4 heads, K-factor 80)
 sprinkler_locations = [
@@ -194,7 +194,7 @@ for i, (x, y, z) in enumerate(sprinkler_locations):
     sim.device(
         id=f'LINK_{i+1}',
         quantity='TEMPERATURE',
-        xyz=(x, y, z)
+        xyz=Point3D.of(x, y, z)
     )
 
     # Control: Activate at 68°C (typical sprinkler)
@@ -214,8 +214,8 @@ for i, (x, y, z) in enumerate(sprinkler_locations):
     )
 
     # Spray vent
-    sim.vent(
-        xb=(x-0.2, x+0.2, y-0.2, y+0.2, z, z),
+    sim.add(Vent(
+        xb=Bounds3D.of(x-0.2, x+0.2, y-0.2, y+0.2, z, z),
         surf_id=f'SPRAY_{i+1}'
     )
 
@@ -224,14 +224,14 @@ for loc, (x, y) in [('FIRE', (4, 3)), ('CORNER', (1, 1))]:
     sim.device(
         id=f'TEMP_{loc}',
         quantity='TEMPERATURE',
-        xyz=(x, y, 2.5)
+        xyz=Point3D.of(x, y, 2.5)
     )
 
 # Monitor HRR (will decrease after sprinkler activation)
 sim.device(
     id='HRR',
     quantity='HRR',
-    xyz=(4, 3, 1.5)
+    xyz=Point3D.of(4, 3, 1.5)
 )
 
 sim.write('sprinkler_system.fds')
@@ -251,10 +251,10 @@ Aircraft interior fire scenario.
 from pyfds import Simulation
 
 sim = Simulation(chid='aircraft_fire')
-sim.time(t_end=600.0)
+sim.add(Time(t_end=600.0)
 
 # Aircraft cabin dimensions (20m long × 3m wide × 2m high)
-sim.mesh(ijk=(100, 30, 20), xb=(0, 20, 0, 3, 0, 2))
+sim.add(Mesh(ijk=Grid3D.of(100, 30, 20), xb=Bounds3D.of(0, 20, 0, 3, 0, 2))
 
 # Cabin materials (composite/aluminum)
 sim.material(
@@ -272,12 +272,12 @@ sim.surface(
 )
 
 # Cabin walls
-sim.obstruction(xb=(0, 20, 0, 0.1, 0, 2), surf_id='CABIN_WALL')
-sim.obstruction(xb=(0, 20, 2.9, 3, 0, 2), surf_id='CABIN_WALL')
-sim.obstruction(xb=(0, 20, 0, 3, 1.95, 2), surf_id='CABIN_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 20, 0, 0.1, 0, 2), surf_id='CABIN_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 20, 2.9, 3, 0, 2), surf_id='CABIN_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 20, 0, 3, 1.95, 2), surf_id='CABIN_WALL')
 
 # Seat fire (polyurethane foam)
-sim.reaction(
+sim.add(Reaction(
     id='FOAM',
     fuel='POLYURETHANE',
     heat_of_combustion=25000.0,
@@ -289,14 +289,14 @@ sim.reaction(
 sim.surface(id='SEAT_FIRE', hrrpua=800.0, reac_id='FOAM')
 
 # Burning seat at row 10
-sim.obstruction(
-    xb=(9.5, 10, 0.5, 1.5, 0.4, 1.2),
+sim.add(Obstruction(
+    xb=Bounds3D.of(9.5, 10, 0.5, 1.5, 0.4, 1.2),
     surf_id='SEAT_FIRE'
 )
 
 # Emergency exits
-sim.vent(xb=(0, 0, 1, 2, 0, 1.8), surf_id='OPEN')      # Forward
-sim.vent(xb=(20, 20, 1, 2, 0, 1.8), surf_id='OPEN')    # Aft
+sim.add(Vent(xb=Bounds3D.of(0, 0, 1, 2, 0, 1.8), surf_id='OPEN')      # Forward
+sim.add(Vent(xb=Bounds3D.of(20, 20, 1, 2, 0, 1.8), surf_id='OPEN')    # Aft
 
 # Dense monitoring along aisle
 for x in range(2, 19, 2):
@@ -304,14 +304,14 @@ for x in range(2, 19, 2):
     sim.device(
         id=f'TEMP_X{x:02d}',
         quantity='TEMPERATURE',
-        xyz=(x, 1.5, 1.0)
+        xyz=Point3D.of(x, 1.5, 1.0)
     )
 
     # Visibility (critical for evacuation)
     sim.device(
         id=f'VIS_X{x:02d}',
         quantity='VISIBILITY',
-        xyz=(x, 1.5, 1.0)
+        xyz=Point3D.of(x, 1.5, 1.0)
     )
 
     # CO concentration (toxic)
@@ -319,7 +319,7 @@ for x in range(2, 19, 2):
         id=f'CO_X{x:02d}',
         quantity='VOLUME FRACTION',
         spec_id='CARBON MONOXIDE',
-        xyz=(x, 1.5, 1.0)
+        xyz=Point3D.of(x, 1.5, 1.0)
     )
 
 sim.write('aircraft_fire.fds')
@@ -339,8 +339,8 @@ Lithium-ion battery thermal runaway simulation.
 from pyfds import Simulation
 
 sim = Simulation(chid='battery_fire')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(60, 60, 40), xb=(0, 3, 0, 3, 0, 2))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 60, 40), xb=Bounds3D.of(0, 3, 0, 3, 0, 2))
 
 # Battery thermal runaway characteristics
 sim.ramp(
@@ -358,8 +358,8 @@ sim.surface(
 )
 
 # Battery pack (small footprint, intense heat)
-sim.obstruction(
-    xb=(1.4, 1.6, 1.4, 1.6, 0.5, 0.7),
+sim.add(Obstruction(
+    xb=Bounds3D.of(1.4, 1.6, 1.4, 1.6, 0.5, 0.7),
     surf_id='BATTERY_FIRE'
 )
 
@@ -367,13 +367,13 @@ sim.obstruction(
 sim.device(
     id='TEMP_ADJACENT_1',
     quantity='TEMPERATURE',
-    xyz=(1.7, 1.5, 0.6)
+    xyz=Point3D.of(1.7, 1.5, 0.6)
 )
 
 sim.device(
     id='TEMP_ADJACENT_2',
     quantity='TEMPERATURE',
-    xyz=(1.3, 1.5, 0.6)
+    xyz=Point3D.of(1.3, 1.5, 0.6)
 )
 
 # Heat flux to surrounding objects
@@ -386,7 +386,7 @@ for angle in [0, 90, 180, 270]:
     sim.device(
         id=f'HF_{angle}DEG',
         quantity='GAUGE HEAT FLUX',
-        xyz=(x, y, 0.6),
+        xyz=Point3D.of(x, y, 0.6),
         ior=1
     )
 
@@ -395,7 +395,7 @@ for angle in [0, 90, 180, 270]:
 sim.device(
     id='SMOKE_DETECTOR',
     quantity='OPTICAL DENSITY',
-    xyz=(1.5, 1.5, 1.8)
+    xyz=Point3D.of(1.5, 1.5, 1.8)
 )
 
 sim.write('battery_fire.fds')
@@ -415,21 +415,21 @@ Chemical plant/industrial scenario.
 from pyfds import Simulation
 
 sim = Simulation(chid='industrial_fire')
-sim.time(t_end=900.0)
+sim.add(Time(t_end=900.0)
 
 # Large industrial space
-sim.mesh(ijk=(120, 80, 50), xb=(0, 24, 0, 16, 0, 10))
+sim.add(Mesh(ijk=Grid3D.of(120, 80, 50), xb=Bounds3D.of(0, 24, 0, 16, 0, 10))
 
 # Concrete structure
 sim.material(id='CONCRETE', conductivity=1.8, specific_heat=0.88, density=2400.0)
 sim.surface(id='CONCRETE_WALL', matl_id='CONCRETE', thickness=0.3)
 
 # Walls
-sim.obstruction(xb=(0, 0.3, 0, 16, 0, 10), surf_id='CONCRETE_WALL')
-sim.obstruction(xb=(23.7, 24, 0, 16, 0, 10), surf_id='CONCRETE_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.3, 0, 16, 0, 10), surf_id='CONCRETE_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(23.7, 24, 0, 16, 0, 10), surf_id='CONCRETE_WALL')
 
 # Flammable liquid pool fire (heptane)
-sim.reaction(
+sim.add(Reaction(
     id='HEPTANE',
     fuel='N-HEPTANE',
     heat_of_combustion=44600.0,
@@ -447,16 +447,16 @@ sim.surface(
 )
 
 # 4m diameter pool
-sim.vent(
-    xb=(10, 14, 6, 10, 0, 0),
+sim.add(Vent(
+    xb=Bounds3D.of(10, 14, 6, 10, 0, 0),
     surf_id='POOL_FIRE',
-    xyz=(12, 8, 0),
+    xyz=Point3D.of(12, 8, 0),
     radius=2.0
 )
 
 # Pressure relief vents at roof
-sim.vent(xb=(8, 10, 6, 8, 10, 10), surf_id='OPEN')
-sim.vent(xb=(14, 16, 6, 8, 10, 10), surf_id='OPEN')
+sim.add(Vent(xb=Bounds3D.of(8, 10, 6, 8, 10, 10), surf_id='OPEN')
+sim.add(Vent(xb=Bounds3D.of(14, 16, 6, 8, 10, 10), surf_id='OPEN')
 
 # Heat flux to critical equipment
 equipment_locations = [(6, 4, 3), (18, 4, 3), (12, 12, 3)]
@@ -465,7 +465,7 @@ for i, (x, y, z) in enumerate(equipment_locations):
     sim.device(
         id=f'HF_EQUIPMENT_{i+1}',
         quantity='GAUGE HEAT FLUX',
-        xyz=(x, y, z),
+        xyz=Point3D.of(x, y, z),
         ior=2  # Facing toward center
     )
 
@@ -474,7 +474,7 @@ for x in [6, 12, 18]:
     sim.device(
         id=f'TEMP_ROOF_X{x}',
         quantity='TEMPERATURE',
-        xyz=(x, 8, 9.5)
+        xyz=Point3D.of(x, 8, 9.5)
     )
 
 sim.write('industrial_fire.fds')
@@ -492,14 +492,14 @@ sim.write('industrial_fire.fds')
 
 ```python
 # Use large domain with open boundaries
-sim.mesh(ijk=(100, 100, 30), xb=(0, 100, 0, 100, 0, 30))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 30), xb=Bounds3D.of(0, 100, 0, 100, 0, 30))
 
 # Realistic wind conditions
 sim.set_misc(wind_speed=5.0, wind_direction=270.0, roughness_length=0.1)
 
 # Open all boundaries
 for mb in ['XMIN', 'XMAX', 'YMIN', 'YMAX', 'ZMAX']:
-    sim.vent(mb=mb, surf_id='OPEN')
+    sim.add(Vent(mb=mb, surf_id='OPEN')
 ```
 
 ### 2. Heat Transfer Studies

@@ -21,7 +21,13 @@ from pyfds.builders.libraries import (
     get_species_info,
     list_predefined_species,
 )
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Species
+from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.reac import Reaction
+from pyfds.core.namelists.time import Time
+from pyfds.core.namelists.vent import Vent
 
 
 def main():
@@ -55,45 +61,56 @@ def main():
     sim = Simulation(chid="predefined_species_example")
 
     # Set up basic simulation parameters
-    sim.time(t_end=30.0)
-    sim.mesh(ijk=(20, 20, 20), xb=(0, 2, 0, 2, 0, 2))
+    sim.add(Time(t_end=30.0))
+    sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
 
     # Create standard air with 40% humidity
     print("   - Creating standard air (40% humidity)")
     air_composition = create_standard_air(humidity=40.0)
-    sim.add_species(Species(**air_composition))
+    sim.add(Species(**air_composition))
 
     # Add propane fuel
     print("   - Adding propane fuel")
     propane_info = get_species_info("PROPANE")
     print(f"     Propane: {propane_info['formula']}, MW: {propane_info['mw']:.1f} g/mol")
 
-    sim.species(id="PROPANE", mass_fraction_0=0.0)
+    sim.add(Species(id="PROPANE", mass_fraction_0=0.0))
 
     # Set up combustion reaction
     print("   - Setting up propane combustion")
-    sim.reaction(
-        fuel="PROPANE",
-        heat_of_combustion=46300,  # kJ/kg (typical value for propane)
-        soot_yield=0.01,  # 1% soot yield
-        co_yield=0.005,  # 0.5% CO yield
+    sim.add(
+        Reaction(
+            fuel="PROPANE",
+            heat_of_combustion=46300,  # kJ/kg (typical value for propane)
+            soot_yield=0.01,  # 1% soot yield
+            co_yield=0.005,  # 0.5% CO yield
+        )
     )
 
     # Add fire source
     print("   - Adding fire source")
-    sim.vent(
-        id="BURNER",
-        xb=(0.8, 1.2, 0.8, 1.2, 0, 0),  # 0.4m x 0.4m burner
-        surface="burner",
+    sim.add(
+        Vent(
+            id="BURNER",
+            xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0),  # 0.4m x 0.4m burner
+            surface="burner",
+        )
     )
-
     # Add species concentration devices
     print("   - Adding species concentration monitors")
-    sim.device(id="O2_SENSOR", xyz=(1.0, 1.0, 0.5), quantity="VOLUME FRACTION OXYGEN")
+    sim.add(
+        Device(id="O2_SENSOR", xyz=Point3D.of(1.0, 1.0, 0.5), quantity="VOLUME FRACTION OXYGEN")
+    )
 
-    sim.device(id="CO2_SENSOR", xyz=(1.0, 1.0, 0.5), quantity="VOLUME FRACTION CARBON DIOXIDE")
+    sim.add(
+        Device(
+            id="CO2_SENSOR",
+            xyz=Point3D.of(1.0, 1.0, 0.5),
+            quantity="VOLUME FRACTION CARBON DIOXIDE",
+        )
+    )
 
-    sim.device(id="TEMP_SENSOR", xyz=(1.0, 1.0, 0.5), quantity="TEMPERATURE")
+    sim.add(Device(id="TEMP_SENSOR", xyz=Point3D.of(1.0, 1.0, 0.5), quantity="TEMPERATURE"))
 
     # Generate FDS input
     print("\n3. Generated FDS Input:")

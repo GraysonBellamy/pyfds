@@ -325,18 +325,18 @@ import polars as pl
 
 # Run simulation
 sim = Simulation(chid='analysis_demo')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 40, 25), xb=(0, 5, 0, 4, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5))
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
 
 # Devices
-sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=(2.5, 2, 2.4))
-sim.device(id='TEMP_MID', quantity='TEMPERATURE', xyz=(2.5, 2, 1.5))
-sim.device(id='TEMP_LOW', quantity='TEMPERATURE', xyz=(2.5, 2, 0.5))
-sim.device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=(0.1, 2, 1.5), ior=1)
+sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 2.4))
+sim.device(id='TEMP_MID', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 1.5))
+sim.device(id='TEMP_LOW', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 0.5))
+sim.device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=Point3D.of(0.1, 2, 1.5), ior=1)
 
 # Run simulation
 results = sim.run(wait=True)

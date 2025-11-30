@@ -13,8 +13,11 @@ This uses the Simulation class convenience methods.
 
 from pathlib import Path
 
-from pyfds import Simulation
-from pyfds.builders import DevcBuilder, SurfBuilder
+from pyfds import Device, Simulation, Surface
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.obst import Obstruction
+from pyfds.core.namelists.time import Time
 
 
 def create_simple_room_fire():
@@ -28,38 +31,37 @@ def create_simple_room_fire():
     """
     # Create simulation with metadata
     sim = Simulation(chid="simple_room_fire", title="Simple Room Fire - PyFDS Stage 1 Example")
-    sim.time(t_end=300.0)
+    sim.add(Time(t_end=300.0))
 
     # Computational mesh
-    sim.mesh(ijk=(50, 40, 30), xb=(0, 5, 0, 4, 0, 3), id="ROOM")
+    sim.add(Mesh(ijk=Grid3D.of(50, 40, 30), xb=Bounds3D.of(0, 5, 0, 4, 0, 3), id="ROOM"))
 
     # Fire surface - 500 kW constant heat release with radiation properties (Stage 1.1 feature)
-    fire_surf = (
-        SurfBuilder("FIRE")
-        .with_heat_release(500.0)
-        .with_color("ORANGE")
-        .with_radiation(emissivity=0.9)
-        .build()
-    )
-    sim.add_surface(fire_surf)
+    fire_surf = Surface(id="FIRE", hrrpua=500.0, color="ORANGE", emissivity=0.9)
+    sim.add(fire_surf)
 
     # Fire source (burner at floor center)
-    sim.obstruction(xb=(2.0, 3.0, 1.5, 2.5, 0.0, 0.1), surf_id="FIRE")
+    sim.add(Obstruction(xb=Bounds3D.of(2.0, 3.0, 1.5, 2.5, 0.0, 0.1), surf_id="FIRE"))
 
     # Temperature sensors at various heights
     heights = [0.5, 1.5, 2.5]
     for z in heights:
-        sim.device(id=f"TEMP_{int(z * 10):02d}", quantity="TEMPERATURE", xyz=(2.5, 2.0, z))
+        sim.add(
+            Device(
+                id=f"TEMP_{int(z * 10):02d}", quantity="TEMPERATURE", xyz=Point3D.of(2.5, 2.0, z)
+            )
+        )
 
     # Heat detector at ceiling with control logic (Stage 1.2 feature)
-    heat_detector = (
-        DevcBuilder("HEAT_DETECTOR")
-        .with_quantity("TEMPERATURE")
-        .at_point((2.5, 2.0, 2.9))
-        .with_control(setpoint=75.0, trip_direction=1, latch=True)
-        .build()
+    heat_detector = Device(
+        id="HEAT_DETECTOR",
+        quantity="TEMPERATURE",
+        xyz=Point3D.of(2.5, 2.0, 2.9),
+        setpoint=75.0,
+        trip_direction=1,
+        latch=True,
     )
-    sim.add_device(heat_detector)
+    sim.add(heat_detector)
 
     return sim
 

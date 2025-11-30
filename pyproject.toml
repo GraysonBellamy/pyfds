@@ -46,7 +46,7 @@ docs = [
 ]
 
 [project.scripts]
-pyfds = "pyfds.cli.main:cli"
+pyfds = "pyfds.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.8.17,<0.9.0"]
@@ -154,3 +154,9 @@ module = [
     "click.*",
 ]
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+    "pytest-cov>=7.0.0",
+]

@@ -193,14 +193,14 @@ smoke = PropBuilder.smoke_detector(id='SMOKE', activation_obscuration=3.28)
 from pyfds.builders import VentBuilder
 
 # Opening
-opening = VentBuilder.opening(xb=(5, 5, 2, 4, 0, 2.1), id='DOOR')
+opening = VentBuilder.opening(xb=Bounds3D.of(5, 5, 2, 4, 0, 2.1), id='DOOR')
 
 # Convenience methods
 door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0, id='DOOR')
 window = VentBuilder.window(x=0.0, y_min=1.0, y_max=2.0, z_min=1.0, z_max=1.5)
 
 # HVAC
-supply = VentBuilder.hvac_supply(xb=(5, 6, 5, 6, 3, 3), volume_flow=0.5)
+supply = VentBuilder.hvac_supply(xb=Bounds3D.of(5, 6, 5, 6, 3, 3), volume_flow=0.5)
 
 # Circular
 burner = VentBuilder.circular_burner(center=(0, 0, 0), radius=0.5, surf_id='FIRE')
@@ -267,12 +267,12 @@ move = (
 from pyfds.builders import HoleBuilder
 
 # Simple hole
-hole = HoleBuilder('DOOR').bounds(xb=(5,5.1,2,4,0,2.1)).build()
+hole = HoleBuilder('DOOR').bounds(xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1)).build()
 
 # Controlled hole
 hole = (
     HoleBuilder('WINDOW')
-    .bounds(xb=(0,0.1,1,2,1.5,2.5))
+    .bounds(xb=Bounds3D.of(0, 0.1, 1, 2, 1.5, 2.5))
     .controlled_by('WINDOW_CTRL')
     .color_when_closed('GRAY')
     .build()

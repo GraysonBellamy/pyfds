@@ -3,7 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from pyfds.core.namelists import ControlFunction, Ctrl
+from pyfds.core.enums import ControlFunction
+from pyfds.core.namelists import Ctrl
 
 
 class TestCtrl:

@@ -1,8 +1,6 @@
-"""Builder for creating VENT namelists with common configurations."""
+"""Builder for creating VENT namelists with fluent API."""
 
-from typing import Any
-
-from ..core.geometry import Point3D
+from ..core.geometry import Bounds3D, Point3D
 from ..core.namelists import Vent
 from .base import Builder
 
@@ -11,397 +9,418 @@ class VentBuilder(Builder[Vent]):
     """
     Builder for creating VENT namelists.
 
-    Provides fluent API for creating vents with geometry, control,
-    fire spread, and synthetic turbulence parameters.
+    Provides a fluent API for constructing vents including openings,
+    HVAC connections, and mesh boundary conditions.
 
     Examples
     --------
-    >>> # Opening to ambient
-    >>> door = VentBuilder("DOOR").opening(xb=(5, 5, 2, 4, 0, 2.1)).build()
-
-    >>> # Circular burner with fire spread
-    >>> burner = (
-    ...     VentBuilder("BURNER")
-    ...     .circular_burner(center=(0, 0, 0), radius=0.5, surf_id='FIRE')
-    ...     .with_fire_spread(spread_rate=0.01)
+    >>> # Door opening to ambient
+    >>> door = VentBuilder() \\
+    ...     .bounds(5, 5, 2, 4, 0, 2.1) \\
+    ...     .open() \\
     ...     .build()
-    ... )
 
-    >>> # Mesh boundary with synthetic turbulence
-    >>> boundary = (
-    ...     VentBuilder("BOUNDARY")
-    ...     .mesh_boundary(mb='XMIN', surf_id='OPEN')
-    ...     .with_synthetic_turbulence(n_eddy=100, l_eddy=0.1, vel_rms=0.5)
+    >>> # HVAC supply vent
+    >>> supply = VentBuilder() \\
+    ...     .bounds(2, 3, 2, 3, 3, 3) \\
+    ...     .surface("SUPPLY") \\
     ...     .build()
-    ... )
+
+    >>> # Circular burner
+    >>> burner = VentBuilder() \\
+    ...     .bounds(-0.5, 0.5, -0.5, 0.5, 0, 0) \\
+    ...     .surface("FIRE") \\
+    ...     .circular(center=(0, 0, 0), radius=0.3) \\
+    ...     .build()
+
+    >>> # Mesh boundary vent
+    >>> boundary = VentBuilder() \\
+    ...     .mesh_boundary("XMIN") \\
+    ...     .open() \\
+    ...     .build()
     """
 
-    def __init__(self, id: str | None = None):
-        """Initialize VentBuilder."""
+    def __init__(self) -> None:
+        """Initialize the VentBuilder."""
         super().__init__()
-        self._params: dict[str, Any] = {}
-        if id is not None:
-            self._params["id"] = id
+        self._bounds: Bounds3D | None = None
+        self._params: dict = {}
 
-    def opening(self, xb: tuple[float, float, float, float, float, float]) -> "VentBuilder":
-        """
-        Configure as an opening to ambient.
+    # === Geometry ===
 
-        Parameters
-        ----------
-        xb : tuple[float, float, float, float, float, float]
-            Bounding box (xmin, xmax, ymin, ymax, zmin, zmax)
-
-        Returns
-        -------
-        VentBuilder
-            Self for method chaining
-        """
-        self._params["xb"] = xb
-        self._params["surf_id"] = "OPEN"
-        return self
-
-    def circular_burner(
-        self, center: Point3D | tuple[float, float, float], radius: float, surf_id: str
-    ) -> "VentBuilder":
-        """
-        Configure as circular burner vent.
-
-        Parameters
-        ----------
-        center : Point3D or tuple[float, float, float]
-            Center point (x, y, z) in meters
-        radius : float
-            Burner radius in meters
-        surf_id : str
-            Surface ID defining the fire properties
-
-        Returns
-        -------
-        VentBuilder
-            Self for method chaining
-        """
-        if isinstance(center, tuple):
-            center = Point3D.from_tuple(center)
-
-        x, y, z = center.x, center.y, center.z
-        # Create bounding box around circle
-        xb = (x - radius, x + radius, y - radius, y + radius, z, z)
-
-        self._params["xb"] = xb
-        self._params["xyz"] = center
-        self._params["radius"] = radius
-        self._params["surf_id"] = surf_id
-        return self
-
-    def annular_burner(
+    def bounds(
         self,
-        center: Point3D | tuple[float, float, float],
-        radius: float,
-        radius_inner: float,
-        surf_id: str,
+        xmin_or_bounds: float | Bounds3D | tuple[float, float, float, float, float, float],
+        xmax: float | None = None,
+        ymin: float | None = None,
+        ymax: float | None = None,
+        zmin: float | None = None,
+        zmax: float | None = None,
     ) -> "VentBuilder":
         """
-        Configure as annular (ring-shaped) burner vent.
+        Set vent bounds.
+
+        VENTs must be planar (one dimension has zero thickness).
 
         Parameters
         ----------
-        center : Point3D or tuple[float, float, float]
-            Center point (x, y, z) in meters
-        radius : float
-            Outer radius in meters
-        radius_inner : float
-            Inner radius in meters
-        surf_id : str
-            Surface ID defining the fire properties
+        xmin_or_bounds : float, Bounds3D, or tuple
+            Either xmin value, a Bounds3D object, or (xmin, xmax, ymin, ymax, zmin, zmax) tuple
+        xmax : float, optional
+            Maximum x coordinate
+        ymin : float, optional
+            Minimum y coordinate
+        ymax : float, optional
+            Maximum y coordinate
+        zmin : float, optional
+            Minimum z coordinate
+        zmax : float, optional
+            Maximum z coordinate
 
         Returns
         -------
         VentBuilder
             Self for method chaining
+
+        Examples
+        --------
+        >>> # Floor vent (z thickness = 0)
+        >>> vent = VentBuilder().bounds(2, 3, 2, 3, 0, 0).surface("FIRE").build()
+
+        >>> # Wall opening (x thickness = 0)
+        >>> door = VentBuilder().bounds(5, 5, 2, 4, 0, 2.1).open().build()
         """
-        if isinstance(center, tuple):
-            center = Point3D.from_tuple(center)
-
-        x, y, z = center.x, center.y, center.z
-        # Create bounding box around outer circle
-        xb = (x - radius, x + radius, y - radius, y + radius, z, z)
-
-        self._params["xb"] = xb
-        self._params["xyz"] = center
-        self._params["radius"] = radius
-        self._params["radius_inner"] = radius_inner
-        self._params["surf_id"] = surf_id
+        if isinstance(xmin_or_bounds, Bounds3D):
+            self._bounds = xmin_or_bounds
+        elif isinstance(xmin_or_bounds, tuple):
+            self._bounds = Bounds3D.of(*xmin_or_bounds)
+        else:
+            if any(v is None for v in [xmax, ymin, ymax, zmin, zmax]):
+                raise ValueError("All 6 bounds coordinates required")
+            self._bounds = Bounds3D.of(xmin_or_bounds, xmax, ymin, ymax, zmin, zmax)  # type: ignore
         return self
 
-    def mesh_boundary(
-        self, mb: str, surf_id: str = "OPEN", mesh_id: str | None = None
-    ) -> "VentBuilder":
+    def mesh_boundary(self, mb: str) -> "VentBuilder":
         """
-        Configure as mesh boundary vent.
+        Place vent on mesh boundary.
 
         Parameters
         ----------
         mb : str
-            Mesh boundary location ('XMIN', 'XMAX', 'YMIN', 'YMAX', 'ZMIN', 'ZMAX')
-        surf_id : str, optional
-            Surface ID, default: 'OPEN'
-        mesh_id : str, optional
-            Mesh identifier for multi-mesh simulations
+            Mesh boundary: 'XMIN', 'XMAX', 'YMIN', 'YMAX', 'ZMIN', 'ZMAX'
 
         Returns
         -------
         VentBuilder
             Self for method chaining
+
+        Examples
+        --------
+        >>> # Open bottom boundary
+        >>> boundary = VentBuilder().mesh_boundary("ZMIN").open().build()
         """
         self._params["mb"] = mb
+        return self
+
+    def circular(
+        self,
+        center: tuple[float, float, float] | Point3D,
+        radius: float,
+        inner_radius: float | None = None,
+    ) -> "VentBuilder":
+        """
+        Set circular geometry.
+
+        Parameters
+        ----------
+        center : tuple or Point3D
+            Center point (x, y, z)
+        radius : float
+            Outer radius [m]
+        inner_radius : float, optional
+            Inner radius for annular vent [m]
+
+        Returns
+        -------
+        VentBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> # Circular burner
+        >>> burner = VentBuilder() \\
+        ...     .bounds(-0.5, 0.5, -0.5, 0.5, 0, 0) \\
+        ...     .surface("FIRE") \\
+        ...     .circular(center=(0, 0, 0), radius=0.3) \\
+        ...     .build()
+        """
+        if isinstance(center, tuple):
+            center = Point3D.of(*center)
+        self._params["xyz"] = center
+        self._params["radius"] = radius
+        if inner_radius is not None:
+            self._params["radius_inner"] = inner_radius
+        return self
+
+    def id(self, vent_id: str) -> "VentBuilder":
+        """
+        Set vent identifier.
+
+        Parameters
+        ----------
+        vent_id : str
+            Unique identifier for the vent
+
+        Returns
+        -------
+        VentBuilder
+            Self for method chaining
+        """
+        self._params["id"] = vent_id
+        return self
+
+    # === Surface Properties ===
+
+    def surface(self, surf_id: str) -> "VentBuilder":
+        """
+        Set surface ID.
+
+        Parameters
+        ----------
+        surf_id : str
+            Surface ID for vent properties
+
+        Returns
+        -------
+        VentBuilder
+            Self for method chaining
+
+        Examples
+        --------
+        >>> vent = VentBuilder().bounds(0,1,0,1,0,0).surface("FIRE").build()
+        """
         self._params["surf_id"] = surf_id
-        if mesh_id is not None:
-            self._params["mesh_id"] = mesh_id
         return self
 
-    def door(
-        self, x: float, y_min: float, y_max: float, z_min: float = 0.0, z_max: float = 2.1
-    ) -> "VentBuilder":
+    def open(self) -> "VentBuilder":
         """
-        Configure as a standard door opening.
-
-        Parameters
-        ----------
-        x : float
-            X-location of the door (plane)
-        y_min : float
-            Minimum Y coordinate
-        y_max : float
-            Maximum Y coordinate
-        z_min : float, optional
-            Minimum Z coordinate, default: 0.0 (floor)
-        z_max : float, optional
-            Maximum Z coordinate, default: 2.1 (standard door height)
+        Set as open boundary (passive opening to ambient).
 
         Returns
         -------
         VentBuilder
             Self for method chaining
+
+        Examples
+        --------
+        >>> door = VentBuilder().bounds(5,5,2,4,0,2).open().build()
         """
-        xb = (x, x, y_min, y_max, z_min, z_max)
-        self._params["xb"] = xb
         self._params["surf_id"] = "OPEN"
         return self
 
-    def window(
-        self, x: float, y_min: float, y_max: float, z_min: float, z_max: float
-    ) -> "VentBuilder":
+    def mirror(self) -> "VentBuilder":
         """
-        Configure as a window opening.
-
-        Parameters
-        ----------
-        x : float
-            X-location of the window (plane)
-        y_min : float
-            Minimum Y coordinate
-        y_max : float
-            Maximum Y coordinate
-        z_min : float
-            Minimum Z coordinate (sill height)
-        z_max : float
-            Maximum Z coordinate (window top)
+        Set as mirror boundary (symmetry plane).
 
         Returns
         -------
         VentBuilder
             Self for method chaining
         """
-        xb = (x, x, y_min, y_max, z_min, z_max)
-        self._params["xb"] = xb
-        self._params["surf_id"] = "OPEN"
+        self._params["surf_id"] = "MIRROR"
         return self
 
-    # === PHASE 4: VENT ENHANCEMENTS ===
-    def with_geometry_params(
+    def periodic(self) -> "VentBuilder":
+        """
+        Set as periodic boundary.
+
+        Returns
+        -------
+        VentBuilder
+            Self for method chaining
+        """
+        self._params["surf_id"] = "PERIODIC"
+        return self
+
+    # === Control ===
+
+    def controlled_by(
         self,
-        db: str | None = None,
-        pbx: float | None = None,
-        pby: float | None = None,
-        pbz: float | None = None,
-        ior: int | None = None,
+        ctrl_id: str | None = None,
+        devc_id: str | None = None,
     ) -> "VentBuilder":
         """
-        Set geometry parameters for domain boundaries and orientation.
+        Set control logic for vent activation.
 
         Parameters
         ----------
-        db : str, optional
-            Domain boundary location
-        pbx, pby, pbz : float, optional
-            Plane positions for domain boundaries
-        ior : int, optional
-            Orientation: +/-1, +/-2, +/-3
+        ctrl_id : str, optional
+            Control ID for activation
+        devc_id : str, optional
+            Device ID for activation
 
         Returns
         -------
         VentBuilder
             Self for method chaining
         """
-        if db is not None:
-            self._params["db"] = db
-        if pbx is not None:
-            self._params["pbx"] = pbx
-        if pby is not None:
-            self._params["pby"] = pby
-        if pbz is not None:
-            self._params["pbz"] = pbz
-        if ior is not None:
-            self._params["ior"] = ior
+        if ctrl_id is not None:
+            self._params["ctrl_id"] = ctrl_id
+        if devc_id is not None:
+            self._params["devc_id"] = devc_id
         return self
 
-    def with_control_params(
-        self, outline: bool = False, mult_id: str | None = None, obst_id: str | None = None
-    ) -> "VentBuilder":
+    def delay(self, seconds: float) -> "VentBuilder":
         """
-        Set control and visualization parameters.
+        Set activation delay.
 
         Parameters
         ----------
-        outline : bool, optional
-            Draw outline only (default: False)
-        mult_id : str, optional
-            Multiplier ID for array replication
-        obst_id : str, optional
-            Associated obstruction ID
+        seconds : float
+            Delay before activation [s]
 
         Returns
         -------
         VentBuilder
             Self for method chaining
         """
-        self._params["outline"] = outline
-        if mult_id is not None:
-            self._params["mult_id"] = mult_id
-        if obst_id is not None:
-            self._params["obst_id"] = obst_id
+        self._params["delay"] = seconds
         return self
 
-    def with_texture(self, texture_origin: tuple[float, float, float]) -> "VentBuilder":
+    def activate_at(self, time: float) -> "VentBuilder":
         """
-        Set texture origin for visualization.
+        Set activation time.
 
         Parameters
         ----------
-        texture_origin : tuple[float, float, float]
-            Texture origin point (x, y, z)
+        time : float
+            Time to activate vent [s]
 
         Returns
         -------
         VentBuilder
             Self for method chaining
         """
-        self._params["texture_origin"] = texture_origin
+        self._params["t_activate"] = time
         return self
 
-    def with_fire_spread(self, spread_rate: float) -> "VentBuilder":
-        """
-        Set fire spread rate for circular vents.
+    # === Advanced ===
 
-        Parameters
-        ----------
-        spread_rate : float
-            Fire spread rate [m/s]
+    def dynamic_pressure(self) -> "VentBuilder":
+        """
+        Enable dynamic pressure boundary condition.
 
         Returns
         -------
         VentBuilder
             Self for method chaining
         """
-        self._params["spread_rate"] = spread_rate
+        self._params["dynamic_pressure"] = True
         return self
 
-    def with_open_boundary_ramps(
-        self, tmp_exterior_ramp: str | None = None, pressure_ramp: str | None = None
-    ) -> "VentBuilder":
+    def exterior_temperature(self, tmp: float) -> "VentBuilder":
         """
-        Set ramps for open boundary conditions.
+        Set exterior temperature.
 
         Parameters
         ----------
-        tmp_exterior_ramp : str, optional
-            Ramp ID for exterior temperature
-        pressure_ramp : str, optional
-            Ramp ID for dynamic pressure
+        tmp : float
+            Exterior temperature [°C]
 
         Returns
         -------
         VentBuilder
             Self for method chaining
         """
-        if tmp_exterior_ramp is not None:
-            self._params["tmp_exterior_ramp"] = tmp_exterior_ramp
-        if pressure_ramp is not None:
-            self._params["pressure_ramp"] = pressure_ramp
+        self._params["tmp_exterior"] = tmp
         return self
 
-    def with_synthetic_turbulence(
-        self,
-        n_eddy: int | None = None,
-        l_eddy: float | None = None,
-        l_eddy_ij: list[list[float]] | None = None,
-        vel_rms: float | None = None,
-        reynolds_stress: list[list[float]] | None = None,
-        uvw: tuple[float, float, float] | None = None,
-    ) -> "VentBuilder":
+    # === Visualization ===
+
+    def color(self, color: str) -> "VentBuilder":
         """
-        Configure synthetic turbulence parameters.
+        Set named color for visualization.
 
         Parameters
         ----------
-        n_eddy : int, optional
-            Number of synthetic eddies
-        l_eddy : float, optional
-            Eddy length scale [m]
-        l_eddy_ij : list[list[float]], optional
-            Anisotropic eddy length scales (3x3 matrix)
-        vel_rms : float, optional
-            RMS velocity fluctuation [m/s]
-        reynolds_stress : list[list[float]], optional
-            Reynolds stress tensor (3x3 matrix)
-        uvw : tuple[float, float, float], optional
-            Mean velocity components [m/s]
+        color : str
+            Color name (e.g., 'RED', 'BLUE', 'GREEN')
 
         Returns
         -------
         VentBuilder
             Self for method chaining
         """
-        if n_eddy is not None:
-            self._params["n_eddy"] = n_eddy
-        if l_eddy is not None:
-            self._params["l_eddy"] = l_eddy
-        if l_eddy_ij is not None:
-            self._params["l_eddy_ij"] = l_eddy_ij
-        if vel_rms is not None:
-            self._params["vel_rms"] = vel_rms
-        if reynolds_stress is not None:
-            self._params["reynolds_stress"] = reynolds_stress
-        if uvw is not None:
-            self._params["uvw"] = uvw
+        self._params["color"] = color
         return self
+
+    def rgb(self, r: int, g: int, b: int) -> "VentBuilder":
+        """
+        Set RGB color for visualization.
+
+        Parameters
+        ----------
+        r : int
+            Red component (0-255)
+        g : int
+            Green component (0-255)
+        b : int
+            Blue component (0-255)
+
+        Returns
+        -------
+        VentBuilder
+            Self for method chaining
+        """
+        self._params["rgb"] = (r, g, b)
+        return self
+
+    def transparency(self, value: float) -> "VentBuilder":
+        """
+        Set vent transparency.
+
+        Parameters
+        ----------
+        value : float
+            Transparency (0.0 = opaque, 1.0 = transparent)
+
+        Returns
+        -------
+        VentBuilder
+            Self for method chaining
+        """
+        self._params["transparency"] = value
+        return self
+
+    # === Build ===
 
     def build(self) -> Vent:
         """
-        Build and return the Vent object.
+        Build the Vent object.
 
         Returns
         -------
         Vent
-            The constructed vent object
+            The constructed Vent namelist object
 
         Raises
         ------
+        ValueError
+            If neither bounds (xb) nor mesh boundary (mb) is specified
         RuntimeError
-            If builder has already been used
+            If the builder has already been used
         """
-        if self._built:
-            raise RuntimeError("Builder has already been used")
-        self._built = True
-        return Vent(**self._params)
+        self._check_built()
+
+        if self._bounds is None and "mb" not in self._params:
+            raise ValueError(
+                "VentBuilder: either bounds (use .bounds()) or mesh boundary (use .mesh_boundary()) is required"
+            )
+
+        params = dict(self._params)
+        if self._bounds is not None:
+            params["xb"] = self._bounds
+
+        vent = Vent(**params)
+        self._mark_built()
+        return vent

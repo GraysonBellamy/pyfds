@@ -23,13 +23,13 @@ from pyfds import Mesh
 
 # Simple rectangular domain
 mesh = Mesh(
-    xb=(0, 10, 0, 8, 0, 6),  # domain bounds
-    ijk=(50, 40, 30)           # grid resolution
+    xb=Bounds3D.of(0, 10, 0, 8, 0, 6),  # domain bounds
+    ijk=Grid3D.of(50, 40, 30)           # grid resolution
 )
 
 # Multiple meshes for parallel computation
-mesh1 = Mesh(id='MESH1', xb=(0, 5, 0, 8, 0, 6), ijk=(25, 40, 30))
-mesh2 = Mesh(id='MESH2', xb=(5, 10, 0, 8, 0, 6), ijk=(25, 40, 30))
+mesh1 = Mesh(id='MESH1', xb=Bounds3D.of(0, 5, 0, 8, 0, 6), ijk=Grid3D.of(25, 40, 30))
+mesh2 = Mesh(id='MESH2', xb=Bounds3D.of(5, 10, 0, 8, 0, 6), ijk=Grid3D.of(25, 40, 30))
 ```
 
 ## OBST - Solid Obstructions
@@ -41,19 +41,19 @@ from pyfds import Obstruction
 
 # Simple wall
 wall = Obstruction(
-    xb=(5, 5.2, 0, 8, 0, 6),  # thick wall at x=5
+    xb=Bounds3D.of(5, 5.2, 0, 8, 0, 6),  # thick wall at x=5
     surf_id='CONCRETE'
 )
 
 # Floor slab
 floor = Obstruction(
-    xb=(0, 10, 0, 8, 0, 0.3),  # 30cm thick floor
+    xb=Bounds3D.of(0, 10, 0, 8, 0, 0.3),  # 30cm thick floor
     surf_id='CONCRETE'
 )
 
 # With thermal properties
 thermal_wall = Obstruction(
-    xb=(0, 0.2, 0, 8, 0, 6),
+    xb=Bounds3D.of(0, 0.2, 0, 8, 0, 6),
     surf_id='INSULATED_WALL',
     ht3d=True  # Enable 3D heat conduction
 )
@@ -74,14 +74,14 @@ open_wall = Vent(
 
 # Supply vent
 supply = Vent(
-    xb=(2, 3, 2, 3, 6, 6),  # ceiling vent
+    xb=Bounds3D.of(2, 3, 2, 3, 6, 6),  # ceiling vent
     surf_id='SUPPLY',
     volume_flow=0.5  # m³/s
 )
 
 # Fire source
 fire = Vent(
-    xb=(4.5, 5.5, 4.5, 5.5, 0, 0),  # floor burner
+    xb=Bounds3D.of(4.5, 5.5, 4.5, 5.5, 0, 0),  # floor burner
     surf_id='FIRE'
 )
 ```
@@ -95,13 +95,13 @@ from pyfds import Hole
 
 # Door opening
 door = Hole(
-    xb=(4.9, 5.1, 2, 4, 0, 2.1),  # door bounds
+    xb=Bounds3D.of(4.9, 5.1, 2, 4, 0, 2.1),  # door bounds
     id='MAIN_DOOR'
 )
 
 # Controlled window
 window = Hole(
-    xb=(0, 0.1, 1, 2, 1.5, 2.5),
+    xb=Bounds3D.of(0, 0.1, 1, 2, 1.5, 2.5),
     id='WINDOW',
     ctrl_id='WINDOW_CONTROL',
     color='GRAY'  # appearance when closed
@@ -207,20 +207,20 @@ from pyfds import Simulation, Mesh, Obstruction, Hole
 sim = Simulation('room_with_door')
 
 # Domain
-sim.mesh(xb=(0, 6, 0, 4, 0, 3), ijk=(30, 20, 15))
+sim.add(Mesh(xb=Bounds3D.of(0, 6, 0, 4, 0, 3), ijk=Grid3D.of(30, 20, 15))
 
 # Walls
-sim.obstruction(xb=(0, 0.2, 0, 4, 0, 3), surf_id='WALL')  # Left wall
-sim.obstruction(xb=(5.8, 6, 0, 4, 0, 3), surf_id='WALL')  # Right wall
-sim.obstruction(xb=(0, 6, 0, 0.2, 0, 3), surf_id='WALL')  # Back wall
-sim.obstruction(xb=(0, 6, 3.8, 4, 0, 3), surf_id='WALL')  # Front wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 3), surf_id='WALL')  # Left wall
+sim.add(Obstruction(xb=Bounds3D.of(5.8, 6, 0, 4, 0, 3), surf_id='WALL')  # Right wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 0.2, 0, 3), surf_id='WALL')  # Back wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 3.8, 4, 0, 3), surf_id='WALL')  # Front wall
 
 # Floor and ceiling
-sim.obstruction(xb=(0, 6, 0, 4, 0, 0.1), surf_id='FLOOR')
-sim.obstruction(xb=(0, 6, 0, 4, 2.9, 3), surf_id='CEILING')
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 4, 0, 0.1), surf_id='FLOOR')
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 4, 2.9, 3), surf_id='CEILING')
 
 # Door
-sim.hole(xb=(2.9, 3.1, 0, 0.2, 0, 2.1), id='DOOR')
+sim.add(Hole(xb=Bounds3D.of(2.9, 3.1, 0, 0.2, 0, 2.1), id='DOOR')
 ```
 
 ### Storage Warehouse with Arrays
@@ -239,8 +239,8 @@ sim.mult(
 )
 
 # Single rack definition (replicated by MULT)
-sim.obstruction(
-    xb=(0, 1, 0, 2, 0, 4),  # rack dimensions
+sim.add(Obstruction(
+    xb=Bounds3D.of(0, 1, 0, 2, 0, 4),  # rack dimensions
     surf_id='STEEL',
     mult_id='RACK_ARRAY'     # creates 10×4 = 40 racks
 )

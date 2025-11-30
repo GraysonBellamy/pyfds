@@ -4,11 +4,7 @@ FDS TIME namelist.
 Time control parameters for simulation.
 """
 
-from typing import Any
-
-from pydantic import Field
-
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Time(NamelistBase):
@@ -33,18 +29,11 @@ class Time(NamelistBase):
     &TIME T_END=600.0, DT=0.1 /
     """
 
-    t_end: float = Field(..., gt=0, description="End time (s)")
-    t_begin: float | None = Field(None, ge=0, description="Begin time (s)")
-    dt: float | None = Field(None, gt=0, description="Time step (s)")
-    wall_clock_time: float | None = Field(None, gt=0, description="Wall clock limit (s)")
+    t_end: float = FdsField(..., gt=0, description="End time (s)")
+    t_begin: float | None = FdsField(None, ge=0, description="Begin time (s)")
+    dt: float | None = FdsField(None, gt=0, description="Time step (s)")
+    wall_clock_time: float | None = FdsField(None, gt=0, description="Wall clock limit (s)")
 
-    def to_fds(self) -> str:
-        """Generate FDS TIME namelist."""
-        params: dict[str, Any] = {"t_end": self.t_end}
-        if self.t_begin is not None:
-            params["t_begin"] = self.t_begin
-        if self.dt is not None:
-            params["dt"] = self.dt
-        if self.wall_clock_time is not None:
-            params["wall_clock_time"] = self.wall_clock_time
-        return self._build_namelist("TIME", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "TIME"

@@ -53,10 +53,10 @@ from pyfds.core.geometry import Bounds3D
 sim.set_misc(tmpa=22.0, humidity=50.0)
 
 # HVAC supply vent
-sim.vent(xb=Bounds3D(2, 2.5, 2, 2.5, 3, 3), surf_id='HVAC', volume_flow=0.5)
+sim.add(Vent(xb=Bounds3D.of(2, 2.5, 2, 2.5, 3, 3) 3), surf_id='HVAC', volume_flow=0.5))
 
 # Door opening
-sim.vent(xb=Bounds3D(4, 4, 4, 6, 0.5, 2), surf_id='OPEN')
+sim.add(Vent(xb=Bounds3D.of(4, 4, 4, 6, 0.5, 2) 2), surf_id='OPEN'))
 ```
 
 ### [wildfire_simulation.py](wildfire_simulation.py) ⭐ NEW
@@ -79,7 +79,7 @@ sim.set_misc(
 )
 
 # Open boundaries for wind
-sim.vent(mb='XMIN', surf_id='OPEN')
+sim.add(Vent(mb='XMIN', surf_id='OPEN'))
 ```
 
 ### [circular_burner.py](circular_burner.py) ⭐ NEW
@@ -95,17 +95,17 @@ from pyfds.core.geometry import Bounds3D
 
 # Circular burner
 burner = Vent(
-    xb=Bounds3D(-2, 2, -2, 2, 0, 0),
+    xb=Bounds3D.of(-2, 2, -2, 2, 0, 0) 0),
     surf_id='BURNER',
-    xyz=(0, 0, 0),
+    xyz=Point3D.of(0, 0, 0),
     radius=1.0
 )
 
 # Annular burner (ring)
 annular = Vent(
-    xb=Bounds3D(-2, 2, -2, 2, 7, 7),
+    xb=Bounds3D.of(-2, 2, -2, 2, 7, 7) 7),
     surf_id='BURNER',
-    xyz=(0, 0, 7),
+    xyz=Point3D.of(0, 0, 7),
     radius=1.5,
     radius_inner=0.5
 )
@@ -129,7 +129,7 @@ sim.set_misc(
 )
 
 # Temperature boundary
-hot_vent = Vent(xb=Bounds3D(0.3, 0.7, 0.3, 0.7, 0, 0), surf_id='HOT')
+hot_vent = Vent(xb=Bounds3D.of(0.3, 0.7, 0.3, 0.7, 0, 0) 0), surf_id='HOT')
 ```
 
 ## Execution Examples

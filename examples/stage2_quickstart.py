@@ -5,7 +5,8 @@ Stage 2 Particle Systems - Quickstart Examples
 Simple, focused examples of each Stage 2 feature.
 """
 
-from pyfds.builders import MaterialBuilder, PartBuilder, PropBuilder, SurfBuilder
+from pyfds.builders import MaterialBuilder, PartBuilder, PropBuilder
+from pyfds.core.namelists import Surface
 
 
 def example_1_water_droplets():
@@ -48,15 +49,12 @@ def example_3_sprinkler_surface():
     print("-" * 50)
 
     # Sprinkler that generates water droplets
-    sprinkler = (
-        SurfBuilder("SPRINKLER_HEAD")
-        .as_sprinkler(
-            part_id="WATER_DROP",
-            mass_flux=0.015,  # kg/s/m²
-            median_diameter=0.001,  # 1mm median droplet
-            velocity=5.0,  # 5 m/s downward
-        )
-        .build()
+    sprinkler = Surface(
+        id="SPRINKLER_HEAD",
+        part_id="WATER_DROP",
+        particle_mass_flux=0.015,  # kg/s/m²
+        median_diameter=0.001,  # 1mm median droplet
+        vel_part=5.0,  # 5 m/s downward
     )
 
     print(sprinkler.to_fds())
@@ -69,12 +67,14 @@ def example_4_fire_with_smoke():
     print("-" * 50)
 
     # Burning surface producing smoke
-    fire = (
-        SurfBuilder("FIRE")
-        .with_heat_release(1000.0, ramp_id="fire_ramp")
-        .with_particle_generation("SMOKE", mass_flux=0.002, nppc=2)
-        .with_color("ORANGE")
-        .build()
+    fire = Surface(
+        id="FIRE",
+        hrrpua=1000.0,
+        ramp_q="fire_ramp",
+        part_id="SMOKE",
+        particle_mass_flux=0.002,
+        nppc=2,
+        color="ORANGE",
     )
 
     print(fire.to_fds())
@@ -185,12 +185,15 @@ def example_10_spray_distribution():
     print("-" * 50)
 
     # Nozzle with Gaussian spray pattern
-    spray = (
-        SurfBuilder("SPRAY_NOZZLE")
-        .with_particle_generation("WATER_DROP", mass_flux=0.01, nppc=5)
-        .with_droplet_distribution(median_diameter=0.0008, gamma_d=2.4, spray_pattern="GAUSSIAN")
-        .with_particle_velocity((0.0, 0.0, -3.0))  # Downward at 3 m/s
-        .build()
+    spray = Surface(
+        id="SPRAY_NOZZLE",
+        part_id="WATER_DROP",
+        particle_mass_flux=0.01,
+        nppc=5,
+        median_diameter=0.0008,
+        gamma_d=2.4,
+        spray_pattern="GAUSSIAN",
+        particle_velocity=(0.0, 0.0, -3.0),  # Downward at 3 m/s
     )
 
     print(spray.to_fds())

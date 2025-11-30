@@ -56,16 +56,16 @@ sprinkler_device = (
     DevcBuilder("SPRINK1")
     .with_quantity("SPRINKLER_LINK_TEMPERATURE")
     .with_control(setpoint=68.0, trip_direction=1, latch=True, delay=2.0)
-    .at_point(Point3D(3.0, 2.0, 2.8))
+    .at_point(Point3D.of(3.0, 2.0, 2.8))
     .with_prop("QR_SPRINKLER")
     .build()
 )
 
 # Add to simulation
-sim.add_particle(water)
-sim.add_prop(sprinkler_prop)
-sim.add_surface(sprinkler_surf)
-sim.add_device(sprinkler_device)
+sim.add(water)
+sim.add(sprinkler_prop)
+sim.add(sprinkler_surf)
+sim.add(sprinkler_device)
 ```
 
 ## Sprinkler Properties
@@ -204,7 +204,7 @@ device = (
     DevcBuilder("SPRINK1")
     .with_quantity("SPRINKLER_LINK_TEMPERATURE")
     .with_control(setpoint=68.0, trip_direction=1, latch=True)
-    .at_point(Point3D(3.0, 2.0, 2.8))
+    .at_point(Point3D.of(3.0, 2.0, 2.8))
     .with_prop("QR_SPRINKLER")
     .build()
 )
@@ -218,7 +218,7 @@ device = (
     DevcBuilder("SPRINK_DELAYED")
     .with_quantity("SPRINKLER_LINK_TEMPERATURE")
     .with_control(setpoint=68.0, trip_direction=1, latch=True, delay=2.0)
-    .at_point(Point3D(3.0, 2.0, 2.8))
+    .at_point(Point3D.of(3.0, 2.0, 2.8))
     .build()
 )
 ```
@@ -276,7 +276,7 @@ for i, (x, y, z) in enumerate(sprinkler_locations):
         DevcBuilder(f"SPRINK_{i+1}")
         .with_quantity("SPRINKLER_LINK_TEMPERATURE")
         .with_control(setpoint=68.0, trip_direction=1, latch=True)
-        .at_point(Point3D(x, y, z))
+        .at_point(Point3D.of(x, y, z))
         .with_prop("QR_SPRINKLER")
         .build()
     )

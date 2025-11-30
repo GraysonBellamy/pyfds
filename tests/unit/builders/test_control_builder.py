@@ -3,7 +3,7 @@
 import pytest
 
 from pyfds.builders.control import ControlBuilder
-from pyfds.core.namelists import ControlFunction
+from pyfds.core.enums import ControlFunction
 
 
 class TestControlBuilder:

@@ -4,18 +4,19 @@ FDS simulation runner and job management.
 
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from pyfds.validation import ParallelValidator
+
+from ..exceptions import ExecutionError, FDSTimeoutError
 from ..utils import get_logger
-from .exceptions import FDSExecutionError, FDSTimeoutError
 from .monitor import ProgressInfo, ProgressMonitor, parse_out_file_for_errors
 from .platform import PlatformExecutor
 from .process import get_environment_for_execution, validate_fds_executable
-from .validation import ParallelValidator
 
 if TYPE_CHECKING:
     from ..analysis.results import Results
-    from ..core.simulation import Simulation
+    from ..config import RunConfig
 
 logger = get_logger(__name__)
 
@@ -165,7 +166,7 @@ class Job:
         ------
         FDSTimeoutError
             If timeout is exceeded
-        FDSExecutionError
+        ExecutionError
             If FDS execution failed
         """
         try:
@@ -190,7 +191,7 @@ class Job:
             errors = parse_out_file_for_errors(out_file)
             error_msg = "\n".join(errors) if errors else "Unknown error"
 
-            raise FDSExecutionError(
+            raise ExecutionError(
                 f"FDS execution failed: {error_msg}",
                 exit_code=self._exit_code,
                 stdout=self._stdout,
@@ -313,14 +314,8 @@ class FDSRunner:
     def run(
         self,
         fds_file: str | Path,
-        n_threads: int = 1,
-        n_mpi: int = 1,
-        mpiexec_path: str = "mpiexec",
-        output_dir: Path | None = None,
-        monitor: bool = True,
-        wait: bool = True,
-        timeout: float | None = None,
-        simulation: "Simulation | None" = None,
+        config: "RunConfig | None" = None,
+        **kwargs: Any,
     ) -> "Results | Job":
         """
         Run an FDS simulation.
@@ -329,22 +324,10 @@ class FDSRunner:
         ----------
         fds_file : str or Path
             Path to FDS input file
-        n_threads : int
-            Number of OpenMP threads (default: 1)
-        n_mpi : int
-            Number of MPI processes (default: 1)
-        mpiexec_path : str
-            Path to mpiexec command (default: 'mpiexec')
-        output_dir : Path, optional
-            Output directory (default: same as fds_file)
-        monitor : bool
-            Enable progress monitoring (default: True)
-        wait : bool
-            Wait for completion (default: True)
-        timeout : float, optional
-            Timeout in seconds (only used if wait=True)
-        simulation : Simulation, optional
-            Simulation object for validation (if available)
+        config : RunConfig, optional
+            Execution configuration (default: RunConfig())
+        **kwargs
+            Additional keyword arguments passed to RunConfig()
 
         Returns
         -------
@@ -370,16 +353,25 @@ class FDSRunner:
         >>> # With validation
         >>> results = runner.run("test.fds", simulation=sim, n_mpi=4)
         """
+        # Import here to avoid circular import
+        from ..config import RunConfig
+
+        # Create config from kwargs if not provided
+        if config is None:
+            # Filter out non-RunConfig parameters
+            runconfig_kwargs = {k: v for k, v in kwargs.items() if k not in ("simulation",)}
+            config = RunConfig(**runconfig_kwargs)
+        elif kwargs:
+            raise ValueError("Cannot specify both 'config' and keyword arguments")
+
         fds_file = Path(fds_file)
         if not fds_file.exists():
             logger.error(f"FDS file not found: {fds_file}")
             raise FileNotFoundError(f"FDS file not found: {fds_file}")
 
         # Determine output directory
-        if output_dir is None:
-            output_dir = fds_file.parent
+        output_dir = fds_file.parent if config.output_dir is None else Path(config.output_dir)
 
-        output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Extract CHID from file
@@ -388,25 +380,28 @@ class FDSRunner:
         logger.info(f"Starting FDS simulation: {chid}")
         logger.debug(f"  Input file: {fds_file}")
         logger.debug(f"  Output directory: {output_dir}")
-        logger.debug(f"  Threads: {n_threads}, MPI processes: {n_mpi}")
+        logger.debug(f"  Threads: {config.n_threads}, MPI processes: {config.n_mpi}")
 
         # Validate parallel configuration
-        if self.validate_parallel and simulation is not None:
-            warnings = self.parallel_validator.validate_all(simulation, n_mpi, n_threads)
-            for warning in warnings:
-                logger.warning(warning)
+        # Note: Simulation validation should be done by Simulation.run(), not here
+        # if self.validate_parallel and simulation is not None:
+        #     warnings = self.parallel_validator.validate_all(
+        #         simulation, config.n_mpi, config.n_threads
+        #     )
+        #     for warning in warnings:
+        #         logger.warning(warning)
 
         # Build command using platform executor
         cmd = self.platform_executor.build_command(
             fds_file=fds_file,
-            n_mpi=n_mpi,
-            n_threads=n_threads,
-            mpiexec_path=mpiexec_path,
+            n_mpi=config.n_mpi,
+            n_threads=config.n_threads,
+            mpiexec_path=config.mpiexec_path,
         )
         logger.debug(f"  Command: {' '.join(str(c) for c in cmd)}")
 
         # Get environment
-        env = get_environment_for_execution(n_threads=n_threads)
+        env = get_environment_for_execution(n_threads=config.n_threads)
 
         # Start process
         process = subprocess.Popen(
@@ -420,7 +415,7 @@ class FDSRunner:
 
         # Set up monitoring
         progress_monitor = None
-        if monitor:
+        if config.monitor:
             out_file = output_dir / f"{chid}.out"
             progress_monitor = ProgressMonitor(out_file)
             progress_monitor.start()
@@ -436,9 +431,9 @@ class FDSRunner:
         )
 
         # Wait for completion or return job
-        if wait:
+        if config.wait:
             logger.debug("Waiting for simulation to complete...")
-            result = job.wait(timeout=timeout)
+            result = job.wait(timeout=config.timeout)
             logger.info(f"Simulation completed successfully: {chid}")
             return result
 

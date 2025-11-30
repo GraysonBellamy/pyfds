@@ -13,7 +13,12 @@ import time
 from pathlib import Path
 
 from pyfds import Simulation
-from pyfds.core.geometry import Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.obst import Obstruction
+from pyfds.core.namelists.surf import Surface
+from pyfds.core.namelists.time import Time
 from pyfds.execution import ParallelValidator
 
 # Create output directory
@@ -36,26 +41,26 @@ def blocking_execution_demo():
     sim = Simulation(chid="blocking_demo", title="Blocking Execution Demo")
 
     # Set time parameters (short simulation for demo)
-    sim.time(t_end=10.0)
+    sim.add(Time(t_end=10.0))
 
     # Create a small mesh for fast execution
-    sim.mesh(ijk=(10, 10, 10), xb=(0, 2, 0, 2, 0, 2))
+    sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
 
     # Add a fire surface
-    sim.surface(id="FIRE", hrrpua=500.0, color="RED")
+    sim.add(Surface(id="FIRE", hrrpua=500.0, color="RED"))
 
     # Add a burner
-    sim.obstruction(xb=(0.8, 1.2, 0.8, 1.2, 0, 0.1), surf_id="FIRE")
+    sim.add(Obstruction(xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0.1), surf_id="FIRE"))
 
     # Add temperature devices
-    sim.device(id="TEMP_1", quantity="TEMPERATURE", xyz=Point3D(1.0, 1.0, 0.5))
-    sim.device(id="TEMP_2", quantity="TEMPERATURE", xyz=Point3D(1.0, 1.0, 1.0))
-    sim.device(id="TEMP_3", quantity="TEMPERATURE", xyz=Point3D(1.0, 1.0, 1.5))
+    sim.add(Device(id="TEMP_1", quantity="TEMPERATURE", xyz=Point3D.of(1.0, 1.0, 0.5)))
+    sim.add(Device(id="TEMP_2", quantity="TEMPERATURE", xyz=Point3D.of(1.0, 1.0, 1.0)))
+    sim.add(Device(id="TEMP_3", quantity="TEMPERATURE", xyz=Point3D.of(1.0, 1.0, 1.5)))
 
     print("\n📝 Simulation setup complete")
     print(f"   CHID: {sim.chid}")
-    print(f"   Meshes: {len(sim.geometry.meshes)}")
-    print(f"   Devices: {len(sim.instrumentation.devices)}")
+    print(f"   Meshes: {len(sim.meshes)}")
+    print(f"   Devices: {len(sim.devices)}")
 
     # Run simulation (blocks until complete)
     print("\n🚀 Starting simulation (this will block until complete)...")
@@ -105,11 +110,11 @@ def non_blocking_execution_demo():
 
     # Create simulation
     sim = Simulation(chid="nonblocking_demo", title="Non-Blocking Demo")
-    sim.time(t_end=20.0)  # Longer simulation to see progress
-    sim.mesh(ijk=(15, 15, 15), xb=(0, 3, 0, 3, 0, 3))
-    sim.surface(id="FIRE", hrrpua=1000.0, color="ORANGE")
-    sim.obstruction(xb=(1.2, 1.8, 1.2, 1.8, 0, 0.2), surf_id="FIRE")
-    sim.device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=Point3D(1.5, 1.5, 1.5))
+    sim.add(Time(t_end=20.0))  # Longer simulation to see progress
+    sim.add(Mesh(ijk=Grid3D.of(15, 15, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 3)))
+    sim.add(Surface(id="FIRE", hrrpua=1000.0, color="ORANGE"))
+    sim.add(Obstruction(xb=Bounds3D.of(1.2, 1.8, 1.2, 1.8, 0, 0.2), surf_id="FIRE"))
+    sim.add(Device(id="TEMP_CENTER", quantity="TEMPERATURE", xyz=Point3D.of(1.5, 1.5, 1.5)))
 
     print("\n🚀 Starting simulation in background...")
 
@@ -171,8 +176,8 @@ def runner_api_demo():
 
     # Create and write simulation file
     sim = Simulation(chid="runner_demo", title="FDSRunner API Demo")
-    sim.time(t_end=5.0)
-    sim.mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+    sim.add(Time(t_end=5.0))
+    sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
     fds_file = output_dir / "runner_demo.fds"
     sim.write(fds_file)
@@ -214,13 +219,13 @@ def validation_demo():
 
     # Create a simulation with potential issues
     sim = Simulation(chid="validation_demo", title="Validation Demo")
-    sim.time(t_end=10.0)
+    sim.add(Time(t_end=10.0))
 
     # Add a highly non-cubic mesh (will generate warning)
-    sim.mesh(ijk=(100, 10, 10), xb=(0, 10, 0, 1, 0, 1))
+    sim.add(Mesh(ijk=Grid3D.of(100, 10, 10), xb=Bounds3D.of(0, 10, 0, 1, 0, 1)))
 
     # Add obstruction with undefined surface (will generate warning)
-    sim.obstruction(xb=(4, 6, 0, 1, 0, 0.5), surf_id="UNDEFINED_SURFACE")
+    sim.add(Obstruction(xb=Bounds3D.of(4, 6, 0, 1, 0, 0.5), surf_id="UNDEFINED_SURFACE"))
 
     print("\n🔍 Running validation...")
     warnings = sim.validate()
@@ -263,7 +268,7 @@ def parallel_validation_demo():
     # Example 1: Single mesh simulation
     print("\n📊 Scenario 1: Single Mesh Simulation")
     sim1 = Simulation(chid="single_mesh")
-    sim1.mesh(ijk=(50, 50, 50), xb=(0, 5, 0, 5, 0, 5))
+    sim1.mesh(ijk=Grid3D.of(50, 50, 50), xb=Bounds3D.of(0, 5, 0, 5, 0, 5))
 
     config1 = validator.recommend_configuration(sim1)
     print("  Mesh count: 1")
@@ -281,7 +286,7 @@ def parallel_validation_demo():
     print("\n📊 Scenario 2: Multi-Mesh Simulation (4 meshes)")
     sim2 = Simulation(chid="multi_mesh")
     for i in range(4):
-        sim2.mesh(ijk=(25, 25, 25), xb=(i * 2.5, (i + 1) * 2.5, 0, 2.5, 0, 2.5))
+        sim2.mesh(ijk=Grid3D.of(25, 25, 25), xb=Bounds3D.of(i * 2.5, (i + 1) * 2.5, 0, 2.5, 0, 2.5))
 
     config2 = validator.recommend_configuration(sim2)
     print("  Mesh count: 4")
@@ -310,10 +315,10 @@ def graceful_stop_demo():
 
     # Create a longer simulation that we can stop
     sim = Simulation(chid="graceful_stop_demo", title="Graceful Stop Demo")
-    sim.time(t_end=60.0)  # 60 second simulation
-    sim.mesh(ijk=(20, 20, 20), xb=(0, 2, 0, 2, 0, 2))
-    sim.surface(id="FIRE", hrrpua=500.0)
-    sim.obstruction(xb=(0.8, 1.2, 0.8, 1.2, 0, 0.1), surf_id="FIRE")
+    sim.add(Time(t_end=60.0))  # 60 second simulation
+    sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
+    sim.add(Surface(id="FIRE", hrrpua=500.0))
+    sim.add(Obstruction(xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0.1), surf_id="FIRE"))
 
     print("\n🔥 Starting simulation in background...")
     print("   Will request graceful stop after a few seconds")

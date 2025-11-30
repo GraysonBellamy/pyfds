@@ -21,10 +21,10 @@ Wait for simulation to complete:
 from pyfds import Simulation
 
 sim = Simulation(chid='test')
-sim.time(t_end=100.0)
-sim.mesh(ijk=(20, 20, 10), xb=(0, 2, 0, 2, 0, 1))
+sim.add(Time(t_end=100.0)
+sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
 sim.surface(id='FIRE', hrrpua=500.0)
-sim.obstruction(xb=(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE')
 
 # Execute and wait
 results = sim.run(n_threads=4)
@@ -138,11 +138,11 @@ import time
 
 # Create simulation
 sim = Simulation(chid='demo')
-sim.time(t_end=300.0)
-sim.mesh(ijk=(30, 30, 15), xb=(0, 3, 0, 3, 0, 1.5))
+sim.add(Time(t_end=300.0)
+sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5))
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=(1.5, 1.5, 1.4))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
+sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1.5, 1.5, 1.4))
 
 # Run with progress monitoring
 print("Starting simulation...")

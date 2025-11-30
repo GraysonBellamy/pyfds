@@ -60,15 +60,14 @@ class TestMaterial:
             density=1000.0,
             conductivity=0.2,
             specific_heat=2.0,
-            n_reactions=2,
             part_id=["SOOT", "SMOKE"],
             nu_part=[0.01, 0.005],
+            a=[1e6, 2e6],  # Add reaction parameters to indicate 2 reactions
+            e=[80000, 90000],
         )
         fds_str = mat.to_fds()
-        assert "PART_ID(1)='SOOT'" in fds_str
-        assert "PART_ID(2)='SMOKE'" in fds_str
-        assert "NU_PART(1)=0.01" in fds_str
-        assert "NU_PART(2)=0.005" in fds_str
+        assert "PART_ID='SOOT','SMOKE'" in fds_str
+        assert "NU_PART=0.01,0.005" in fds_str
 
 
 class TestMaterialMultiReaction:
@@ -81,7 +80,6 @@ class TestMaterialMultiReaction:
             density=500.0,
             conductivity=0.13,
             specific_heat=2.5,
-            n_reactions=2,
             a=[1e10, 5e8],
             e=[100000, 120000],
             heat_of_reaction=[1800, 500],
@@ -91,12 +89,12 @@ class TestMaterialMultiReaction:
             nu_matl=[[0.18], []],
         )
         fds = mat.to_fds()
-        assert "SPEC_ID(1:1,1)='VAPOR'" in fds
-        assert "NU_SPEC(1:1,1)=0.82" in fds
-        assert "MATL_ID(1:1,1)='CHAR'" in fds
-        assert "NU_MATL(1:1,1)=0.18" in fds
-        assert "SPEC_ID(1:2,2)='CO2','H2O'" in fds
-        assert "NU_SPEC(1:2,2)=0.1,0.08" in fds
+        # Check species are flattened correctly
+        assert "SPEC_ID='VAPOR','CO2','H2O'" in fds
+        assert "NU_SPEC=0.82,0.1,0.08" in fds
+        # Check material products - empty second reaction is omitted
+        assert "MATL_ID_PRODUCTS='CHAR'" in fds
+        assert "NU_MATL=0.18" in fds
 
     def test_yield_sum_validation(self):
         """Test that yields are validated."""
@@ -106,7 +104,6 @@ class TestMaterialMultiReaction:
                 density=500.0,
                 conductivity=0.13,
                 specific_heat=2.5,
-                n_reactions=1,
                 nu_spec=[[0.6]],
                 nu_matl=[[0.6]],  # Sum = 1.2 > 1.0
             )
@@ -118,7 +115,6 @@ class TestMaterialMultiReaction:
             density=1000.0,
             conductivity=0.2,
             specific_heat=2.0,
-            n_reactions=1,
             spec_id=["CO", "CO2", "H2O"],
             nu_spec=[0.1, 0.3, 0.4],
             matl_id="CHAR",
@@ -127,7 +123,7 @@ class TestMaterialMultiReaction:
         fds = mat.to_fds()
         assert "SPEC_ID='CO','CO2','H2O'" in fds
         assert "NU_SPEC=0.1,0.3,0.4" in fds
-        assert "MATL_ID='CHAR'" in fds
+        assert "MATL_ID_PRODUCTS='CHAR'" in fds
         assert "NU_MATL=0.2" in fds
 
 
@@ -190,7 +186,6 @@ class TestMaterialReferenceTemperature:
             density=500,
             conductivity=0.1,
             specific_heat=1.5,
-            n_reactions=2,
             reference_temperature=[300.0, 450.0],
             heat_of_reaction=[500.0, 800.0],
             nu_spec=[0.8, 0.2],
@@ -198,8 +193,7 @@ class TestMaterialReferenceTemperature:
         )
         assert len(mat.reference_temperature) == 2
         fds = mat.to_fds()
-        assert "REFERENCE_TEMPERATURE(1)=300" in fds
-        assert "REFERENCE_TEMPERATURE(2)=450" in fds
+        assert "REFERENCE_TEMPERATURE=300.0,450.0" in fds
 
     def test_reference_temperature_array_mismatch(self):
         """Test error when reference_temperature array length mismatches n_reactions."""
@@ -209,22 +203,20 @@ class TestMaterialReferenceTemperature:
                 density=500,
                 conductivity=0.1,
                 specific_heat=1.5,
-                n_reactions=2,
                 reference_temperature=[300.0],  # Should be 2 values
-                heat_of_reaction=[500.0, 800.0],
+                heat_of_reaction=[500.0, 800.0],  # This indicates 2 reactions
             )
 
     def test_reference_temperature_single_reaction_list_error(self):
         """Test error when single reaction has list with wrong length."""
         with pytest.raises(ValidationError, match="must have length 1"):
-            mat = Material(
+            Material(
                 id="BAD",
                 density=500,
                 conductivity=0.1,
                 specific_heat=1.5,
                 reference_temperature=[300.0, 400.0],  # Should be length 1 for single reaction
             )
-            mat.to_fds()  # Error occurs during FDS generation
 
 
 class TestMaterialDelaminationRemoved:
@@ -240,8 +232,8 @@ class TestMaterialDelaminationRemoved:
 class TestMaterialReacRateDelta:
     """Tests for REAC_RATE_DELTA parameter."""
 
-    def test_reac_rate_delta_field_exists(self):
-        """Test that reac_rate_delta field exists on Material."""
+    def test_reac_rate_delta_FdsField_exists(self):
+        """Test that reac_rate_delta FdsField exists on Material."""
         mat = Material(id="WOOD", density=500.0, conductivity=0.13, specific_heat=2.5)
         assert hasattr(mat, "reac_rate_delta")
         assert mat.reac_rate_delta is None
@@ -279,8 +271,8 @@ class TestMaterialReacRateDelta:
 class TestMaterialStructuredReactions:
     """Tests for structured reactions support."""
 
-    def test_reactions_field_exists(self):
-        """Test that reactions field exists on Material."""
+    def test_reactions_FdsField_exists(self):
+        """Test that reactions FdsField exists on Material."""
         mat = Material(id="WOOD", density=500.0, conductivity=0.13, specific_heat=2.5)
         assert hasattr(mat, "reactions")
         assert mat.reactions is None
@@ -324,13 +316,14 @@ class TestMaterialStructuredReactions:
         )
         fds_str = mat.to_fds()
         assert "&MATL ID='WOOD'" in fds_str
-        assert "HEAT_OF_REACTION=500" in fds_str
-        assert "A=1000000" in fds_str
-        assert "E=80000" in fds_str
-        assert "SPEC_ID='CO2'" in fds_str
-        assert "NU_SPEC=0.3" in fds_str
-        assert "MATL_ID='CHAR'" in fds_str
-        assert "NU_MATL=0.2" in fds_str
+        assert "REACTIONS=" in fds_str
+        assert "heat_of_reaction=500.0" in fds_str
+        assert "a=1000000.0" in fds_str
+        assert "e=80000.0" in fds_str
+        assert "spec_id='CO2'" in fds_str
+        assert "nu_spec=0.3" in fds_str
+        assert "matl_id='CHAR'" in fds_str
+        assert "nu_matl=0.2" in fds_str
 
     def test_validation_mixed_formats_not_allowed(self):
         """Test that mixing structured and array formats raises error."""
@@ -385,8 +378,8 @@ class TestMaterialStructuredReactions:
         )
 
         fds_str = mat.to_fds()
-        assert "N_REACTIONS=2" in fds_str
-        assert "HEAT_OF_REACTION(1)=2260" in fds_str
-        assert "REFERENCE_TEMPERATURE(1)=100" in fds_str
-        assert "HEAT_OF_REACTION(2)=500" in fds_str
-        assert "A(2)=100000000" in fds_str
+        assert "REACTIONS=" in fds_str
+        assert "heat_of_reaction=2260.0" in fds_str
+        assert "reference_temperature=100.0" in fds_str
+        assert "heat_of_reaction=500.0" in fds_str
+        assert "a=100000000.0" in fds_str

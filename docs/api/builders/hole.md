@@ -14,14 +14,14 @@ from pyfds.builders import HoleBuilder
 # Simple door opening
 door = (
     HoleBuilder('DOOR')
-    .bounds(xb=(5, 5.1, 2, 4, 0, 2.1))
+    .bounds(xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1))
     .build()
 )
 
 # Window with control
 window = (
     HoleBuilder('WINDOW')
-    .bounds(xb=(0, 0.1, 1, 2, 1.5, 2.5))
+    .bounds(xb=Bounds3D.of(0, 0.1, 1, 2, 1.5, 2.5))
     .controlled_by('WINDOW_CTRL')
     .color_when_closed('GRAY')
     .build()
@@ -34,13 +34,13 @@ Define the 3D volume of the hole:
 
 ```python
 # Rectangular hole
-hole = HoleBuilder('OPENING').bounds(xb=(xmin, xmax, ymin, ymax, zmin, zmax)).build()
+hole = HoleBuilder('OPENING').bounds(xb=Bounds3D.of(xmin, xmax, ymin, ymax, zmin, zmax)).build()
 
 # Door dimensions
-door = HoleBuilder('DOOR').bounds(xb=(5.0, 5.1, 2.0, 4.0, 0.0, 2.1)).build()
+door = HoleBuilder('DOOR').bounds(xb=Bounds3D.of(5.0, 5.1, 2.0, 4.0, 0.0, 2.1)).build()
 
 # Window
-window = HoleBuilder('WINDOW').bounds(xb=(0.0, 0.1, 1.0, 2.0, 1.5, 2.5)).build()
+window = HoleBuilder('WINDOW').bounds(xb=Bounds3D.of(0.0, 0.1, 1.0, 2.0, 1.5, 2.5)).build()
 ```
 
 ## Control Logic
@@ -51,7 +51,7 @@ Make holes open/close based on conditions:
 # Controlled by device
 hole = (
     HoleBuilder('VENT')
-    .bounds(xb=(2, 3, 2, 3, 3, 3))
+    .bounds(xb=Bounds3D.of(2, 3, 2, 3, 3, 3))
     .controlled_by('VENT_CTRL')
     .build()
 )
@@ -59,7 +59,7 @@ hole = (
 # Controlled by multiple devices
 hole = (
     HoleBuilder('EMERGENCY_EXIT')
-    .bounds(xb=(8, 8.1, 0, 3, 0, 2.2))
+    .bounds(xb=Bounds3D.of(8, 8.1, 0, 3, 0, 2.2))
     .controlled_by('SMOKE_DETECTOR')
     .also_controlled_by('HEAT_DETECTOR')
     .build()
@@ -74,7 +74,7 @@ Control appearance when hole is closed:
 # Colored when closed
 hole = (
     HoleBuilder('DOOR')
-    .bounds(xb=(5, 5.1, 2, 4, 0, 2.1))
+    .bounds(xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1))
     .color_when_closed('WOOD')
     .rgb_when_closed((139, 69, 19))  # Brown
     .transparency_when_closed(1.0)    # Opaque
@@ -84,7 +84,7 @@ hole = (
 # Semi-transparent
 hole = (
     HoleBuilder('GLASS_DOOR')
-    .bounds(xb=(5, 5.1, 2, 4, 0, 2.1))
+    .bounds(xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1))
     .color_when_closed('BLUE')
     .transparency_when_closed(0.7)
     .build()
@@ -99,7 +99,7 @@ Use MULT to create arrays of holes:
 # Single hole definition
 window = (
     HoleBuilder('WINDOW_TEMPLATE')
-    .bounds(xb=(0, 0.1, 1, 2, 1.5, 2.5))
+    .bounds(xb=Bounds3D.of(0, 0.1, 1, 2, 1.5, 2.5))
     .mult_id('WINDOW_ARRAY')  # Reference to MULT namelist
     .build()
 )
@@ -124,7 +124,7 @@ from pyfds.builders import HoleBuilder
 # Front door
 front_door = (
     HoleBuilder('FRONT_DOOR')
-    .bounds(xb=(4.9, 5.1, 2.0, 3.0, 0.0, 2.1))
+    .bounds(xb=Bounds3D.of(4.9, 5.1, 2.0, 3.0, 0.0, 2.1))
     .color_when_closed('WOOD')
     .build()
 )
@@ -132,7 +132,7 @@ front_door = (
 # Windows
 living_room_window = (
     HoleBuilder('LIVING_WINDOW')
-    .bounds(xb=(1.0, 1.1, 1.0, 2.5, 1.0, 1.8))
+    .bounds(xb=Bounds3D.of(1.0, 1.1, 1.0, 2.5, 1.0, 1.8))
     .color_when_closed('GLASS')
     .transparency_when_closed(0.8)
     .build()
@@ -140,7 +140,7 @@ living_room_window = (
 
 bedroom_window = (
     HoleBuilder('BEDROOM_WINDOW')
-    .bounds(xb=(6.0, 6.1, 1.0, 2.0, 1.2, 1.8))
+    .bounds(xb=Bounds3D.of(6.0, 6.1, 1.0, 2.0, 1.2, 1.8))
     .color_when_closed('GLASS')
     .transparency_when_closed(0.8)
     .build()
@@ -153,7 +153,7 @@ bedroom_window = (
 # Large roll-up door
 roll_up_door = (
     HoleBuilder('ROLL_UP_DOOR')
-    .bounds(xb=(9.9, 10.1, 2.0, 8.0, 0.0, 4.0))
+    .bounds(xb=Bounds3D.of(9.9, 10.1, 2.0, 8.0, 0.0, 4.0))
     .controlled_by('DOOR_CONTROL')
     .color_when_closed('METAL')
     .build()
@@ -162,7 +162,7 @@ roll_up_door = (
 # Small personnel door
 personnel_door = (
     HoleBuilder('PERSONNEL_DOOR')
-    .bounds(xb=(4.9, 5.1, 4.5, 5.5, 0.0, 2.1))
+    .bounds(xb=Bounds3D.of(4.9, 5.1, 4.5, 5.5, 0.0, 2.1))
     .color_when_closed('METAL')
     .build()
 )
@@ -174,7 +174,7 @@ personnel_door = (
 # Smoke vent that opens automatically
 smoke_vent = (
     HoleBuilder('SMOKE_VENT')
-    .bounds(xb=(2.0, 8.0, 2.0, 8.0, 9.9, 10.1))
+    .bounds(xb=Bounds3D.of(2.0, 8.0, 2.0, 8.0, 9.9, 10.1))
     .controlled_by('SMOKE_CONTROL')
     .color_when_closed('BLACK')
     .transparency_when_closed(0.9)
@@ -214,8 +214,8 @@ Holes only affect OBST namelists that intersect the hole volume:
 
 ```python
 # Obstruction with hole
-wall = Obstruction(xb=(0, 10, 0, 0.2, 0, 3), surf_id='WALL')
-hole = HoleBuilder('DOOR').bounds(xb=(4.9, 5.1, 0, 0.2, 0, 2.1)).build()
+wall = Obstruction(xb=Bounds3D.of(0, 10, 0, 0.2, 0, 3), surf_id='WALL')
+hole = HoleBuilder('DOOR').bounds(xb=Bounds3D.of(4.9, 5.1, 0, 0.2, 0, 2.1)).build()
 
 # Result: wall with door opening
 ```

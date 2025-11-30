@@ -3,7 +3,7 @@
 Tests real-world fire simulation scenarios using SURF, DEVC, REAC, and MESH enhancements.
 """
 
-from pyfds.builders import DevcBuilder, MeshBuilder, ReactionBuilder, SurfBuilder
+from pyfds.builders import MeshBuilder, ReactionBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Device, Mesh, Reaction, Surface
 
@@ -13,13 +13,7 @@ class TestFireWithSprinklerControl:
 
     def test_fire_surface_with_ramped_hrr(self):
         """Test fire surface with time-ramped heat release rate."""
-        fire = (
-            SurfBuilder("FIRE")
-            .with_heat_release(1000.0, ramp_id="t2_growth")
-            .with_radiation(emissivity=0.9)
-            .with_color("ORANGE")
-            .build()
-        )
+        fire = Surface(id="FIRE", hrrpua=1000.0, ramp_q="t2_growth", emissivity=0.9, color="ORANGE")
 
         assert fire.id == "FIRE"
         assert fire.hrrpua == 1000.0
@@ -35,13 +29,15 @@ class TestFireWithSprinklerControl:
 
     def test_sprinkler_with_control_logic(self):
         """Test sprinkler device with temperature-based control."""
-        sprinkler = (
-            DevcBuilder("SPRINK1")
-            .with_quantity("SPRINKLER_LINK_TEMPERATURE")
-            .with_control(setpoint=74.0, trip_direction=1, latch=True, delay=2.0)
-            .at_point(Point3D(5.0, 5.0, 3.0))
-            .with_prop("STANDARD_SPRINKLER")
-            .build()
+        sprinkler = Device(
+            id="SPRINK1",
+            quantity="SPRINKLER_LINK_TEMPERATURE",
+            setpoint=74.0,
+            trip_direction=1,
+            latch=True,
+            delay=2.0,
+            xyz=Point3D.of(5.0, 5.0, 3.0),
+            prop_id="STANDARD_SPRINKLER",
         )
 
         assert sprinkler.id == "SPRINK1"
@@ -50,7 +46,7 @@ class TestFireWithSprinklerControl:
         assert sprinkler.trip_direction == 1
         assert sprinkler.latch is True
         assert sprinkler.delay == 2.0
-        assert sprinkler.xyz == Point3D(5.0, 5.0, 3.0)
+        assert sprinkler.xyz == Point3D.of(5.0, 5.0, 3.0)
 
         fds_output = sprinkler.to_fds()
         assert "SPRINK1" in fds_output
@@ -61,30 +57,30 @@ class TestFireWithSprinklerControl:
     def test_complete_fire_sprinkler_scenario(self):
         """Test complete scenario: fire with sprinkler and temperature monitoring."""
         # Fire source
-        fire_surf = (
-            SurfBuilder("BURNER")
-            .with_heat_release(500.0, ramp_id="fire_ramp")
-            .with_ignition(temperature=250.0, burn_away=True)
-            .with_radiation(emissivity=0.85)
-            .build()
+        fire_surf = Surface(
+            id="BURNER",
+            hrrpua=500.0,
+            ramp_q="fire_ramp",
+            ignition_temperature=250.0,
+            burn_away=True,
+            emissivity=0.85,
         )
 
         # Sprinkler detector
-        sprinkler = (
-            DevcBuilder("SPRINK")
-            .with_quantity("SPRINKLER_LINK_TEMPERATURE")
-            .with_control(setpoint=74.0, latch=True)
-            .at_point(Point3D(5.0, 5.0, 2.8))
-            .build()
+        sprinkler = Device(
+            id="SPRINK",
+            quantity="SPRINKLER_LINK_TEMPERATURE",
+            setpoint=74.0,
+            latch=True,
+            xyz=Point3D.of(5.0, 5.0, 2.8),
         )
 
         # Temperature sensor
-        temp_sensor = (
-            DevcBuilder("TEMP_CEILING")
-            .with_quantity("TEMPERATURE")
-            .at_point(Point3D(5.0, 5.0, 2.9))
-            .with_time_history(True)
-            .build()
+        temp_sensor = Device(
+            id="TEMP_CEILING",
+            quantity="TEMPERATURE",
+            xyz=Point3D.of(5.0, 5.0, 2.9),
+            time_history=True,
         )
 
         # Verify all components created successfully
@@ -105,8 +101,8 @@ class TestMultiMeshParallelSimulation:
         mesh = (
             MeshBuilder()
             .with_id("MESH1")
-            .with_bounds(Bounds3D(0, 10, 0, 10, 0, 3))
-            .with_grid(Grid3D(50, 50, 15))
+            .with_bounds(Bounds3D.of(0, 10, 0, 10, 0, 3))
+            .with_grid(Grid3D.of(50, 50, 15))
             .with_mpi(process=0, n_threads=4)
             .build()
         )
@@ -114,8 +110,8 @@ class TestMultiMeshParallelSimulation:
         assert mesh.id == "MESH1"
         assert mesh.mpi_process == 0
         assert mesh.n_threads == 4
-        assert mesh.xb == Bounds3D(0, 10, 0, 10, 0, 3)
-        assert mesh.ijk == Grid3D(50, 50, 15)
+        assert mesh.xb == Bounds3D.of(0, 10, 0, 10, 0, 3)
+        assert mesh.ijk == Grid3D.of(50, 50, 15)
 
     def test_multi_mesh_array(self):
         """Test array of meshes for parallel processing."""
@@ -124,8 +120,8 @@ class TestMultiMeshParallelSimulation:
             mesh = (
                 MeshBuilder()
                 .with_id(f"MESH{i}")
-                .with_bounds(Bounds3D(i * 10, (i + 1) * 10, 0, 10, 0, 3))
-                .with_grid(Grid3D(50, 50, 15))
+                .with_bounds(Bounds3D.of(i * 10, (i + 1) * 10, 0, 10, 0, 3))
+                .with_grid(Grid3D.of(50, 50, 15))
                 .with_mpi(process=i, n_threads=2)
                 .build()
             )
@@ -134,15 +130,15 @@ class TestMultiMeshParallelSimulation:
         assert len(meshes) == 4
         assert all(m.mpi_process is not None for m in meshes)
         assert all(m.n_threads == 2 for m in meshes)
-        assert meshes[0].xb == Bounds3D(0, 10, 0, 10, 0, 3)
-        assert meshes[3].xb == Bounds3D(30, 40, 0, 10, 0, 3)
+        assert meshes[0].xb == Bounds3D.of(0, 10, 0, 10, 0, 3)
+        assert meshes[3].xb == Bounds3D.of(30, 40, 0, 10, 0, 3)
 
     def test_mesh_with_stability_control(self):
         """Test mesh with custom stability parameters."""
         mesh = (
             MeshBuilder()
-            .with_bounds(Bounds3D(0, 10, 0, 10, 0, 3))
-            .with_grid(Grid3D(100, 100, 30))
+            .with_bounds(Bounds3D.of(0, 10, 0, 10, 0, 3))
+            .with_grid(Grid3D.of(100, 100, 30))
             .with_stability_control(cfl_max=0.9, cfl_min=0.7, vn_max=0.9)
             .with_max_iterations(20)
             .build()
@@ -163,19 +159,19 @@ class TestStatisticalTemperatureMonitoring:
 
     def test_volume_average_temperature(self):
         """Test device with volume averaging statistics."""
-        avg_temp = (
-            DevcBuilder("AVG_TEMP")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MEAN", start_time=10.0)
-            .in_bounds(Bounds3D(0, 10, 0, 10, 0, 3))
-            .build()
+        avg_temp = Device(
+            id="AVG_TEMP",
+            quantity="TEMPERATURE",
+            statistics="MEAN",
+            statistics_start=10.0,
+            xb=Bounds3D.of(0, 10, 0, 10, 0, 3),
         )
 
         assert avg_temp.id == "AVG_TEMP"
         assert avg_temp.quantity == "TEMPERATURE"
         assert avg_temp.statistics == "MEAN"
         assert avg_temp.statistics_start == 10.0
-        assert avg_temp.xb == Bounds3D(0, 10, 0, 10, 0, 3)
+        assert avg_temp.xb == Bounds3D.of(0, 10, 0, 10, 0, 3)
 
         fds_output = avg_temp.to_fds()
         assert "MEAN" in fds_output
@@ -187,29 +183,32 @@ class TestStatisticalTemperatureMonitoring:
 
         # Mean temperature
         devices.append(
-            DevcBuilder("MEAN_TEMP")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MEAN")
-            .in_bounds(Bounds3D(0, 5, 0, 5, 0, 3))
-            .build()
+            Device(
+                id="MEAN_TEMP",
+                quantity="TEMPERATURE",
+                statistics="MEAN",
+                xb=Bounds3D.of(0, 5, 0, 5, 0, 3),
+            )
         )
 
         # Max temperature
         devices.append(
-            DevcBuilder("MAX_TEMP")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MAX")
-            .in_bounds(Bounds3D(0, 5, 0, 5, 0, 3))
-            .build()
+            Device(
+                id="MAX_TEMP",
+                quantity="TEMPERATURE",
+                statistics="MAX",
+                xb=Bounds3D.of(0, 5, 0, 5, 0, 3),
+            )
         )
 
         # Min temperature
         devices.append(
-            DevcBuilder("MIN_TEMP")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MIN")
-            .in_bounds(Bounds3D(0, 5, 0, 5, 0, 3))
-            .build()
+            Device(
+                id="MIN_TEMP",
+                quantity="TEMPERATURE",
+                statistics="MIN",
+                xb=Bounds3D.of(0, 5, 0, 5, 0, 3),
+            )
         )
 
         assert len(devices) == 3
@@ -219,14 +218,13 @@ class TestStatisticalTemperatureMonitoring:
 
     def test_temporal_and_spatial_statistics(self):
         """Test device with both temporal and spatial statistics."""
-        devc = (
-            DevcBuilder("COMPLEX_STAT")
-            .with_quantity("VELOCITY")
-            .with_statistics("MEAN")
-            .with_temporal_statistic("RMS")
-            .with_spatial_statistic("MAX")
-            .in_bounds(Bounds3D(0, 10, 0, 10, 0, 3))
-            .build()
+        devc = Device(
+            id="COMPLEX_STAT",
+            quantity="VELOCITY",
+            statistics="MEAN",
+            temporal_statistic="RMS",
+            spatial_statistic="MAX",
+            xb=Bounds3D.of(0, 10, 0, 10, 0, 3),
         )
 
         assert devc.statistics == "MEAN"
@@ -312,14 +310,14 @@ class TestCylindricalMesh:
         """Test creation of cylindrical coordinate mesh."""
         mesh = (
             MeshBuilder()
-            .with_bounds(Bounds3D(0, 1, 0, 1, 0, 3))
-            .with_grid(Grid3D(50, 50, 100))
+            .with_bounds(Bounds3D.of(0, 1, 0, 1, 0, 3))
+            .with_grid(Grid3D.of(50, 50, 100))
             .as_cylindrical()
             .build()
         )
 
         assert mesh.cylindrical is True
-        assert mesh.xb == Bounds3D(0, 1, 0, 1, 0, 3)
+        assert mesh.xb == Bounds3D.of(0, 1, 0, 1, 0, 3)
 
         fds_output = mesh.to_fds()
         assert "CYLINDRICAL" in fds_output or "cylindrical" in fds_output.lower()
@@ -330,12 +328,12 @@ class TestDeviceOrientation:
 
     def test_device_with_orientation(self):
         """Test device with custom orientation."""
-        devc = (
-            DevcBuilder("ORIENTED_SENSOR")
-            .with_quantity("VELOCITY")
-            .with_orientation((0.0, 0.0, 1.0), rotation=45.0)
-            .at_point(Point3D(5.0, 5.0, 1.5))
-            .build()
+        devc = Device(
+            id="ORIENTED_SENSOR",
+            quantity="VELOCITY",
+            orientation=(0.0, 0.0, 1.0),
+            rotation=45.0,
+            xyz=Point3D.of(5.0, 5.0, 1.5),
         )
 
         assert devc.orientation == (0.0, 0.0, 1.0)
@@ -351,20 +349,22 @@ class TestComplexFireScenario:
         mesh = (
             MeshBuilder()
             .with_id("ROOM")
-            .with_bounds(Bounds3D(0, 6, 0, 4, 0, 3))
-            .with_grid(Grid3D(60, 40, 30))
+            .with_bounds(Bounds3D.of(0, 6, 0, 4, 0, 3))
+            .with_grid(Grid3D.of(60, 40, 30))
             .with_stability_control(cfl_max=0.95)
             .build()
         )
 
         # Fire surface with ignition
-        fire = (
-            SurfBuilder("FIRE")
-            .with_heat_release(750.0, ramp_id="t2_medium")
-            .with_ignition(temperature=300.0, burn_away=True)
-            .with_radiation(emissivity=0.9, absorptivity=0.85)
-            .with_backing("INSULATED")
-            .build()
+        fire = Surface(
+            id="FIRE",
+            hrrpua=750.0,
+            ramp_q="t2_medium",
+            ignition_temperature=300.0,
+            burn_away=True,
+            emissivity=0.9,
+            absorptivity=0.85,
+            backing="INSULATED",
         )
 
         # Reaction with extinction
@@ -378,21 +378,22 @@ class TestComplexFireScenario:
         )
 
         # Sprinkler
-        sprinkler = (
-            DevcBuilder("SPRINK")
-            .with_quantity("SPRINKLER_LINK_TEMPERATURE")
-            .with_control(setpoint=74.0, trip_direction=1, latch=True)
-            .at_point(Point3D(3.0, 2.0, 2.8))
-            .build()
+        sprinkler = Device(
+            id="SPRINK",
+            quantity="SPRINKLER_LINK_TEMPERATURE",
+            setpoint=74.0,
+            trip_direction=1,
+            latch=True,
+            xyz=Point3D.of(3.0, 2.0, 2.8),
         )
 
         # Temperature monitoring
-        temp_ceiling = (
-            DevcBuilder("TEMP_CEILING_AVG")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MEAN", start_time=5.0)
-            .in_bounds(Bounds3D(0, 6, 0, 4, 2.5, 3.0))
-            .build()
+        temp_ceiling = Device(
+            id="TEMP_CEILING_AVG",
+            quantity="TEMPERATURE",
+            statistics="MEAN",
+            statistics_start=5.0,
+            xb=Bounds3D.of(0, 6, 0, 4, 2.5, 3.0),
         )
 
         # Verify all components
@@ -425,14 +426,14 @@ class TestBackwardCompatibility:
 
     def test_simple_devc_still_works(self):
         """Test that simple DEVC creation still works."""
-        devc = Device(id="TEMP", quantity="TEMPERATURE", xyz=Point3D(5, 5, 2))
+        devc = Device(id="TEMP", quantity="TEMPERATURE", xyz=Point3D.of(5, 5, 2))
         assert devc.id == "TEMP"
         assert devc.quantity == "TEMPERATURE"
 
     def test_simple_mesh_still_works(self):
         """Test that simple MESH creation still works."""
-        mesh = Mesh(ijk=Grid3D(50, 50, 25), xb=Bounds3D(0, 10, 0, 10, 0, 5))
-        assert mesh.ijk == Grid3D(50, 50, 25)
+        mesh = Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
+        assert mesh.ijk == Grid3D.of(50, 50, 25)
 
     def test_simple_reaction_still_works(self):
         """Test that simple REAC creation still works."""

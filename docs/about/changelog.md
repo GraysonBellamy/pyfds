@@ -153,7 +153,7 @@ No breaking changes. New features:
 
 ```python
 # New in 0.1.0
-sim.vent(mb='XMIN', surf_id='OPEN')
+sim.add(Vent(mb='XMIN', surf_id='OPEN')
 sim.set_misc(tmpa=25.0, radiation=True)
 ```
 

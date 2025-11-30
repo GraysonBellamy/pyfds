@@ -234,7 +234,7 @@ class OutputManager(BaseManager):
 
 ```python
 # Convenience methods (delegated to managers)
-sim.mesh(...)        # Delegates to geometry manager
+sim.add(Mesh(...)        # Delegates to geometry manager
 sim.add_ramp(...)    # Delegates to ramp manager
 
 # Direct manager access (advanced usage)
@@ -306,9 +306,9 @@ Used for `Simulation` class to construct complex FDS files incrementally:
 ```python
 sim = (Simulation(chid='fire')
     .time(t_end=600.0)
-    .mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    .mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
     .surface(id='FIRE', hrrpua=1000.0)
-    .obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+    .obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 ```
 
 **Benefits**:
@@ -530,14 +530,14 @@ Test individual components in isolation:
 def test_mesh_creation():
     """Test MESH namelist creation."""
     mesh = Mesh(
-        ijk=(50, 50, 25),
-        xb=(0, 5, 0, 5, 0, 2.5)
+        ijk=Grid3D.of(50, 50, 25),
+        xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)
     )
     assert mesh.ijk == (50, 50, 25)
 
 def test_mesh_to_fds():
     """Test FDS output format."""
-    mesh = Mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+    mesh = Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
     fds_str = mesh.to_fds()
     assert '&MESH' in fds_str
     assert 'IJK=10,10,10' in fds_str
@@ -552,8 +552,8 @@ Test component interactions:
 def test_simulation_write():
     """Test writing complete simulation."""
     sim = Simulation(chid='test')
-    sim.time(t_end=600.0)
-    sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0)
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
     sim.write('test.fds')
 
@@ -601,7 +601,7 @@ Namelists aren't converted to strings until writing:
 
 ```python
 # This is fast - just stores objects
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # This triggers conversion
 sim.write('test.fds')  # to_fds() called here
@@ -614,7 +614,7 @@ Validation is deferred until needed:
 ```python
 # No validation yet
 sim = Simulation(chid='test')
-sim.mesh(...)
+sim.add(Mesh(...)
 
 # Validate only when requested
 sim.validate()  # or
@@ -641,7 +641,7 @@ filtered = temp.filter(pl.col('Time') > 100)
 Namelists are immutable after creation (Pydantic frozen models):
 
 ```python
-mesh = Mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+mesh = Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 # mesh.ijk = (100, 100, 50)  # Error: frozen model
 ```
 
@@ -655,7 +655,7 @@ class Mesh(BaseModel):
     xb: tuple[float, ...]  # Variable length tuple
 
 # This raises ValidationError
-mesh = Mesh(ijk="50,50,25", xb=(0, 5, 0, 5, 0, 2.5))
+mesh = Mesh(ijk="50,50,25", xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 ```
 
 ### Clear Error Messages

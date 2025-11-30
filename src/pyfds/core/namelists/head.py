@@ -4,11 +4,9 @@ FDS HEAD namelist.
 Simulation identification and metadata.
 """
 
-from typing import Any
+from pydantic import field_validator
 
-from pydantic import Field, field_validator
-
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Head(NamelistBase):
@@ -29,24 +27,21 @@ class Head(NamelistBase):
     &HEAD CHID='room_fire', TITLE='Room Fire Test' /
     """
 
-    chid: str = Field(..., description="Case identifier")
-    title: str | None = Field(None, description="Simulation title")
+    chid: str = FdsField(..., description="Case identifier")
+    title: str | None = FdsField(None, description="Simulation title")
 
     @field_validator("chid")
     @classmethod
     def validate_chid(cls, v: str) -> str:
-        """Validate CHID has no spaces or special characters."""
+        """Validate CHID FdsField."""
         if not v:
             raise ValueError("CHID cannot be empty")
+        if len(v) > 60:
+            raise ValueError("CHID cannot be longer than 60 characters")
         if " " in v:
             raise ValueError("CHID cannot contain spaces")
-        if len(v) > 60:
-            raise ValueError("CHID should be 60 characters or less")
         return v
 
-    def to_fds(self) -> str:
-        """Generate FDS HEAD namelist."""
-        params: dict[str, Any] = {"chid": self.chid}
-        if self.title:
-            params["title"] = self.title
-        return self._build_namelist("HEAD", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "HEAD"

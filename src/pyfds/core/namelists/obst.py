@@ -4,12 +4,15 @@ FDS OBST namelist.
 Obstructions and solid objects.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING
 
-from pydantic import Field, field_validator
+from pydantic import field_validator
 
 from pyfds.core.geometry import Bounds3D
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
+
+if TYPE_CHECKING:
+    from pyfds.builders import ObstructionBuilder
 
 
 class Obstruction(NamelistBase):
@@ -100,13 +103,13 @@ class Obstruction(NamelistBase):
     Examples
     --------
     >>> from pyfds.core.geometry import Bounds3D
-    >>> burner = Obstruction(xb=Bounds3D(4, 6, 4, 6, 0, 0.5), surf_id='FIRE')
+    >>> burner = Obstruction(xb=Bounds3D.of(4, 6, 4, 6, 0, 0.5).5), surf_id='FIRE')
     >>> print(burner.to_fds())
     &OBST XB=4,6,4,6,0,0.5, SURF_ID='FIRE' /
 
     >>> # Wall with HT3D heat transfer
     >>> wall = Obstruction(
-    ...     xb=(0, 0.2, 0, 10, 0, 3),
+    ...     xb=Bounds3D.of(0, 0.2, 0, 10, 0, 3),
     ...     surf_id='CONCRETE',
     ...     ht3d=True,
     ...     matl_id='CONCRETE',
@@ -114,79 +117,89 @@ class Obstruction(NamelistBase):
     ... )
     """
 
-    xb: Bounds3D = Field(..., description="Obstruction bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
-    surf_id: str | None = Field(None, description="Surface ID for all faces")
-    surf_id_top: str | None = Field(None, description="Top surface ID")
-    surf_id_bottom: str | None = Field(None, description="Bottom surface ID")
-    surf_id_sides: str | None = Field(None, description="Side surfaces ID")
-    color: str | None = Field(None, description="Named color")
-    bulk_density: float | None = Field(
-        None, gt=0, description="Combustible mass per unit volume [kg/m³]"
-    )
-    surf_id_interior: str | None = Field(
-        None, description="Surface ID for newly exposed surfaces during burn-away"
-    )
-    burn_away: bool = Field(False, description="Allow obstruction to burn away")
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "OBST"
+
+    @classmethod
+    def builder(cls) -> "ObstructionBuilder":
+        """Return a fluent builder for Obstruction.
+
+        Returns
+        -------
+        ObstructionBuilder
+            A builder instance for fluent construction
+
+        Examples
+        --------
+        >>> obst = Obstruction.builder() \\
+        ...     .bounds(0, 1, 0, 1, 0, 0.5) \\
+        ...     .surface("FIRE") \\
+        ...     .build()
+        """
+        from pyfds.builders import ObstructionBuilder
+
+        return ObstructionBuilder()
+
+    xb: Bounds3D = FdsField(..., description="Obstruction bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
+
+    # Surface properties
+    surf_id: str | None = FdsField("INERT", description="Surface ID")
+    surf_id_top: str | None = FdsField(None, description="Top surface ID")
+    surf_id_bottom: str | None = FdsField(None, description="Bottom surface ID")
+    surf_id_sides: str | None = FdsField(None, description="Side surfaces ID")
 
     # Identification
-    id: str | None = Field(None, description="Obstruction identifier")
+    id: str | None = FdsField(None, description="Obstruction identifier")
 
     # Visualization
-    rgb: tuple[int, int, int] | None = Field(None, description="RGB color")
-    transparency: float = Field(1.0, ge=0, le=1, description="Transparency")
-    outline: bool = Field(False, description="Draw as outline in Smokeview")
+    color: str | None = FdsField(None, description="Named color")
+    rgb: tuple[int, int, int] | None = FdsField(None, description="RGB color (0-255)")
+    transparency: float = FdsField(1.0, ge=0, le=1, description="Transparency (0-1)")
+    outline: bool = FdsField(False, description="Draw outline only")
 
-    # Geometry Control
-    thicken: bool = Field(False, description="Force cell thickness")
-    overlay: bool = Field(True, description="Override overlapping obstructions")
-    permit_hole: bool = Field(True, description="Allow HOLEs to punch through")
-    removable: bool = Field(True, description="Allow removal during simulation")
-    allow_vent: bool = Field(True, description="Allow VENTs to attach")
+    # Geometry control
+    thicken: bool = FdsField(False, description="Thicken thin obstructions")
+    overlay: bool = FdsField(True, description="Allow overlay")
+    permit_hole: bool = FdsField(True, description="Permit holes")
+    removable: bool = FdsField(True, description="Removable obstruction")
+    allow_vent: bool = FdsField(True, description="Allow vents")
 
-    # Control/Activation
-    ctrl_id: str | None = Field(None, description="Control ID for activation")
-    devc_id: str | None = Field(None, description="Device ID for activation")
+    # Control/activation
+    ctrl_id: str | None = FdsField(None, description="Control ID")
+    devc_id: str | None = FdsField(None, description="Device ID")
 
-    # Array Replication
-    mult_id: str | None = Field(None, description="Multiplier ID")
+    # Array replication
+    mult_id: str | None = FdsField(None, description="Multiplier ID")
 
     # Texture
-    texture_origin: tuple[float, float, float] | None = Field(
-        None, description="Texture origin point"
-    )
+    texture_origin: tuple[float, float, float] | None = FdsField(None, description="Texture origin")
 
-    # 3D Heat Transfer (HT3D) - for solid obstructions
-    ht3d: bool = Field(False, description="Enable 3D heat conduction")
-    matl_id: list[str] | str | None = Field(None, description="Material ID(s) for HT3D")
-    matl_mass_fraction: list[float] | None = Field(
-        None, description="Mass fractions for HT3D materials"
-    )
-    cell_size: float | None = Field(None, gt=0, description="Interior cell size [m]")
-    cell_size_factor: float | None = Field(None, gt=0, description="Cell size multiplier")
-    stretch_factor: float | None = Field(None, gt=0, description="Grid stretching")
-    n_layer_cells_max: int | None = Field(None, ge=1, description="Max cells in layer")
-    internal_heat_source: float | None = Field(None, description="Internal heat source [kW/m³]")
-    ramp_ihs: str | None = Field(None, description="Ramp for internal heat source")
+    # Combustion
+    bulk_density: float | None = FdsField(None, gt=0, description="Bulk density [kg/m³]")
+    surf_id_interior: str | None = FdsField(None, description="Interior surface ID")
+    burn_away: bool = FdsField(False, description="Burn away obstruction")
 
-    # Shape-based geometry (used with MULT)
-    shape: str | None = Field(None, description="Shape type: SPHERE, CYLINDER, CONE, BOX")
-    xyz: tuple[float, float, float] | None = Field(None, description="Center position")
-    radius: float | None = Field(None, gt=0, description="Shape radius")
-    height: float | None = Field(None, gt=0, description="Shape height")
-    length: float | None = Field(None, gt=0, description="Box length")
-    width: float | None = Field(None, gt=0, description="Box width")
-    orientation: tuple[float, float, float] | None = Field(None, description="Direction vector")
-    theta: float | None = Field(None, description="Rotation angle [degrees]")
+    # 3D Heat transfer
+    ht3d: bool = FdsField(False, description="3D heat transfer")
+    matl_id: str | list[str] | None = FdsField(None, description="Material ID(s)")
+    matl_mass_fraction: list[float] | None = FdsField(None, description="Material mass fractions")
+    cell_size: float | None = FdsField(None, gt=0, description="Cell size [m]")
+    cell_size_factor: float | None = FdsField(None, gt=0, description="Cell size factor")
+    stretch_factor: float | None = FdsField(None, gt=0, description="Stretch factor")
+    n_layer_cells_max: int | None = FdsField(None, ge=1, description="Max layer cells")
+    internal_heat_source: float | None = FdsField(None, description="Internal heat source [kW/m³]")
+    ramp_ihs: str | None = FdsField(None, description="Internal heat source ramp")
 
-    @field_validator("xb", mode="before")
-    @classmethod
-    def validate_xb(cls, v: Any) -> Bounds3D:
-        """Validate and convert obstruction bounds."""
-        if isinstance(v, Bounds3D):
-            return v
-        if isinstance(v, tuple):
-            return Bounds3D.from_tuple(v)
-        raise ValueError("XB must be a Bounds3D or tuple of 6 floats")
+    # Shape-based geometry
+    shape: str | None = FdsField(None, description="Geometric shape")
+    xyz: tuple[float, float, float] | None = FdsField(None, description="Shape center")
+    radius: float | None = FdsField(None, gt=0, description="Shape radius [m]")
+    height: float | None = FdsField(None, gt=0, description="Shape height [m]")
+    length: float | None = FdsField(None, gt=0, description="Shape length [m]")
+    width: float | None = FdsField(None, gt=0, description="Shape width [m]")
+    orientation: tuple[int, int, int] | None = FdsField(None, description="Shape orientation")
+    theta: float | None = FdsField(None, description="Shape rotation [°]")
 
     @field_validator("rgb", mode="before")
     @classmethod
@@ -211,108 +224,3 @@ class Obstruction(NamelistBase):
         if v.upper() not in valid_shapes:
             raise ValueError(f"Shape must be one of: {', '.join(valid_shapes)}")
         return v.upper()
-
-    def to_fds(self) -> str:
-        """Generate FDS OBST namelist."""
-        params: dict[str, Any] = {"xb": self.xb.as_tuple()}
-
-        # Basic surface parameters
-        if self.surf_id:
-            params["surf_id"] = self.surf_id
-        if self.surf_id_top:
-            params["surf_id_top"] = self.surf_id_top
-        if self.surf_id_bottom:
-            params["surf_id_bottom"] = self.surf_id_bottom
-        if self.surf_id_sides:
-            params["surf_id_sides"] = self.surf_id_sides
-
-        # Identification
-        if self.id:
-            params["id"] = self.id
-
-        # Visualization
-        if self.color:
-            params["color"] = self.color
-        if self.rgb:
-            params["rgb"] = self.rgb
-        if self.transparency != 1.0:
-            params["transparency"] = self.transparency
-        if self.outline:
-            params["outline"] = self.outline
-
-        # Geometry Control
-        if self.thicken:
-            params["thicken"] = self.thicken
-        if not self.overlay:
-            params["overlay"] = self.overlay
-        if not self.permit_hole:
-            params["permit_hole"] = self.permit_hole
-        if not self.removable:
-            params["removable"] = self.removable
-        if not self.allow_vent:
-            params["allow_vent"] = self.allow_vent
-
-        # Control/Activation
-        if self.ctrl_id:
-            params["ctrl_id"] = self.ctrl_id
-        if self.devc_id:
-            params["devc_id"] = self.devc_id
-
-        # Array Replication
-        if self.mult_id:
-            params["mult_id"] = self.mult_id
-
-        # Texture
-        if self.texture_origin:
-            params["texture_origin"] = self.texture_origin
-
-        # Combustion
-        if self.bulk_density is not None:
-            params["bulk_density"] = self.bulk_density
-        if self.surf_id_interior:
-            params["surf_id_interior"] = self.surf_id_interior
-        if self.burn_away:
-            params["burn_away"] = self.burn_away
-
-        # 3D Heat Transfer (HT3D)
-        if self.ht3d:
-            params["ht3d"] = self.ht3d
-        if self.matl_id:
-            if isinstance(self.matl_id, list):
-                params["matl_id"] = self.matl_id
-            else:
-                params["matl_id"] = self.matl_id
-        if self.matl_mass_fraction:
-            params["matl_mass_fraction"] = self.matl_mass_fraction
-        if self.cell_size is not None:
-            params["cell_size"] = self.cell_size
-        if self.cell_size_factor is not None:
-            params["cell_size_factor"] = self.cell_size_factor
-        if self.stretch_factor is not None:
-            params["stretch_factor"] = self.stretch_factor
-        if self.n_layer_cells_max is not None:
-            params["n_layer_cells_max"] = self.n_layer_cells_max
-        if self.internal_heat_source is not None:
-            params["internal_heat_source"] = self.internal_heat_source
-        if self.ramp_ihs:
-            params["ramp_ihs"] = self.ramp_ihs
-
-        # Shape-based geometry
-        if self.shape:
-            params["shape"] = self.shape
-        if self.xyz:
-            params["xyz"] = self.xyz
-        if self.radius is not None:
-            params["radius"] = self.radius
-        if self.height is not None:
-            params["height"] = self.height
-        if self.length is not None:
-            params["length"] = self.length
-        if self.width is not None:
-            params["width"] = self.width
-        if self.orientation:
-            params["orientation"] = tuple(int(x) for x in self.orientation)
-        if self.theta is not None:
-            params["theta"] = self.theta
-
-        return self._build_namelist("OBST", params)

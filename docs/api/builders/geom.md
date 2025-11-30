@@ -105,8 +105,8 @@ cylinder = (
 block = (
     GeomBuilder('BOX')
     .block(
-        xb=(0, 2, 0, 1, 0, 3),  # bounds
-        ijk=(4, 2, 6)             # subdivisions
+        xb=Bounds3D.of(0, 2, 0, 1, 0, 3),  # bounds
+        ijk=Grid3D.of(4, 2, 6)             # subdivisions
     )
     .build()
 )

@@ -147,7 +147,7 @@ sim.add_material(wood)
 sim.surface(id='WOOD_WALL', matl_id='WOOD', thickness=0.012)
 
 # Apply to geometry
-sim.obstruction(xb=(0, 0, 0, 5, 0, 3), surf_id='WOOD_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0, 0, 5, 0, 3), surf_id='WOOD_WALL')
 ```
 
 ### Layered Materials

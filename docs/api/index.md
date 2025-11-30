@@ -135,7 +135,7 @@ from pyfds.core.namelists import Mesh, Surface
 def create_simulation(name: str) -> Simulation:
     """Create a simulation with type safety."""
     sim = Simulation(chid=name)
-    sim.time(t_end=600.0)
+    sim.add(Time(t_end=600.0)
     return sim
 
 # IDE will autocomplete and type-check
@@ -193,7 +193,7 @@ Executable code examples:
 Examples
 --------
 >>> sim = Simulation(chid='test')
->>> sim.time(t_end=600.0, dt=0.1)
+>>> sim.add(Time(t_end=600.0, dt=0.1)
 >>> sim.write('test.fds')
 ```
 

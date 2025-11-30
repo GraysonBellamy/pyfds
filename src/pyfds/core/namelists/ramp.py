@@ -7,9 +7,9 @@ Time-dependent functions.
 from typing import Any, cast
 
 import numpy as np
-from pydantic import Field, model_validator
+from pydantic import model_validator
 
-from pyfds.core.namelists.base import NamelistBase
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Ramp(NamelistBase):
@@ -42,8 +42,8 @@ class Ramp(NamelistBase):
     - FDS uses linear interpolation between points
     """
 
-    id: str = Field(..., description="Ramp identifier")
-    points: list[tuple[float, float]] = Field(default_factory=list, description="(T, F) points")
+    id: str = FdsField(..., description="Ramp identifier")
+    points: list[tuple[float, float]] = FdsField(default_factory=list, description="(T, F) points")
 
     @model_validator(mode="after")
     def validate_ramp(self) -> "Ramp":
@@ -51,11 +51,10 @@ class Ramp(NamelistBase):
         if len(self.points) < 2:
             raise ValueError(f"Ramp '{self.id}' requires at least 2 points")
 
-        # Sort points by T value (use object.__setattr__ to avoid recursion)
-        sorted_points = sorted(self.points, key=lambda p: p[0])
-        object.__setattr__(self, "points", sorted_points)
+        # Sort points by T value
+        self.points.sort(key=lambda p: p[0])
 
-        # Check for duplicate T values
+        # Check for duplicate T values after sorting
         t_values = [p[0] for p in self.points]
         if len(t_values) != len(set(t_values)):
             raise ValueError(f"Ramp '{self.id}' has duplicate T values")
@@ -79,7 +78,8 @@ class Ramp(NamelistBase):
             Self for method chaining
         """
         self.points.append((t, f))
-        self.points = sorted(self.points, key=lambda p: p[0])
+        # Sort points by T value after adding
+        self.points.sort(key=lambda p: p[0])
 
         # Revalidate after adding point
         t_values = [p[0] for p in self.points]
@@ -105,10 +105,16 @@ class Ramp(NamelistBase):
         if not self.points:
             raise ValueError(f"Ramp '{self.id}' has no points")
 
-        t_values = np.array([p[0] for p in self.points])
-        f_values = np.array([p[1] for p in self.points])
+        # Ensure points are sorted by T value
+        sorted_points = sorted(self.points, key=lambda p: p[0])
+        t_values = np.array([p[0] for p in sorted_points])
+        f_values = np.array([p[1] for p in sorted_points])
 
         return cast("float | np.ndarray", np.interp(t, t_values, f_values))
+
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "RAMP"
 
     def to_fds(self) -> str:
         """
@@ -121,6 +127,10 @@ class Ramp(NamelistBase):
         """
         lines = []
         for t, f in self.points:
-            params: dict[str, Any] = {"id": self.id, "t": t, "f": f}
+            params: dict[str, Any] = {
+                "ID": self._format_value(self.id),
+                "T": self._format_value(t),
+                "F": self._format_value(f),
+            }
             lines.append(self._build_namelist("RAMP", params).rstrip("\n"))
         return "\n".join(lines) + "\n"

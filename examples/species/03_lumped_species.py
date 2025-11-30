@@ -16,7 +16,13 @@ Run with: python examples/species/03_lumped_species.py
 from pathlib import Path
 
 from pyfds import Simulation
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Species
+from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.mesh import Mesh
+from pyfds.core.namelists.reac import Reaction
+from pyfds.core.namelists.time import Time
+from pyfds.core.namelists.vent import Vent
 
 
 def main():
@@ -74,55 +80,58 @@ def main():
     sim = Simulation(chid="lumped_species_example")
 
     # Set up basic simulation parameters
-    sim.time(t_end=30.0)
-    sim.mesh(ijk=(20, 20, 20), xb=(0, 2, 0, 2, 0, 2))
+    sim.add(Time(t_end=30.0))
+    sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
 
     # Add component species
     print("   - Adding component species")
-    sim.add_species(nitrogen_component)
-    sim.add_species(oxygen_component)
-    sim.add_species(argon_component)
+    sim.add(nitrogen_component)
+    sim.add(oxygen_component)
+    sim.add(argon_component)
 
     # Add lumped air mixture
     print("   - Adding lumped air mixture")
-    sim.add_species(lumped_air)
-
+    sim.add(lumped_air)
     # Add fuel species
     print("   - Adding methane fuel")
-    sim.species(id="METHANE", mass_fraction_0=0.0)
+    sim.add(Species(id="METHANE", mass_fraction_0=0.0))
 
     # Define combustion reaction
     print("   - Setting up methane combustion")
-    sim.reaction(
-        fuel="METHANE",
-        heat_of_combustion=50000,  # kJ/kg
-        c=1,
-        h=4,  # CH4 composition
-        soot_yield=0.01,
-        co_yield=0.005,
+    sim.add(
+        Reaction(
+            fuel="METHANE",
+            heat_of_combustion=50000,  # kJ/kg
+            c=1,
+            h=4,  # CH4 composition
+            soot_yield=0.01,
+            co_yield=0.005,
+        )
     )
 
     # Add fire source
     print("   - Adding methane fuel source")
-    sim.vent(id="CH4_BURNER", xb=(0.8, 1.2, 0.8, 1.2, 0, 0), surface="burner")
+    sim.add(Vent(id="CH4_BURNER", xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0), surface="burner"))
 
     # Add monitoring devices
     print("   - Adding species concentration monitors")
-    sim.device(id="CH4_CONC", xyz=(1.0, 1.0, 0.5), quantity="MASS FRACTION METHANE")
-
-    sim.device(
-        id="O2_CONC",
-        xyz=(1.0, 1.0, 0.5),
-        quantity="VOLUME FRACTION O2 COMPONENT",  # Monitor oxygen component
+    sim.add(Device(id="CH4_CONC", xyz=Point3D.of(1.0, 1.0, 0.5), quantity="MASS FRACTION METHANE"))
+    sim.add(
+        Device(
+            id="O2_CONC",
+            xyz=Point3D.of(1.0, 1.0, 0.5),
+            quantity="VOLUME FRACTION O2 COMPONENT",  # Monitor oxygen component
+        )
+    )
+    sim.add(
+        Device(
+            id="N2_CONC",
+            xyz=Point3D.of(1.0, 1.0, 0.5),
+            quantity="VOLUME FRACTION N2 COMPONENT",  # Monitor nitrogen component
+        )
     )
 
-    sim.device(
-        id="N2_CONC",
-        xyz=(1.0, 1.0, 0.5),
-        quantity="VOLUME FRACTION N2 COMPONENT",  # Monitor nitrogen component
-    )
-
-    sim.device(id="TEMP", xyz=(1.0, 1.0, 0.5), quantity="TEMPERATURE")
+    sim.add(Device(id="TEMP", xyz=Point3D.of(1.0, 1.0, 0.5), quantity="TEMPERATURE"))
 
     # Generate FDS input
     print("\n4. Generated FDS Input:")

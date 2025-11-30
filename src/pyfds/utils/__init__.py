@@ -1,8 +1,8 @@
 """Utilities for PyFDS."""
 
-from pyfds.utils.logging import get_logger, set_log_level, setup_logger
-from pyfds.utils.validation import (
-    ValidationError,
+from pyfds.exceptions import ValidationError
+from pyfds.logging import get_logger, setup_logging
+from pyfds.validation.input import (
     safe_read_text,
     validate_chid,
     validate_file_size,
@@ -17,8 +17,7 @@ __all__ = [
     # Logging
     "get_logger",
     "safe_read_text",
-    "set_log_level",
-    "setup_logger",
+    "setup_logging",
     "validate_chid",
     "validate_file_size",
     "validate_non_negative_number",

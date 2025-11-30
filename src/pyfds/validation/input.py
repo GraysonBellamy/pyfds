@@ -1,27 +1,26 @@
-"""Input validation and sanitization utilities."""
+"""Input validation and sanitization utilities.
+
+This module provides validation for user-provided inputs before they
+are used to construct simulation objects.
+"""
 
 import re
 from pathlib import Path
 
+from pyfds.exceptions import ValidationError
+
 # Maximum file size for reading output files (100 MB)
-MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024
+MAX_FILE_SIZE = 100 * 1024 * 1024
 
 # Maximum CHID length (FDS limitation)
-MAX_CHID_LENGTH = 60
+CHID_MAX_LENGTH = 60
 
 # Valid CHID pattern (alphanumeric, underscores, hyphens)
 CHID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
-class ValidationError(ValueError):
-    """Raised when input validation fails."""
-
-    pass
-
-
 def validate_chid(chid: str) -> str:
-    """
-    Validate and sanitize a CHID (case identifier).
+    """Validate and sanitize a CHID (case identifier).
 
     CHID must be:
     - Non-empty
@@ -50,8 +49,6 @@ def validate_chid(chid: str) -> str:
     'my_simulation'
     >>> validate_chid("test-case-123")
     'test-case-123'
-    >>> validate_chid("invalid/path")  # doctest: +SKIP
-    ValidationError: CHID cannot contain path separators
     """
     if not chid:
         raise ValidationError("CHID cannot be empty")
@@ -60,9 +57,9 @@ def validate_chid(chid: str) -> str:
         raise ValidationError(f"CHID must be a string, got {type(chid).__name__}")
 
     # Check length
-    if len(chid) > MAX_CHID_LENGTH:
+    if len(chid) > CHID_MAX_LENGTH:
         raise ValidationError(
-            f"CHID must be {MAX_CHID_LENGTH} characters or less, got {len(chid)} characters"
+            f"CHID must be {CHID_MAX_LENGTH} characters or less, got {len(chid)} characters"
         )
 
     # Check for path separators and path traversal
@@ -86,8 +83,7 @@ def validate_path(
     must_be_dir: bool = False,
     allow_create: bool = True,
 ) -> Path:
-    """
-    Validate and resolve a file system path.
+    """Validate and resolve a file system path.
 
     Parameters
     ----------
@@ -111,14 +107,6 @@ def validate_path(
     ------
     ValidationError
         If path validation fails
-
-    Examples
-    --------
-    >>> validate_path("/tmp/test.txt")  # doctest: +SKIP
-    Path('/tmp/test.txt')
-
-    >>> validate_path("output", must_be_dir=True)  # doctest: +SKIP
-    Path('/current/dir/output')
     """
     if not isinstance(path, (str, Path)):
         raise ValidationError(f"Path must be string or Path, got {type(path).__name__}")
@@ -155,16 +143,15 @@ def validate_path(
     return resolved
 
 
-def validate_file_size(file_path: Path, max_size: int = MAX_FILE_SIZE_BYTES) -> Path:
-    """
-    Validate that a file is not too large to read safely.
+def validate_file_size(file_path: Path, max_size: int = MAX_FILE_SIZE) -> Path:
+    """Validate that a file is not too large to read safely.
 
     Parameters
     ----------
     file_path : Path
         Path to file to check
     max_size : int, optional
-        Maximum allowed file size in bytes, by default MAX_FILE_SIZE_BYTES (100 MB)
+        Maximum allowed file size in bytes, by default MAX_FILE_SIZE (100 MB)
 
     Returns
     -------
@@ -175,11 +162,6 @@ def validate_file_size(file_path: Path, max_size: int = MAX_FILE_SIZE_BYTES) -> 
     ------
     ValidationError
         If file is too large
-
-    Examples
-    --------
-    >>> validate_file_size(Path("small_file.txt"))  # doctest: +SKIP
-    Path('small_file.txt')
     """
     if not file_path.exists():
         raise ValidationError(f"File does not exist: {file_path}")
@@ -202,8 +184,7 @@ def validate_file_size(file_path: Path, max_size: int = MAX_FILE_SIZE_BYTES) -> 
 
 
 def validate_positive_number(value: int | float, name: str = "value") -> int | float:
-    """
-    Validate that a number is positive (> 0).
+    """Validate that a number is positive (> 0).
 
     Parameters
     ----------
@@ -221,13 +202,6 @@ def validate_positive_number(value: int | float, name: str = "value") -> int | f
     ------
     ValidationError
         If value is not positive
-
-    Examples
-    --------
-    >>> validate_positive_number(5, "count")
-    5
-    >>> validate_positive_number(0, "count")  # doctest: +SKIP
-    ValidationError: count must be positive, got 0
     """
     if not isinstance(value, (int, float)):
         raise ValidationError(f"{name} must be a number, got {type(value).__name__}")
@@ -239,8 +213,7 @@ def validate_positive_number(value: int | float, name: str = "value") -> int | f
 
 
 def validate_non_negative_number(value: int | float, name: str = "value") -> int | float:
-    """
-    Validate that a number is non-negative (>= 0).
+    """Validate that a number is non-negative (>= 0).
 
     Parameters
     ----------
@@ -258,13 +231,6 @@ def validate_non_negative_number(value: int | float, name: str = "value") -> int
     ------
     ValidationError
         If value is negative
-
-    Examples
-    --------
-    >>> validate_non_negative_number(0, "time")
-    0
-    >>> validate_non_negative_number(-1, "time")  # doctest: +SKIP
-    ValidationError: time must be non-negative, got -1
     """
     if not isinstance(value, (int, float)):
         raise ValidationError(f"{name} must be a number, got {type(value).__name__}")
@@ -275,18 +241,15 @@ def validate_non_negative_number(value: int | float, name: str = "value") -> int
     return value
 
 
-def safe_read_text(
-    file_path: Path, max_size: int = MAX_FILE_SIZE_BYTES, encoding: str = "utf-8"
-) -> str:
-    """
-    Safely read a text file with size validation.
+def safe_read_text(file_path: Path, max_size: int = MAX_FILE_SIZE, encoding: str = "utf-8") -> str:
+    """Safely read a text file with size validation.
 
     Parameters
     ----------
     file_path : Path
         Path to file to read
     max_size : int, optional
-        Maximum allowed file size in bytes, by default MAX_FILE_SIZE_BYTES
+        Maximum allowed file size in bytes, by default MAX_FILE_SIZE
     encoding : str, optional
         Text encoding, by default "utf-8"
 
@@ -299,11 +262,6 @@ def safe_read_text(
     ------
     ValidationError
         If file is too large or cannot be read
-
-    Examples
-    --------
-    >>> safe_read_text(Path("config.txt"))  # doctest: +SKIP
-    'file contents here'
     """
     # Validate file exists and size
     validate_file_size(file_path, max_size)
@@ -314,3 +272,16 @@ def safe_read_text(
         raise ValidationError(f"File is not valid {encoding} text: {file_path}") from e
     except OSError as e:
         raise ValidationError(f"Cannot read file {file_path}: {e}") from e
+
+
+__all__ = [
+    "CHID_MAX_LENGTH",
+    "CHID_PATTERN",
+    "MAX_FILE_SIZE",
+    "safe_read_text",
+    "validate_chid",
+    "validate_file_size",
+    "validate_non_negative_number",
+    "validate_path",
+    "validate_positive_number",
+]

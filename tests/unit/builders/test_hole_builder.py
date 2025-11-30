@@ -14,11 +14,11 @@ class TestHoleBuilderBasicUsage:
         """Test building a simple hole."""
         hole = HoleBuilder((0, 1, 0, 1, 0, 1)).build()
         assert isinstance(hole, Hole)
-        assert hole.xb == Bounds3D(0, 1, 0, 1, 0, 1)
+        assert hole.xb == Bounds3D.of(0, 1, 0, 1, 0, 1)
 
     def test_build_with_bounds3d(self):
         """Test building with Bounds3D object."""
-        xb = Bounds3D(0, 1, 0, 1, 0, 1)
+        xb = Bounds3D.of(0, 1, 0, 1, 0, 1)
         hole = HoleBuilder(xb).build()
         assert hole.xb == xb
 
@@ -114,7 +114,7 @@ class TestHoleBuilderFactoryMethods:
         """Test door factory method."""
         hole = HoleBuilder.door(wall_x=5, y_min=2, y_max=4, z_min=0, z_max=2.1)
         assert isinstance(hole, Hole)
-        assert hole.xb == Bounds3D(5, 5.1, 2, 4, 0, 2.1)
+        assert hole.xb == Bounds3D.of(5, 5.1, 2, 4, 0, 2.1)
         assert hole.id == "DOOR"
 
     def test_door_factory_custom_id(self):
@@ -126,7 +126,7 @@ class TestHoleBuilderFactoryMethods:
         """Test window factory method."""
         hole = HoleBuilder.window(wall_x=5, y_min=2, y_max=4, z_min=0, z_max=2.1)
         assert isinstance(hole, Hole)
-        assert hole.xb == Bounds3D(5, 5.1, 2, 4, 0, 2.1)
+        assert hole.xb == Bounds3D.of(5, 5.1, 2, 4, 0, 2.1)
         assert hole.id == "WINDOW"
 
     def test_window_factory_custom_id(self):
@@ -137,7 +137,7 @@ class TestHoleBuilderFactoryMethods:
     def test_factory_custom_thickness(self):
         """Test factory methods with custom thickness."""
         hole = HoleBuilder.door(wall_x=5, y_min=2, y_max=4, z_min=0, z_max=2.1, thickness=0.2)
-        assert hole.xb == Bounds3D(5, 5.2, 2, 4, 0, 2.1)
+        assert hole.xb == Bounds3D.of(5, 5.2, 2, 4, 0, 2.1)
 
 
 class TestHoleBuilderComplexUsage:

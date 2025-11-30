@@ -12,8 +12,8 @@ class TestInit:
 
     def test_basic_creation(self):
         """Test init with region bounds."""
-        init = Init(xb=(0, 10, 0, 10, 0, 0.1), temperature=500)
-        assert init.xb == Bounds3D(0, 10, 0, 10, 0, 0.1)
+        init = Init(xb=Bounds3D.of(0, 10, 0, 10, 0, 0.1), temperature=500)
+        assert init.xb == Bounds3D.of(0, 10, 0, 10, 0, 0.1)
         assert init.temperature == 500
 
     def test_init_validation_requires_xb_or_xyz(self):
@@ -23,7 +23,7 @@ class TestInit:
 
     def test_init_to_fds(self):
         """Test FDS output format."""
-        init = Init(xb=(0, 10, 0, 10, 0, 0.1), temperature=500)
+        init = Init(xb=Bounds3D.of(0, 10, 0, 10, 0, 0.1), temperature=500)
         fds_str = init.to_fds()
         assert "&INIT" in fds_str
         assert "XB=" in fds_str

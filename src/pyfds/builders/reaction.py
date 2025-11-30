@@ -73,7 +73,8 @@ class ReactionBuilder(Builder[Reaction]):
         self._co_yield: float = 0.0
         self._radiative_fraction: float | None = None
         self._auto_ignition_temp: float | None = None
-        # Stage 1.3 parameters
+
+        # Extinction and suppression parameters
         self._extinction_model: str | None = None
         self._critical_flame_temp: float | None = None
         self._suppression: bool = False
@@ -84,7 +85,8 @@ class ReactionBuilder(Builder[Reaction]):
         self._fixed_mix_time: float | None = None
         self._tau_chem: float | None = None
         self._tau_flame: float | None = None
-        # Phase 3 parameters
+
+        # Advanced combustion parameters
         self._id: str | None = None
         self._hcn_yield: float = 0.0
         self._epumo2: float | None = None
@@ -426,7 +428,7 @@ class ReactionBuilder(Builder[Reaction]):
         self._ideal = False
         return self
 
-    # Phase 3 methods
+    # Advanced combustion methods
     def reaction_id(self, id: str) -> "ReactionBuilder":
         """
         Set reaction identifier.
@@ -685,7 +687,7 @@ class ReactionBuilder(Builder[Reaction]):
         if self._auto_ignition_temp is not None:
             params["auto_ignition_temperature"] = self._auto_ignition_temp
 
-        # Stage 1.3 parameters
+        # Extinction and suppression parameters
         if self._extinction_model:
             params["extinction_model"] = self._extinction_model
         if self._critical_flame_temp is not None:
@@ -707,7 +709,7 @@ class ReactionBuilder(Builder[Reaction]):
         if self._tau_flame is not None:
             params["tau_flame"] = self._tau_flame
 
-        # Phase 3 parameters
+        # Advanced combustion parameters
         if self._id is not None:
             params["id"] = self._id
         if self._hcn_yield > 0:

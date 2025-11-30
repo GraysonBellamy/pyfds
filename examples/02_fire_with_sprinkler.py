@@ -13,9 +13,9 @@ This shows the control features added in Stage 1.2 (DEVC enhancements).
 
 from pathlib import Path
 
-from pyfds.builders import DevcBuilder, MeshBuilder, ReactionBuilder, SurfBuilder
+from pyfds.builders import MeshBuilder, ReactionBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
-from pyfds.core.namelists import Ramp
+from pyfds.core.namelists import Device, Ramp, Surface, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -33,17 +33,17 @@ def create_fire_with_sprinkler():
     sim = Simulation(
         chid="fire_with_sprinkler", title="Fire with Sprinkler Activation - PyFDS Stage 1 Example"
     )
-    sim.time(t_end=600.0)
+    sim.add(Time(t_end=600.0))
 
     # Computational mesh - finer grid for better accuracy
     mesh = (
         MeshBuilder()
         .with_id("COMPARTMENT")
-        .with_bounds(Bounds3D(0, 8, 0, 6, 0, 3))
-        .with_grid(Grid3D(80, 60, 30))
+        .with_bounds(Bounds3D.of(0, 8, 0, 6, 0, 3))
+        .with_grid(Grid3D.of(80, 60, 30))
         .build()
     )
-    sim.add_mesh(mesh)
+    sim.add(mesh)
 
     # Fire growth ramp - t-squared MEDIUM
     # t² = Q/a, where a_medium = 0.01172 kW/s²
@@ -52,16 +52,11 @@ def create_fire_with_sprinkler():
         id="T2_MEDIUM",
         points=[(0, 0), (60, 42), (120, 170), (180, 380), (240, 675), (300, 1055)],
     )
-    sim.add_ramp(fire_ramp)
+    sim.add(fire_ramp)
 
     # Fire surface with ramped HRR and suppression
-    fire_surf = (
-        SurfBuilder("GROWING_FIRE")
-        .with_heat_release(2500.0, ramp_id="T2_MEDIUM")
-        .with_radiation(emissivity=0.9)
-        .build()
-    )
-    sim.add_surface(fire_surf)
+    fire_surf = Surface(id="GROWING_FIRE", hrrpua=2500.0, ramp_q="T2_MEDIUM", emissivity=0.9)
+    sim.add(fire_surf)
 
     # Reaction with suppression model
     reaction = (
@@ -71,7 +66,7 @@ def create_fire_with_sprinkler():
         .yields(soot=0.10, co=0.04)
         .build()
     )
-    sim.add_reaction(reaction)
+    sim.add(reaction)
 
     # Sprinkler system - 4 sprinklers in a square pattern
     sprinkler_locations = [
@@ -82,14 +77,16 @@ def create_fire_with_sprinkler():
     ]
 
     for i, (x, y, z) in enumerate(sprinkler_locations, 1):
-        sprinkler = (
-            DevcBuilder(f"SPRINKLER_{i}")
-            .with_quantity("TEMPERATURE")
-            .with_control(setpoint=74.0, trip_direction=1, latch=True, delay=1.0)
-            .at_point(Point3D(x, y, z))
-            .build()
+        sprinkler = Device(
+            id=f"SPRINKLER_{i}",
+            quantity="TEMPERATURE",
+            setpoint=74.0,
+            trip_direction=1,
+            latch=True,
+            delay=1.0,
+            xyz=Point3D.of(x, y, z),
         )
-        sim.add_device(sprinkler)
+        sim.add(sprinkler)
 
     # Temperature monitoring grid - 3x3 array at ceiling level
     x_positions = [2.0, 4.0, 6.0]
@@ -97,40 +94,43 @@ def create_fire_with_sprinkler():
 
     for i, x in enumerate(x_positions):
         for j, y in enumerate(y_positions):
-            temp_sensor = (
-                DevcBuilder(f"TEMP_CEILING_{i}_{j}")
-                .with_quantity("TEMPERATURE")
-                .at_point(Point3D(x, y, 2.8))
-                .with_time_history(True)
-                .build()
+            temp_sensor = Device(
+                id=f"TEMP_CEILING_{i}_{j}",
+                quantity="TEMPERATURE",
+                xyz=Point3D.of(x, y, 2.8),
+                time_history=True,
             )
-            sim.add_device(temp_sensor)
+            sim.add(temp_sensor)
 
     # Average compartment temperature by layer
     layers = [
-        ("UPPER", Bounds3D(0, 8, 0, 6, 2.0, 3.0)),
-        ("MIDDLE", Bounds3D(0, 8, 0, 6, 1.0, 2.0)),
-        ("LOWER", Bounds3D(0, 8, 0, 6, 0.0, 1.0)),
+        ("UPPER", Bounds3D.of(0, 8, 0, 6, 2.0, 3.0)),
+        ("MIDDLE", Bounds3D.of(0, 8, 0, 6, 1.0, 2.0)),
+        ("LOWER", Bounds3D.of(0, 8, 0, 6, 0.0, 1.0)),
     ]
 
     for layer_name, bounds in layers:
-        avg_temp = (
-            DevcBuilder(f"AVG_TEMP_{layer_name}")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MEAN", start_time=5.0)
-            .in_bounds(bounds)
-            .build()
+        avg_temp = Device(
+            id=f"AVG_TEMP_{layer_name}",
+            quantity="TEMPERATURE",
+            statistics="MEAN",
+            stat_start=5.0,
+            xb=Bounds3D.of(
+                bounds.x_min, bounds.x_max, bounds.y_min, bounds.y_max, bounds.z_min, bounds.z_max
+            ),
         )
-        sim.add_device(avg_temp)
+        sim.add(avg_temp)
 
-        max_temp = (
-            DevcBuilder(f"MAX_TEMP_{layer_name}")
-            .with_quantity("TEMPERATURE")
-            .with_statistics("MAX", start_time=5.0)
-            .in_bounds(bounds)
-            .build()
+        max_temp = Device(
+            id=f"MAX_TEMP_{layer_name}",
+            quantity="TEMPERATURE",
+            statistics="MAX",
+            stat_start=5.0,
+            xb=Bounds3D.of(
+                bounds.x_min, bounds.x_max, bounds.y_min, bounds.y_max, bounds.z_min, bounds.z_max
+            ),
         )
-        sim.add_device(max_temp)
+        sim.add(max_temp)
 
     return sim
 

@@ -4,21 +4,10 @@ FDS MISC namelist.
 Miscellaneous simulation parameters for physics, numerics, and solver behavior.
 """
 
-from enum import Enum
-from typing import Any
+from pydantic import model_validator
 
-from pydantic import Field, model_validator
-
-from pyfds.core.namelists.base import NamelistBase
-
-
-class TurbulenceModel(str, Enum):
-    """LES turbulence models."""
-
-    DEARDORFF = "DEARDORFF"
-    DYNAMIC_SMAGORINSKY = "DYNAMIC SMAGORINSKY"
-    VREMAN = "VREMAN"
-    WALE = "WALE"
+from pyfds.core.enums import TurbulenceModel
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
 
 class Misc(NamelistBase):
@@ -109,38 +98,40 @@ class Misc(NamelistBase):
     """
 
     # Ambient conditions
-    tmpa: float = Field(20.0, description="Ambient temperature [°C]")
-    p_inf: float = Field(101325.0, gt=0, description="Background pressure [Pa]")
-    humidity: float = Field(40.0, ge=0, le=100, description="Relative humidity [%]")
-    gvec: tuple[float, float, float] = Field((0.0, 0.0, -9.81), description="Gravity vector [m/s²]")
+    tmpa: float = FdsField(20.0, description="Ambient temperature [°C]")
+    p_inf: float = FdsField(101325.0, gt=0, description="Background pressure [Pa]")
+    humidity: float = FdsField(40.0, ge=0, le=100, description="Relative humidity [%]")
+    gvec: tuple[float, float, float] = FdsField(
+        (0.0, 0.0, -9.81), description="Gravity vector [m/s²]"
+    )
 
     # Turbulence model
-    turbulence_model: TurbulenceModel = Field(
+    turbulence_model: TurbulenceModel = FdsField(
         TurbulenceModel.DEARDORFF, description="Turbulence model"
     )
-    c_deardorff: float = Field(0.1, ge=0, le=1, description="Deardorff constant")
-    c_smagorinsky: float = Field(0.2, ge=0, le=1, description="Smagorinsky constant")
-    c_vreman: float = Field(0.07, ge=0, le=1, description="Vreman constant")
+    c_deardorff: float = FdsField(0.1, ge=0, le=1, description="Deardorff constant")
+    c_smagorinsky: float = FdsField(0.2, ge=0, le=1, description="Smagorinsky constant")
+    c_vreman: float = FdsField(0.07, ge=0, le=1, description="Vreman constant")
 
     # Numerical parameters
-    cfl_max: float = Field(1.0, gt=0.1, le=10, description="Maximum CFL number")
-    cfl_min: float = Field(0.8, gt=0.1, le=10, description="Minimum CFL number")
-    vn_max: float = Field(1.0, gt=0.1, le=10, description="Maximum Von Neumann number")
-    vn_min: float = Field(0.8, gt=0.1, le=10, description="Minimum Von Neumann number")
+    cfl_max: float = FdsField(1.0, gt=0.1, le=10, description="Maximum CFL number")
+    cfl_min: float = FdsField(0.8, gt=0.1, le=10, description="Minimum CFL number")
+    vn_max: float = FdsField(1.0, gt=0.1, le=10, description="Maximum Von Neumann number")
+    vn_min: float = FdsField(0.8, gt=0.1, le=10, description="Minimum Von Neumann number")
 
     # Solver options
-    solid_phase_only: bool = Field(False, description="Solid phase only")
-    isothermal: bool = Field(False, description="Isothermal flow")
-    radiation: bool = Field(True, description="Include radiation")
-    stratification: bool = Field(True, description="Include stratification")
+    solid_phase_only: bool = FdsField(False, description="Solid phase only")
+    isothermal: bool = FdsField(False, description="Isothermal flow")
+    radiation: bool = FdsField(True, description="Include radiation")
+    stratification: bool = FdsField(True, description="Include stratification")
 
     # Special modes
-    level_set_mode: int | None = Field(None, ge=0, le=2, description="Wildfire mode")
-    particle_cfl: bool = Field(True, description="Use particle CFL")
+    level_set_mode: int | None = FdsField(None, ge=0, le=2, description="Wildfire mode")
+    particle_cfl: bool = FdsField(True, description="Use particle CFL")
 
     # Restart
-    restart: bool = Field(False, description="Enable restart")
-    restart_chid: str | None = Field(None, description="Restart CHID")
+    restart: bool = FdsField(False, description="Enable restart")
+    restart_chid: str | None = FdsField(None, description="Restart CHID")
 
     @model_validator(mode="after")
     def validate_misc(self) -> "Misc":
@@ -167,66 +158,6 @@ class Misc(NamelistBase):
 
         return self
 
-    def to_fds(self) -> str:
-        """
-        Generate FDS MISC namelist.
-
-        Only outputs non-default values to keep the file clean.
-        """
-        params: dict[str, Any] = {}
-
-        # Ambient conditions (only if non-default)
-        if self.tmpa != 20.0:
-            params["tmpa"] = self.tmpa
-        if self.p_inf != 101325.0:
-            params["p_inf"] = self.p_inf
-        if self.humidity != 40.0:
-            params["humidity"] = self.humidity
-        if self.gvec != (0.0, 0.0, -9.81):
-            params["gvec"] = self.gvec
-
-        # Turbulence model
-        if self.turbulence_model != TurbulenceModel.DEARDORFF:
-            params["turbulence_model"] = self.turbulence_model.value
-        if self.c_deardorff != 0.1:
-            params["c_deardorff"] = self.c_deardorff
-        if self.c_smagorinsky != 0.2:
-            params["c_smagorinsky"] = self.c_smagorinsky
-        if self.c_vreman != 0.07:
-            params["c_vreman"] = self.c_vreman
-
-        # CFL parameters
-        if self.cfl_max != 1.0:
-            params["cfl_max"] = self.cfl_max
-        if self.cfl_min != 0.8:
-            params["cfl_min"] = self.cfl_min
-
-        # VN parameters
-        if self.vn_max != 1.0:
-            params["vn_max"] = self.vn_max
-        if self.vn_min != 0.8:
-            params["vn_min"] = self.vn_min
-
-        # Solver options
-        if self.solid_phase_only:
-            params["solid_phase_only"] = self.solid_phase_only
-        if self.isothermal:
-            params["isothermal"] = self.isothermal
-        if not self.radiation:
-            params["radiation"] = self.radiation
-        if not self.stratification:
-            params["stratification"] = self.stratification
-
-        # Special modes
-        if self.level_set_mode is not None:
-            params["level_set_mode"] = self.level_set_mode
-        if not self.particle_cfl:
-            params["particle_cfl"] = self.particle_cfl
-
-        # Restart
-        if self.restart:
-            params["restart"] = self.restart
-            if self.restart_chid:
-                params["restart_chid"] = self.restart_chid
-
-        return self._build_namelist("MISC", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "MISC"

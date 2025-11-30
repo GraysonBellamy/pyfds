@@ -2,19 +2,19 @@
 
 import pytest
 
-from pyfds.execution.exceptions import (
-    FDSExecutionError,
+from pyfds.exceptions import (
+    ExecutionError,
     FDSNotFoundError,
     FDSTimeoutError,
 )
 
 
-class TestFDSExecutionError:
-    """Tests for FDSExecutionError."""
+class TestExecutionError:
+    """Tests for ExecutionError."""
 
     def test_basic_error(self):
         """Test creating basic error."""
-        error = FDSExecutionError("Test error")
+        error = ExecutionError("Test error")
         assert str(error) == "Test error"
         assert error.exit_code is None
         assert error.stdout is None
@@ -23,13 +23,13 @@ class TestFDSExecutionError:
 
     def test_error_with_exit_code(self):
         """Test error with exit code."""
-        error = FDSExecutionError("Failed", exit_code=1)
+        error = ExecutionError("Failed", exit_code=1)
         assert error.exit_code == 1
         assert "Exit code: 1" in str(error)
 
     def test_error_with_stdout_stderr(self):
         """Test error with stdout/stderr."""
-        error = FDSExecutionError("Failed", stdout="Standard output", stderr="Error output")
+        error = ExecutionError("Failed", stdout="Standard output", stderr="Error output")
         assert error.stdout == "Standard output"
         assert error.stderr == "Error output"
         # Note: __str__ only includes stderr, not stdout
@@ -37,13 +37,13 @@ class TestFDSExecutionError:
 
     def test_error_with_fds_file(self):
         """Test error with FDS file path."""
-        error = FDSExecutionError("Failed", fds_file="/path/to/test.fds")
+        error = ExecutionError("Failed", fds_file="/path/to/test.fds")
         assert error.fds_file == "/path/to/test.fds"
         assert "test.fds" in str(error)
 
-    def test_error_with_all_fields(self):
-        """Test error with all context fields."""
-        error = FDSExecutionError(
+    def test_error_with_all_FdsFields(self):
+        """Test error with all context FdsFields."""
+        error = ExecutionError(
             "Simulation failed",
             exit_code=1,
             stdout="Output data",
@@ -60,7 +60,7 @@ class TestFDSExecutionError:
 
     def test_error_str_formatting(self):
         """Test error string formatting is clear and readable."""
-        error = FDSExecutionError("Test error", exit_code=2, fds_file="case.fds")
+        error = ExecutionError("Test error", exit_code=2, fds_file="case.fds")
         error_str = str(error)
 
         # Should have clear sections
@@ -72,9 +72,9 @@ class TestFDSTimeoutError:
     """Tests for FDSTimeoutError."""
 
     def test_timeout_error_inherits_execution_error(self):
-        """Test FDSTimeoutError is subclass of FDSExecutionError."""
+        """Test FDSTimeoutError is subclass of ExecutionError."""
         error = FDSTimeoutError("Timeout")
-        assert isinstance(error, FDSExecutionError)
+        assert isinstance(error, ExecutionError)
 
     def test_timeout_error_basic(self):
         """Test creating basic timeout error."""
@@ -114,15 +114,15 @@ class TestExceptionHierarchy:
     def test_catch_execution_errors(self):
         """Test catching execution-related errors with base class."""
         errors = [
-            FDSExecutionError("Generic error"),
+            ExecutionError("Generic error"),
             FDSTimeoutError("Timeout"),
         ]
 
         for error in errors:
             try:
                 raise error
-            except FDSExecutionError:
-                pass  # Should catch FDSExecutionError and FDSTimeoutError
+            except ExecutionError:
+                pass  # Should catch ExecutionError and FDSTimeoutError
             else:
                 pytest.fail(f"Failed to catch {type(error)}")
 
@@ -145,9 +145,9 @@ class TestExceptionHierarchy:
             pytest.fail("Failed to catch FDSNotFoundError")
 
     def test_timeout_inherits_from_execution_error(self):
-        """Test FDSTimeoutError inherits from FDSExecutionError."""
+        """Test FDSTimeoutError inherits from ExecutionError."""
         error = FDSTimeoutError("Timeout")
-        assert isinstance(error, FDSExecutionError)
+        assert isinstance(error, ExecutionError)
         assert isinstance(error, Exception)
 
     def test_error_context_preservation(self):
@@ -158,7 +158,7 @@ class TestExceptionHierarchy:
             try:
                 raise original
             except ValueError as e:
-                raise FDSExecutionError("Wrapped error") from e
-        except FDSExecutionError as fds_error:
+                raise ExecutionError("Wrapped error") from e
+        except ExecutionError as fds_error:
             assert fds_error.__cause__ is original
             assert isinstance(fds_error.__cause__, ValueError)

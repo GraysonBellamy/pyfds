@@ -17,17 +17,14 @@ and fire protection engineering guidelines.
 from pathlib import Path
 
 from pyfds.builders import (
-    DevcBuilder,
     MaterialBuilder,
     MeshBuilder,
     PartBuilder,
     PropBuilder,
     RampBuilder,
-    SurfBuilder,
-    VentBuilder,
 )
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
-from pyfds.core.namelists import Head, Time
+from pyfds.core.namelists import Device, Head, Surface, Time, Vent
 from pyfds.core.simulation import Simulation
 
 
@@ -45,8 +42,8 @@ def create_sprinkler_simulation():
     mesh = (
         MeshBuilder()
         .with_id("ROOM")
-        .with_bounds(Bounds3D(0, 6, 0, 4, 0, 3))
-        .with_grid(Grid3D(60, 40, 30))
+        .with_bounds(Bounds3D.of(0, 6, 0, 4, 0, 3))
+        .with_grid(Grid3D.of(60, 40, 30))
         .build()
     )
 
@@ -85,19 +82,23 @@ def create_sprinkler_simulation():
 
     # ==================== SURFACES ====================
     # Fire source that generates smoke
-    fire_surf = (
-        SurfBuilder("FIRE_SOURCE")
-        .with_particle_generation("SMOKE", mass_flux=0.002, nppc=2)
-        .with_heat_release(500.0, ramp_id="FIRE_GROWTH")
-        .with_color("ORANGE")
-        .build()
+    fire_surf = Surface(
+        id="FIRE_SOURCE",
+        part_id="SMOKE",
+        particle_mass_flux=0.002,
+        nppc=2,
+        hrrpua=500.0,
+        ramp_q="FIRE_GROWTH",
+        color="ORANGE",
     )
 
     # Sprinkler spray surface
-    sprinkler_surf = (
-        SurfBuilder("SPRINKLER_SPRAY")
-        .as_sprinkler(part_id="WATER_DROP", mass_flux=0.02, median_diameter=0.001, velocity=6.0)
-        .build()
+    sprinkler_surf = Surface(
+        id="SPRINKLER_SPRAY",
+        part_id="WATER_DROP",
+        particle_mass_flux=0.02,
+        median_diameter=0.001,
+        vel_part=6.0,
     )
 
     # ==================== DEVICE PROPERTIES ====================
@@ -112,78 +113,65 @@ def create_sprinkler_simulation():
 
     # ==================== DEVICES ====================
     # Ceiling-mounted sprinkler (center of room)
-    sprinkler = (
-        DevcBuilder("SPRINKLER_1")
-        .with_quantity("SPRINKLER_LINK_TEMPERATURE")
-        .with_control(setpoint=68.0, trip_direction=1, latch=True, delay=2.0)
-        .at_point(Point3D(3.0, 2.0, 2.8))
-        .with_prop("QR_SPRINKLER")
-        .build()
+    sprinkler = Device(
+        id="SPRINKLER_1",
+        quantity="SPRINKLER_LINK_TEMPERATURE",
+        setpoint=68.0,
+        trip_direction=1,
+        latch=True,
+        delay=2.0,
+        xyz=Point3D.of(3.0, 2.0, 2.8),
+        prop_id="QR_SPRINKLER",
     )
 
     # Smoke detector (also ceiling-mounted)
-    smoke_detector = (
-        DevcBuilder("SMOKE_DET_1")
-        .with_quantity("CHAMBER_OBSCURATION")
-        .with_control(setpoint=3.28, trip_direction=1, latch=True)
-        .at_point(Point3D(1.5, 2.0, 2.9))
-        .with_prop("SMOKE_DETECTOR")
-        .build()
+    smoke_detector = Device(
+        id="SMOKE_DET_1",
+        quantity="CHAMBER_OBSCURATION",
+        setpoint=3.28,
+        trip_direction=1,
+        latch=True,
+        xyz=Point3D.of(1.5, 2.0, 2.9),
+        prop_id="SMOKE_DETECTOR",
     )
 
     # Temperature measurement at ceiling
-    temp_ceiling = (
-        DevcBuilder("TEMP_CEILING")
-        .with_quantity("TEMPERATURE")
-        .at_point(Point3D(3.0, 2.0, 2.9))
-        .with_time_history(True)
-        .build()
+    temp_ceiling = Device(
+        id="TEMP_CEILING", quantity="TEMPERATURE", xyz=Point3D.of(3.0, 2.0, 2.9), time_history=True
     )
 
     # ==================== VENTS ====================
     # Fire source (1m x 1m on floor, corner of room)
-    fire_vent = (
-        VentBuilder("FIRE")
-        .with_bounds(Bounds3D(0.5, 1.5, 0.5, 1.5, 0.0, 0.0))
-        .with_surf("FIRE_SOURCE")
-        .build()
-    )
+    fire_vent = Vent(id="FIRE", xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0.0, 0.0), surf_id="FIRE_SOURCE")
 
     # Sprinkler spray (0.3m x 0.3m on ceiling)
-    sprinkler_vent = (
-        VentBuilder("SPRINKLER")
-        .with_bounds(Bounds3D(2.85, 3.15, 1.85, 2.15, 3.0, 3.0))
-        .with_surf("SPRINKLER_SPRAY")
-        .with_control("SPRINKLER_1")  # Activated by sprinkler device
-        .build()
+    sprinkler_vent = Vent(
+        id="SPRINKLER",
+        xb=Bounds3D.of(2.85, 3.15, 1.85, 2.15, 3.0, 3.0),
+        surf_id="SPRINKLER_SPRAY",
+        ctrl_id="SPRINKLER_1",  # Activated by sprinkler device
     )
 
     # Door opening (0.9m wide, 2.0m tall)
-    door = (
-        VentBuilder("DOOR")
-        .with_bounds(Bounds3D(6.0, 6.0, 1.5, 2.4, 0.0, 2.0))
-        .with_surf("OPEN")
-        .build()
-    )
+    door = Vent(id="DOOR", xb=Bounds3D.of(6.0, 6.0, 1.5, 2.4, 0.0, 2.0), surf_id="OPEN")
 
     # ==================== BUILD SIMULATION ====================
     sim = Simulation(head=head, time=time)
-    sim.add_mesh(mesh)
-    sim.add_material(wood)
-    sim.add_particle(smoke)
-    sim.add_particle(water)
-    sim.add_ramp(fire_ramp)
-    sim.add_surface(fire_surf)
-    sim.add_surface(sprinkler_surf)
-    sim.add_prop(sprinkler_prop)
-    sim.add_prop(smoke_detector_prop)
-    sim.add_device(sprinkler)
-    sim.add_device(smoke_detector)
-    sim.add_device(temp_ceiling)
-    sim.add_vent(fire_vent)
-    sim.add_vent(sprinkler_vent)
-    sim.add_vent(door)
-
+    sim.add(mesh)
+    sim.add(wood)
+    sim.add(smoke)
+    sim.add(water)
+    sim.add(fire_ramp)
+    sim.add(fire_surf)
+    sim.add(sprinkler_surf)
+    sim.add(sprinkler_prop)
+    sim.add(smoke_detector_prop)
+    sim.add(sprinkler)
+    sim.add(smoke_detector)
+    sim.add(temp_ceiling)
+    sim.add(fire_vent)
+    sim.add(sprinkler_vent)
+    sim.add(door)
     return sim
 
 

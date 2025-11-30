@@ -50,7 +50,7 @@ class HoleBuilder(Builder[Hole]):
         else:
             if len(xb) != 6:
                 raise ValueError(f"Bounds tuple must have exactly 6 elements, got {len(xb)}")
-            self._xb = Bounds3D.from_tuple((xb[0], xb[1], xb[2], xb[3], xb[4], xb[5]))
+            self._xb = Bounds3D.of(*xb)
         self._params: dict = {}
 
     def with_id(self, id: str) -> "HoleBuilder":
@@ -106,7 +106,7 @@ class HoleBuilder(Builder[Hole]):
         id: str | None = None,
     ) -> Hole:
         """Create a door hole in a wall."""
-        xb = Bounds3D(wall_x, wall_x + thickness, y_min, y_max, z_min, z_max)
+        xb = Bounds3D.of(wall_x, wall_x + thickness, y_min, y_max, z_min, z_max)
         builder = cls(xb)
         if id:
             builder.with_id(id)
@@ -126,7 +126,7 @@ class HoleBuilder(Builder[Hole]):
         id: str | None = None,
     ) -> Hole:
         """Create a window hole in a wall."""
-        xb = Bounds3D(wall_x, wall_x + thickness, y_min, y_max, z_min, z_max)
+        xb = Bounds3D.of(wall_x, wall_x + thickness, y_min, y_max, z_min, z_max)
         builder = cls(xb)
         if id:
             builder.with_id(id)

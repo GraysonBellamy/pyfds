@@ -4,11 +4,12 @@ FDS PROP namelist.
 Device properties for sprinklers, detectors, etc.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING
 
-from pydantic import Field
+from pyfds.core.namelists.base import FdsField, NamelistBase
 
-from pyfds.core.namelists.base import NamelistBase
+if TYPE_CHECKING:
+    from pyfds.builders import PropBuilder
 
 
 class Prop(NamelistBase):
@@ -55,86 +56,62 @@ class Prop(NamelistBase):
     ... )
     """
 
-    # Identification
-    id: str = Field(..., description="Property identifier")
-    quantity: str | None = Field(None, description="Measured quantity")
+    @classmethod
+    def builder(cls) -> "PropBuilder":
+        """Return a fluent builder for Prop.
 
-    # Sprinkler Properties (Stage 2.3)
-    activation_temperature: float | None = Field(None, description="Activation temperature [°C]")
-    activation_obscuration: float | None = Field(
+        Returns
+        -------
+        PropBuilder
+            A builder instance for fluent construction
+
+        Examples
+        --------
+        >>> prop = Prop.builder() \\
+        ...     .id("SPRINKLER") \\
+        ...     .sprinkler(rti=50, activation_temperature=68) \\
+        ...     .build()
+        """
+        from pyfds.builders import PropBuilder
+
+        return PropBuilder()
+
+    # Identification
+    id: str = FdsField(..., description="Property identifier")
+    quantity: str | None = FdsField(None, description="Measured quantity")
+
+    # Sprinkler Properties
+    activation_temperature: float | None = FdsField(None, description="Activation temperature [°C]")
+    activation_obscuration: float | None = FdsField(
         None, ge=0, description="Activation obscuration [%/m]"
     )
-    rti: float | None = Field(None, gt=0, description="Response Time Index (m½s½)")
-    c_factor: float | None = Field(None, gt=0, description="Sprinkler C-factor")
-    spray_angle: tuple[float, float] | None = Field(None, description="Spray cone angles [degrees]")
+    rti: float | None = FdsField(None, gt=0, description="Response Time Index (m½s½)")
+    c_factor: float | None = FdsField(None, gt=0, description="Sprinkler C-factor")
+    spray_angle: tuple[float, float] | None = FdsField(
+        None, description="Spray cone angles [degrees]"
+    )
 
-    # Nozzle/Spray Properties (Stage 2.3)
-    flow_rate: float | None = Field(None, gt=0, description="Flow rate (L/min or kg/s)")
-    pressure: float | None = Field(None, gt=0, description="Operating pressure (Pa)")
-    orifice_diameter: float | None = Field(None, gt=0, description="Orifice diameter (m)")
-    k_factor: float | None = Field(None, gt=0, description="K-factor [(L/min)/bar^0.5]")
+    # Nozzle/Spray Properties
+    flow_rate: float | None = FdsField(None, gt=0, description="Flow rate (L/min or kg/s)")
+    pressure: float | None = FdsField(None, gt=0, description="Operating pressure (Pa)")
+    orifice_diameter: float | None = FdsField(None, gt=0, description="Orifice diameter (m)")
+    k_factor: float | None = FdsField(None, gt=0, description="K-factor [(L/min)/bar^0.5]")
 
-    # Smoke Detector Properties (Stage 2.3)
-    smokeview_id: str | None = Field(None, description="Smokeview object ID")
-    alpha_e: float | None = Field(None, gt=0, description="Extinction coefficient (1/m)")
-    beta_e: float | None = Field(None, gt=0, description="Scattering coefficient (1/m)")
+    # Smoke Detector Properties
+    smokeview_id: str | None = FdsField(None, description="Smokeview object ID")
+    alpha_e: float | None = FdsField(None, gt=0, description="Extinction coefficient (1/m)")
+    beta_e: float | None = FdsField(None, gt=0, description="Scattering coefficient (1/m)")
 
-    # Heat Detector Properties (Stage 2.3)
-    bead_diameter: float | None = Field(None, gt=0, description="Detector bead diameter (m)")
-    bead_density: float | None = Field(None, gt=0, description="Detector bead density (kg/m³)")
-    bead_specific_heat: float | None = Field(None, gt=0, description="Bead specific heat (kJ/kg/K)")
+    # Heat Detector Properties
+    bead_diameter: float | None = FdsField(None, gt=0, description="Detector bead diameter (m)")
+    bead_density: float | None = FdsField(None, gt=0, description="Detector bead density (kg/m³)")
+    bead_specific_heat: float | None = FdsField(
+        None, gt=0, description="Bead specific heat (kJ/kg/K)"
+    )
 
-    # Visualization (Stage 2.3)
-    offset: float | None = Field(None, description="Display offset")
+    # Visualization
+    offset: float | None = FdsField(None, description="Display offset")
 
-    def to_fds(self) -> str:
-        """Generate FDS PROP namelist."""
-        params: dict[str, Any] = {"id": self.id}
-
-        # Quantity
-        if self.quantity:
-            params["quantity"] = self.quantity
-
-        # Sprinkler Properties
-        if self.activation_temperature is not None:
-            params["activation_temperature"] = self.activation_temperature
-        if self.activation_obscuration is not None:
-            params["activation_obscuration"] = self.activation_obscuration
-        if self.rti is not None:
-            params["rti"] = self.rti
-        if self.c_factor is not None:
-            params["c_factor"] = self.c_factor
-        if self.spray_angle:
-            params["spray_angle"] = self.spray_angle
-
-        # Nozzle/Spray Properties
-        if self.flow_rate is not None:
-            params["flow_rate"] = self.flow_rate
-        if self.pressure is not None:
-            params["pressure"] = self.pressure
-        if self.orifice_diameter is not None:
-            params["orifice_diameter"] = self.orifice_diameter
-        if self.k_factor is not None:
-            params["k_factor"] = self.k_factor
-
-        # Smoke Detector Properties
-        if self.smokeview_id:
-            params["smokeview_id"] = self.smokeview_id
-        if self.alpha_e is not None:
-            params["alpha_e"] = self.alpha_e
-        if self.beta_e is not None:
-            params["beta_e"] = self.beta_e
-
-        # Heat Detector Properties
-        if self.bead_diameter is not None:
-            params["bead_diameter"] = self.bead_diameter
-        if self.bead_density is not None:
-            params["bead_density"] = self.bead_density
-        if self.bead_specific_heat is not None:
-            params["bead_specific_heat"] = self.bead_specific_heat
-
-        # Visualization
-        if self.offset is not None:
-            params["offset"] = self.offset
-
-        return self._build_namelist("PROP", params)
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "PROP"

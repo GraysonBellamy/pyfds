@@ -249,8 +249,8 @@ sim.set_misc(
 from pyfds import Simulation
 
 sim = Simulation(chid='indoor_fire')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(60, 50, 25), xb=(0, 6, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
 
 # Standard indoor conditions
 sim.set_misc(
@@ -262,7 +262,7 @@ sim.set_misc(
 
 # Fire
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
 
 sim.write('indoor_fire.fds')
 ```
@@ -271,8 +271,8 @@ sim.write('indoor_fire.fds')
 
 ```python
 sim = Simulation(chid='hot_environment')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 50, 25), xb=(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
 
 # Hot, dry conditions
 sim.set_misc(
@@ -283,7 +283,7 @@ sim.set_misc(
 
 # Fire
 sim.surface(id='FIRE', hrrpua=800.0)
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 
 sim.write('hot_environment.fds')
 ```
@@ -292,8 +292,8 @@ sim.write('hot_environment.fds')
 
 ```python
 sim = Simulation(chid='outdoor_wind')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(100, 100, 40), xb=(0, 50, 0, 50, 0, 20))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 40), xb=Bounds3D.of(0, 50, 0, 50, 0, 20))
 
 # Outdoor conditions with wind
 sim.set_misc(
@@ -305,15 +305,15 @@ sim.set_misc(
 )
 
 # Open all boundaries
-sim.vent(mb='XMIN', surf_id='OPEN')
-sim.vent(mb='XMAX', surf_id='OPEN')
-sim.vent(mb='YMIN', surf_id='OPEN')
-sim.vent(mb='YMAX', surf_id='OPEN')
-sim.vent(mb='ZMAX', surf_id='OPEN')
+sim.add(Vent(mb='XMIN', surf_id='OPEN')
+sim.add(Vent(mb='XMAX', surf_id='OPEN')
+sim.add(Vent(mb='YMIN', surf_id='OPEN')
+sim.add(Vent(mb='YMAX', surf_id='OPEN')
+sim.add(Vent(mb='ZMAX', surf_id='OPEN')
 
 # Fire
 sim.surface(id='FIRE', hrrpua=500.0)
-sim.obstruction(xb=(22, 28, 22, 28, 0, 0.5), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(22, 28, 22, 28, 0, 0.5), surf_id='FIRE')
 
 sim.write('outdoor_wind.fds')
 ```
@@ -322,8 +322,8 @@ sim.write('outdoor_wind.fds')
 
 ```python
 sim = Simulation(chid='stratified')
-sim.time(t_end=600.0)
-sim.mesh(ijk=(50, 50, 50), xb=(0, 5, 0, 5, 0, 5))
+sim.add(Time(t_end=600.0)
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 50), xb=Bounds3D.of(0, 5, 0, 5, 0, 5))
 
 # Temperature increases with height (stable stratification)
 sim.set_misc(
@@ -335,7 +335,7 @@ sim.set_misc(
 
 # Fire at floor level
 sim.surface(id='FIRE', hrrpua=1000.0)
-sim.obstruction(xb=(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 
 sim.write('stratified.fds')
 ```
@@ -344,10 +344,10 @@ sim.write('stratified.fds')
 
 ```python
 sim = Simulation(chid='dns_test')
-sim.time(t_end=10.0)  # Short duration for DNS
+sim.add(Time(t_end=10.0)  # Short duration for DNS
 
 # Very fine mesh for DNS
-sim.mesh(ijk=(100, 100, 100), xb=(0, 0.5, 0, 0.5, 0, 0.5))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 100), xb=Bounds3D.of(0, 0.5, 0, 0.5, 0, 0.5))
 
 # Direct numerical simulation (no turbulence model)
 sim.set_misc(
@@ -357,7 +357,7 @@ sim.set_misc(
 
 # Small fire
 sim.surface(id='FIRE', hrrpua=500.0)
-sim.obstruction(xb=(0.2, 0.3, 0.2, 0.3, 0, 0.01), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(0.2, 0.3, 0.2, 0.3, 0, 0.01), surf_id='FIRE')
 
 sim.write('dns_test.fds')
 ```
@@ -366,14 +366,14 @@ sim.write('dns_test.fds')
 
 ```python
 sim = Simulation(chid='geometry_check')
-sim.mesh(ijk=(50, 40, 25), xb=(0, 5, 0, 4, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5))
 
 # Check geometry without running simulation
 sim.set_misc(check_geometry=True)
 
 # Add complex geometry
-sim.obstruction(xb=(0, 0.2, 0, 4, 0, 2.5), surf_id='INERT')
-sim.obstruction(xb=(2, 3, 1.5, 2.5, 0, 0.5), surf_id='INERT')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 2.5), surf_id='INERT')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.5), surf_id='INERT')
 
 sim.write('geometry_check.fds')
 ```
@@ -455,8 +455,8 @@ sim.write('full_run.fds')
     **Solution**: Open boundaries and larger domain
     ```python
     # Open boundaries for wind flow
-    sim.vent(mb='XMIN', surf_id='OPEN')
-    sim.vent(mb='XMAX', surf_id='OPEN')
+    sim.add(Vent(mb='XMIN', surf_id='OPEN')
+    sim.add(Vent(mb='XMAX', surf_id='OPEN')
     sim.set_misc(wind_speed=5.0, wind_direction=0.0)
     ```
 

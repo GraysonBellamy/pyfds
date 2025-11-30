@@ -107,7 +107,7 @@ Tests are organized into:
 def test_mesh_cell_size_calculation():
     """Test that mesh calculates cell sizes correctly."""
     # Arrange
-    mesh = Mesh(ijk=(10, 10, 10), xb=(0, 1, 0, 1, 0, 1))
+    mesh = Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
 
     # Act
     dx, dy, dz = mesh.get_cell_size()
