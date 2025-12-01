@@ -1,7 +1,3 @@
-"""
-Unit tests for parallel execution validation.
-"""
-
 import os
 
 import pytest
@@ -16,8 +12,9 @@ class TestExecutionValidator:
     """Test parallel configuration validation."""
 
     @pytest.fixture
-    def validator(self) -> ExecutionValidator:
-        """Create validator instance."""
+    def validator(self, monkeypatch) -> ExecutionValidator:
+        """Create validator instance with mocked CPU count."""
+        monkeypatch.setattr(os, "cpu_count", lambda: 2)
         return ExecutionValidator()
 
     @pytest.fixture
@@ -52,11 +49,18 @@ class TestMPIMeshValidation(TestExecutionValidator):
         """Test warning when MPI processes exceed mesh count."""
         result = validator.validate(single_mesh_sim, n_mpi=4)
 
-        assert len(result.issues) == 1
-        issue_str = str(result.issues[0])
-        assert "(4)" in issue_str  # 4 MPI processes
-        assert "(1)" in issue_str  # 1 mesh
-        assert "idle" in issue_str.lower()
+        assert len(result.issues) == 2
+        issue_strs = [str(issue) for issue in result.issues]
+        # Check for MPI warning
+        mpi_warning = next((s for s in issue_strs if "idle" in s.lower()), None)
+        assert mpi_warning is not None
+        assert "(4)" in mpi_warning  # 4 MPI processes
+        assert "(1)" in mpi_warning  # 1 mesh
+        # Check for CPU count warning
+        cpu_warning = next(
+            (s for s in issue_strs if "exceeds" in s.lower() and "cpu" in s.lower()), None
+        )
+        assert cpu_warning is not None
 
     def test_mpi_less_than_mesh_count_uneven(
         self, validator: ExecutionValidator, multi_mesh_sim: Simulation
@@ -65,11 +69,18 @@ class TestMPIMeshValidation(TestExecutionValidator):
         # 4 meshes with 3 MPI processes = uneven division
         result = validator.validate(multi_mesh_sim, n_mpi=3)
 
-        assert len(result.issues) == 1
-        issue_str = str(result.issues[0])
-        assert "4" in issue_str  # 4 meshes
-        assert "3" in issue_str  # 3 MPI processes
-        assert "unbalanced" in issue_str.lower()
+        assert len(result.issues) == 2
+        issue_strs = [str(issue) for issue in result.issues]
+        # Check for MPI info
+        mpi_info = next((s for s in issue_strs if "unbalanced" in s.lower()), None)
+        assert mpi_info is not None
+        assert "4" in mpi_info  # 4 meshes
+        assert "3" in mpi_info  # 3 MPI processes
+        # Check for CPU count warning
+        cpu_warning = next(
+            (s for s in issue_strs if "exceeds" in s.lower() and "cpu" in s.lower()), None
+        )
+        assert cpu_warning is not None
 
     def test_mpi_less_than_mesh_count_even(
         self, validator: ExecutionValidator, multi_mesh_sim: Simulation

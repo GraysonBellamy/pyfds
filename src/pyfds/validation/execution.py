@@ -51,7 +51,8 @@ class ExecutionValidator:
         issues: list[Issue] = []
         issues.extend(self._check_mpi_vs_meshes(simulation, n_mpi))
         issues.extend(self._check_thread_count(n_threads))
-        if n_mpi > 1 or n_threads > 1:
+        mesh_count = len(simulation.meshes)
+        if (n_mpi > 1 and n_mpi != mesh_count) or n_threads > 1:
             issues.extend(self._check_total_parallelism(n_mpi, n_threads))
         return ValidationResult(issues=issues)
 
