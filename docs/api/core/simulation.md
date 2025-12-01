@@ -13,10 +13,10 @@ from pyfds import Simulation
 sim = Simulation(chid='my_fire', title='My Fire Simulation')
 
 # Add components
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 # Write FDS file
 sim.write('my_fire.fds')
@@ -65,34 +65,34 @@ sim = Simulation(chid='test', title='My Test Simulation')
 
 ```python
 # Simple
-sim.add(Time(t_end=600.0)
+sim.add(Time(t_end=600.0))
 
 # With start time and time step
-sim.add(Time(t_end=600.0, t_begin=0.0, dt=0.1)
+sim.add(Time(t_end=600.0, t_begin=0.0, dt=0.1))
 ```
 
 ### Domain Setup
 
 ```python
 # Single mesh
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Multiple meshes
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5), id='MESH1')
-sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(5, 8, 0, 3, 0, 1.5), id='MESH2')
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5), id='MESH1'))
+sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(5, 8, 0, 3, 0, 1.5), id='MESH2'))
 ```
 
 ### Surfaces
 
 ```python
 # Fire surface
-sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
+sim.add(Surface(id='BURNER', hrrpua=1000.0, color='RED'))
 
 # Material surface
-sim.surface(id='WALL', matl_id='CONCRETE', thickness=0.2)
+sim.add(Surface(id='WALL', matl_id='CONCRETE', thickness=0.2))
 
 # Boundary condition
-sim.surface(id='INLET', vel=1.0, tmp_front=25.0)
+sim.add(Surface(id='INLET', vel=1.0, tmp_front=25.0))
 ```
 
 ### Geometry
@@ -123,14 +123,14 @@ sim.add(Vent(
 
 ```python
 # Point measurement
-sim.device(
+sim.add(Device(
     id='TEMP_1',
     quantity='TEMPERATURE',
     xyz=Point3D.of(2.5, 2.5, 2.4)
 )
 
 # Area measurement
-sim.device(
+sim.add(Device(
     id='HF_FLOOR',
     quantity='HEAT FLUX',
     xb=Bounds3D.of(0, 5, 0, 5, 0, 0)
@@ -141,7 +141,7 @@ sim.device(
 
 ```python
 # Material definition
-sim.material(
+sim.add(Material(
     id='WOOD',
     conductivity=0.12,
     specific_heat=1.0,
@@ -149,21 +149,21 @@ sim.material(
 )
 
 # Time-varying property
-sim.ramp(
+sim.add(Ramp(
     id='FIRE_GROWTH',
     t=[0, 100, 200, 300],
     f=[0, 0.5, 1.0, 1.0]
 )
 
 # Control logic
-sim.ctrl(
+sim.add(Control(
     id='ACTIVATION',
     input_id='TEMP_1',
     setpoint=100.0
 )
 
 # Initial condition
-sim.init(
+sim.add(Init(
     xb=Bounds3D.of(0, 5, 0, 5, 2.0, 2.5),
     temperature=200.0
 )
@@ -204,10 +204,10 @@ All configuration methods return `self` for chaining:
 
 ```python
 sim = (Simulation(chid='test')
-       .time(t_end=600.0)
-       .mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
-       .surface(id='FIRE', hrrpua=1000.0)
-       .obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+       .add(Time(t_end=600.0))
+       .add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+       .add(Surface(id='FIRE', hrrpua=1000.0))
+       .add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')))
 
 sim.write('test.fds')
 ```

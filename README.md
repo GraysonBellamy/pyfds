@@ -121,7 +121,7 @@ sim.add(
     # Advanced combustion with suppression
     ReactionBuilder()
         .fuel('PROPANE')
-        .with_extinction('EXTINCTION_1', critical_temp=1200.0)
+        .with_extinction('EXTINCTION 1', critical_temp=1200.0)
         .with_suppression(k_suppression=0.3)
         .radiative_fraction(0.35)
         .build()
@@ -221,9 +221,9 @@ results = sim.run(n_mpi=4)  # Validates mesh count matches MPI processes
 results = sim.run(n_mpi=2, n_threads=4)  # 2 MPI ranks, 4 threads each
 
 # Get optimal configuration recommendation
-from pyfds.execution import ParallelValidator
-validator = ParallelValidator()
-config = validator.recommend_configuration(sim)
+from pyfds.validation import ExecutionValidator
+validator = ExecutionValidator()
+config = validator.suggest_config(sim)
 print(f"Recommended: {config['n_mpi']} MPI, {config['n_threads']} threads")
 print(f"Rationale: {config['rationale']}")
 ```

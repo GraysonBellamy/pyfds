@@ -1,7 +1,23 @@
 """Predefined fuel database for common combustion reactions."""
 
+from typing import TypedDict
+
+
+class FuelData(TypedDict):
+    """Type definition for fuel database entries."""
+
+    c: float
+    h: float
+    o: float
+    n: float
+    hoc: float
+    soot_yield: float
+    co_yield: float
+    description: str
+
+
 # Comprehensive fuel database
-FUEL_DATABASE = {
+FUEL_DATABASE: dict[str, FuelData] = {
     # Gases
     "METHANE": {
         "c": 1,
@@ -196,7 +212,7 @@ def list_fuels() -> list[str]:
     return sorted(FUEL_DATABASE.keys())
 
 
-def get_fuel_info(name: str) -> dict:
+def get_fuel_info(name: str) -> FuelData:
     """
     Get detailed information about a fuel.
 
@@ -207,7 +223,7 @@ def get_fuel_info(name: str) -> dict:
 
     Returns
     -------
-    dict
+    FuelData
         Dictionary with fuel composition and properties
 
     Raises

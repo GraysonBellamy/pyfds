@@ -14,8 +14,11 @@ Monitor simulation quantities using device measurements.
 - Layer height detection
 
 ```python
+from pyfds import Device
+from pyfds.core.geometry import Point3D
+
 # Temperature device at a point
-sim.device(
+sim.add(Device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
     xyz=Point3D.of(2.5, 2.5, 2.4)
@@ -30,21 +33,21 @@ Measure quantities at a single point in space:
 
 ```python
 # Temperature at ceiling
-sim.device(
+sim.add(Device(
     id='TEMP_1',
     quantity='TEMPERATURE',
     xyz=Point3D.of(3.0, 2.5, 2.4)
 )
 
 # Velocity at doorway
-sim.device(
+sim.add(Device(
     id='VEL_DOOR',
     quantity='VELOCITY',
     xyz=Point3D.of(5.0, 2.5, 1.0)
 )
 
 # Pressure at floor
-sim.device(
+sim.add(Device(
     id='PRES_FLOOR',
     quantity='PRESSURE',
     xyz=Point3D.of(2.5, 2.5, 0.1)
@@ -57,7 +60,7 @@ Measure quantities on a surface using `ior` (index of orientation):
 
 ```python
 # Heat flux on wall (facing into room)
-sim.device(
+sim.add(Device(
     id='HF_WALL',
     quantity='GAUGE HEAT FLUX',
     xyz=Point3D.of(0.1, 2.5, 1.5),
@@ -65,7 +68,7 @@ sim.device(
 )
 
 # Wall temperature
-sim.device(
+sim.add(Device(
     id='TEMP_WALL',
     quantity='WALL TEMPERATURE',
     xyz=Point3D.of(0.1, 2.5, 1.5),
@@ -87,7 +90,7 @@ Average over a region or line:
 
 ```python
 # Average temperature in a line
-sim.device(
+sim.add(Device(
     id='TEMP_LINE',
     quantity='TEMPERATURE',
     xyz=Point3D.of(2.5, 2.5, 0.5),
@@ -95,7 +98,7 @@ sim.device(
 )
 
 # Average over an area
-sim.device(
+sim.add(Device(
     id='TEMP_AREA',
     quantity='TEMPERATURE',
     xb=Bounds3D.of(2, 3, 2, 3, 2.4, 2.4)  # Ceiling area
@@ -108,36 +111,36 @@ sim.device(
 
 ```python
 # Gas temperature
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2))
+sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2)))
 
 # Wall temperature
-sim.device(id='WALL_TEMP', quantity='WALL TEMPERATURE', xyz=Point3D.of(0, 2, 1), ior=1)
+sim.add(Device(id='WALL_TEMP', quantity='WALL TEMPERATURE', xyz=Point3D.of(0, 2, 1), ior=1))
 
 # Ceiling temperature
-sim.device(id='CEIL_TEMP', quantity='CEILING TEMPERATURE', xyz=Point3D.of(3, 2, 2.4))
+sim.add(Device(id='CEIL_TEMP', quantity='CEILING TEMPERATURE', xyz=Point3D.of(3, 2, 2.4)))
 ```
 
 ### Velocity
 
 ```python
 # Total velocity magnitude
-sim.device(id='VEL', quantity='VELOCITY', xyz=Point3D.of(3, 2, 2))
+sim.add(Device(id='VEL', quantity='VELOCITY', xyz=Point3D.of(3, 2, 2)))
 
 # U-velocity (X-component)
-sim.device(id='U_VEL', quantity='U-VELOCITY', xyz=Point3D.of(3, 2, 2))
+sim.add(Device(id='U_VEL', quantity='U-VELOCITY', xyz=Point3D.of(3, 2, 2)))
 
 # V-velocity (Y-component)
-sim.device(id='V_VEL', quantity='V-VELOCITY', xyz=Point3D.of(3, 2, 2))
+sim.add(Device(id='V_VEL', quantity='V-VELOCITY', xyz=Point3D.of(3, 2, 2)))
 
 # W-velocity (Z-component)
-sim.device(id='W_VEL', quantity='W-VELOCITY', xyz=Point3D.of(3, 2, 2))
+sim.add(Device(id='W_VEL', quantity='W-VELOCITY', xyz=Point3D.of(3, 2, 2)))
 ```
 
 ### Heat Flux
 
 ```python
 # Gauge heat flux (incident radiation + convection)
-sim.device(
+sim.add(Device(
     id='HF_GAUGE',
     quantity='GAUGE HEAT FLUX',
     xyz=Point3D.of(0.1, 2, 1.5),
@@ -145,7 +148,7 @@ sim.device(
 )
 
 # Radiative heat flux only
-sim.device(
+sim.add(Device(
     id='HF_RAD',
     quantity='RADIATIVE HEAT FLUX',
     xyz=Point3D.of(0.1, 2, 1.5),
@@ -153,7 +156,7 @@ sim.device(
 )
 
 # Convective heat flux only
-sim.device(
+sim.add(Device(
     id='HF_CONV',
     quantity='CONVECTIVE HEAT FLUX',
     xyz=Point3D.of(0.1, 2, 1.5),
@@ -165,36 +168,36 @@ sim.device(
 
 ```python
 # Static pressure
-sim.device(id='PRES', quantity='PRESSURE', xyz=Point3D.of(3, 2, 1))
+sim.add(Device(id='PRES', quantity='PRESSURE', xyz=Point3D.of(3, 2, 1)))
 
 # Pressure coefficient
-sim.device(id='PRES_COEF', quantity='PRESSURE COEFFICIENT', xyz=Point3D.of(3, 2, 1))
+sim.add(Device(id='PRES_COEF', quantity='PRESSURE COEFFICIENT', xyz=Point3D.of(3, 2, 1)))
 ```
 
 ### Species and Smoke
 
 ```python
 # Oxygen concentration
-sim.device(id='O2', quantity='VOLUME FRACTION', spec_id='OXYGEN', xyz=Point3D.of(3, 2, 2))
+sim.add(Device(id='O2', quantity='VOLUME FRACTION', spec_id='OXYGEN', xyz=Point3D.of(3, 2, 2)))
 
 # CO2 concentration
-sim.device(id='CO2', quantity='VOLUME FRACTION', spec_id='CARBON DIOXIDE', xyz=Point3D.of(3, 2, 2))
+sim.add(Device(id='CO2', quantity='VOLUME FRACTION', spec_id='CARBON DIOXIDE', xyz=Point3D.of(3, 2, 2)))
 
 # Soot density
-sim.device(id='SOOT', quantity='SOOT DENSITY', xyz=Point3D.of(3, 2, 2))
+sim.add(Device(id='SOOT', quantity='SOOT DENSITY', xyz=Point3D.of(3, 2, 2)))
 
 # Visibility
-sim.device(id='VIS', quantity='VISIBILITY', xyz=Point3D.of(3, 2, 1.5))
+sim.add(Device(id='VIS', quantity='VISIBILITY', xyz=Point3D.of(3, 2, 1.5)))
 
 # Optical density
-sim.device(id='OD', quantity='OPTICAL DENSITY', xyz=Point3D.of(3, 2, 2.4))
+sim.add(Device(id='OD', quantity='OPTICAL DENSITY', xyz=Point3D.of(3, 2, 2.4)))
 ```
 
 ### Layer Height
 
 ```python
 # Smoke layer height
-sim.device(
+sim.add(Device(
     id='LAYER_HEIGHT',
     quantity='LAYER HEIGHT',
     xyz=Point3D.of(3, 2, 1.25)  # Reference height (typically mid-height)
@@ -236,7 +239,7 @@ for i in range(5):
     for j in range(4):
         x = 1 + i * 1.0
         y = 1 + j * 1.0
-        sim.device(
+        sim.add(Device(
             id=f'TEMP_{i}_{j}',
             quantity='TEMPERATURE',
             xyz=Point3D.of(x, y, 2.4)
@@ -249,7 +252,7 @@ for i in range(5):
 # Temperature profile along vertical line
 x, y = 2.5, 2.5
 for k, z in enumerate([0.5, 1.0, 1.5, 2.0, 2.4]):
-    sim.device(
+    sim.add(Device(
         id=f'TEMP_Z{k}',
         quantity='TEMPERATURE',
         xyz=Point3D.of(x, y, z)
@@ -262,7 +265,7 @@ for k, z in enumerate([0.5, 1.0, 1.5, 2.0, 2.4]):
 # Temperature along centerline
 y, z = 2.5, 2.0
 for i, x in enumerate(range(1, 5)):
-    sim.device(
+    sim.add(Device(
         id=f'TEMP_X{i}',
         quantity='TEMPERATURE',
         xyz=Point3D.of(x, y, z)
@@ -277,7 +280,7 @@ Compute time-averaged quantities:
 
 ```python
 # Time-averaged temperature
-sim.device(
+sim.add(Device(
     id='TEMP_AVG',
     quantity='TEMPERATURE',
     xyz=Point3D.of(3, 2, 2),
@@ -285,7 +288,7 @@ sim.device(
 )
 
 # Standard deviation
-sim.device(
+sim.add(Device(
     id='TEMP_STD',
     quantity='TEMPERATURE',
     xyz=Point3D.of(3, 2, 2),
@@ -299,7 +302,7 @@ Control output frequency:
 
 ```python
 # Output every 10 seconds
-sim.device(
+sim.add(Device(
     id='TEMP',
     quantity='TEMPERATURE',
     xyz=Point3D.of(3, 2, 2),
@@ -315,23 +318,23 @@ sim.device(
 from pyfds import Simulation
 
 sim = Simulation(chid='monitored_room')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5)))
 
 # Fire
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE'))
 
 # Temperature at different heights
 for z, label in [(0.5, 'LOW'), (1.5, 'MID'), (2.4, 'HIGH')]:
-    sim.device(
+    sim.add(Device(
         id=f'TEMP_{label}',
         quantity='TEMPERATURE',
         xyz=Point3D.of(2.5, 2, z)
     )
 
 # Velocity at door
-sim.device(
+sim.add(Device(
     id='VEL_DOOR',
     quantity='VELOCITY',
     xyz=Point3D.of(5, 2, 1.0)
@@ -346,7 +349,7 @@ walls = [
 ]
 
 for name, x, y, z, ior in walls:
-    sim.device(
+    sim.add(Device(
         id=f'HF_{name}',
         quantity='GAUGE HEAT FLUX',
         xyz=Point3D.of(x, y, z),
@@ -354,21 +357,21 @@ for name, x, y, z, ior in walls:
     )
 
 # Smoke layer height
-sim.device(
+sim.add(Device(
     id='LAYER_HEIGHT',
     quantity='LAYER HEIGHT',
     xyz=Point3D.of(2.5, 2, 1.25)
 )
 
 # Visibility at eye level
-sim.device(
+sim.add(Device(
     id='VISIBILITY',
     quantity='VISIBILITY',
     xyz=Point3D.of(2.5, 2, 1.5)
 )
 
 # Oxygen concentration
-sim.device(
+sim.add(Device(
     id='O2_CONC',
     quantity='VOLUME FRACTION',
     spec_id='OXYGEN',
@@ -382,12 +385,12 @@ sim.write('monitored_room.fds')
 
 ```python
 sim = Simulation(chid='heat_flux_array')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3)))
 
 # Fire
-sim.surface(id='FIRE', hrrpua=2000.0)
-sim.add(Obstruction(xb=Bounds3D.of(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=2000.0))
+sim.add(Obstruction(xb=Bounds3D.of(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE'))
 
 # Target wall at x=0
 # Heat flux measurement array (3×3 grid)
@@ -396,7 +399,7 @@ for i in range(3):
         y = 1.5 + i * 1.0  # 1.5, 2.5, 3.5
         z = 0.5 + j * 1.0  # 0.5, 1.5, 2.5
 
-        sim.device(
+        sim.add(Device(
             id=f'HF_Y{i}_Z{j}',
             quantity='GAUGE HEAT FLUX',
             xyz=Point3D.of(0.1, y, z),
@@ -404,7 +407,7 @@ for i in range(3):
         )
 
         # Also measure wall temperature
-        sim.device(
+        sim.add(Device(
             id=f'WALL_TEMP_Y{i}_Z{j}',
             quantity='WALL TEMPERATURE',
             xyz=Point3D.of(0.1, y, z),
@@ -418,33 +421,33 @@ sim.write('heat_flux_array.fds')
 
 ```python
 sim = Simulation(chid='vertical_profile')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 50), xb=Bounds3D.of(0, 5, 0, 5, 0, 5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 50), xb=Bounds3D.of(0, 5, 0, 5, 0, 5)))
 
 # Fire at floor
-sim.surface(id='FIRE', hrrpua=1500.0)
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1500.0))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 # Vertical profile above fire (every 0.5m from 0.5 to 4.5m)
 x_center, y_center = 2.5, 2.5
 
 for i, z in enumerate([0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]):
     # Temperature
-    sim.device(
+    sim.add(Device(
         id=f'TEMP_Z{int(z*10):02d}',
         quantity='TEMPERATURE',
         xyz=Point3D.of(x_center, y_center, z)
     )
 
     # Vertical velocity
-    sim.device(
+    sim.add(Device(
         id=f'W_VEL_Z{int(z*10):02d}',
         quantity='W-VELOCITY',
         xyz=Point3D.of(x_center, y_center, z)
     )
 
     # Oxygen concentration
-    sim.device(
+    sim.add(Device(
         id=f'O2_Z{int(z*10):02d}',
         quantity='VOLUME FRACTION',
         spec_id='OXYGEN',
@@ -458,38 +461,38 @@ sim.write('vertical_profile.fds')
 
 ```python
 sim = Simulation(chid='corridor_smoke')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(200, 40, 25), xb=Bounds3D.of(0, 20, 0, 4, 0, 2.5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(200, 40, 25), xb=Bounds3D.of(0, 20, 0, 4, 0, 2.5)))
 
 # Fire at one end
-sim.surface(id='FIRE', hrrpua=800.0)
-sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=800.0))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1.5, 2.5, 0, 0.1), surf_id='FIRE'))
 
 # Visibility and temperature along corridor
 for x in range(2, 19, 2):  # Every 2m along corridor
     # Visibility at head height
-    sim.device(
+    sim.add(Device(
         id=f'VIS_X{x:02d}',
         quantity='VISIBILITY',
         xyz=Point3D.of(x, 2, 1.5)
     )
 
     # Temperature at ceiling
-    sim.device(
+    sim.add(Device(
         id=f'TEMP_X{x:02d}',
         quantity='TEMPERATURE',
         xyz=Point3D.of(x, 2, 2.4)
     )
 
     # Smoke layer height
-    sim.device(
+    sim.add(Device(
         id=f'LAYER_X{x:02d}',
         quantity='LAYER HEIGHT',
         xyz=Point3D.of(x, 2, 1.25)
     )
 
 # Door at far end
-sim.add(Vent(xb=Bounds3D.of(20, 20, 1.5, 2.5, 0, 2.1), surf_id='OPEN')
+sim.add(Vent(xb=Bounds3D.of(20, 20, 1.5, 2.5, 0, 2.1), surf_id='OPEN'))
 
 sim.write('corridor_smoke.fds')
 ```
@@ -500,9 +503,9 @@ sim.write('corridor_smoke.fds')
 
 ```python
 # Good: Devices at key locations
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 2.4))
-sim.device(id='TEMP_EYE', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 1.5))
-sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 0.5))
+sim.add(Device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 2.4)))
+sim.add(Device(id='TEMP_EYE', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 1.5)))
+sim.add(Device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 0.5)))
 
 # Avoid: Too many redundant devices
 # (creates large output files without additional insight)
@@ -512,12 +515,12 @@ sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 0.5))
 
 ```python
 # Good: Descriptive, consistent naming
-sim.device(id='TEMP_ROOM1_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2.4))
-sim.device(id='TEMP_ROOM2_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(8, 2, 2.4))
+sim.add(Device(id='TEMP_ROOM1_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2.4)))
+sim.add(Device(id='TEMP_ROOM2_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(8, 2, 2.4)))
 
 # Poor: Unclear naming
-sim.device(id='D1', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2.4))
-sim.device(id='D2', quantity='TEMPERATURE', xyz=Point3D.of(8, 2, 2.4))
+sim.add(Device(id='D1', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2.4)))
+sim.add(Device(id='D2', quantity='TEMPERATURE', xyz=Point3D.of(8, 2, 2.4)))
 ```
 
 ### 3. Appropriate IOR for Surface Devices
@@ -525,7 +528,7 @@ sim.device(id='D2', quantity='TEMPERATURE', xyz=Point3D.of(8, 2, 2.4))
 ```python
 # Correct: Heat flux meter facing INTO the domain
 # Wall at x=0, device just inside
-sim.device(
+sim.add(Device(
     id='HF_WALL',
     quantity='GAUGE HEAT FLUX',
     xyz=Point3D.of(0.1, 2, 1.5),
@@ -533,7 +536,7 @@ sim.device(
 )
 
 # Wrong: IOR pointing wrong direction
-sim.device(
+sim.add(Device(
     id='HF_WALL',
     quantity='GAUGE HEAT FLUX',
     xyz=Point3D.of(0.1, 2, 1.5),
@@ -545,7 +548,7 @@ sim.device(
 
 ```python
 # For large simulations, reduce output frequency
-sim.device(
+sim.add(Device(
     id='TEMP',
     quantity='TEMPERATURE',
     xyz=Point3D.of(3, 2, 2),
@@ -561,11 +564,11 @@ sim.device(
     **Solution**: Verify coordinates are within mesh bounds
     ```python
     # Check mesh bounds
-    sim.add(Mesh(xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5))
+    sim.add(Mesh(xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5)))
 
     # Device must be inside: 0 < x < 5, 0 < y < 4, 0 < z < 2.5
-    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 1.5))  # ✓
-    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(6, 2, 1.5))    # ✗ Outside
+    sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2, 1.5))  # ✓
+    sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(6, 2, 1.5))    # ✗ Outside
     ```
 
 ??? question "Heat flux always zero"
@@ -574,7 +577,7 @@ sim.device(
     **Solution**: Add IOR and position on surface
     ```python
     # Correct: Surface device with IOR
-    sim.device(
+    sim.add(Device(
         id='HF',
         quantity='GAUGE HEAT FLUX',
         xyz=Point3D.of(0.1, 2, 1.5),
@@ -588,7 +591,7 @@ sim.device(
     **Solution**: Place at approximate mid-height
     ```python
     # Room height 2.5m, place layer height device at ~1.25m
-    sim.device(
+    sim.add(Device(
         id='LAYER',
         quantity='LAYER HEIGHT',
         xyz=Point3D.of(2.5, 2, 1.25)  # Mid-height reference
@@ -601,16 +604,16 @@ Use devices to monitor tenability limits:
 
 ```python
 # Temperature tenability (60°C for unprotected skin)
-sim.device(id='TEMP_EYES', quantity='TEMPERATURE', xyz=Point3D.of(2, 2, 1.5))
+sim.add(Device(id='TEMP_EYES', quantity='TEMPERATURE', xyz=Point3D.of(2, 2, 1.5)))
 
 # Visibility tenability (>10m for unfamiliar, >5m for familiar)
-sim.device(id='VIS', quantity='VISIBILITY', xyz=Point3D.of(2, 2, 1.5))
+sim.add(Device(id='VIS', quantity='VISIBILITY', xyz=Point3D.of(2, 2, 1.5)))
 
 # Heat flux tenability (2.5 kW/m² for extended exposure)
-sim.device(id='HF_PERSON', quantity='GAUGE HEAT FLUX', xyz=Point3D.of(2, 2, 1), ior=1)
+sim.add(Device(id='HF_PERSON', quantity='GAUGE HEAT FLUX', xyz=Point3D.of(2, 2, 1), ior=1))
 
 # Oxygen concentration (>15% required)
-sim.device(id='O2', quantity='VOLUME FRACTION', spec_id='OXYGEN', xyz=Point3D.of(2, 2, 1.5))
+sim.add(Device(id='O2', quantity='VOLUME FRACTION', spec_id='OXYGEN', xyz=Point3D.of(2, 2, 1.5)))
 ```
 
 ## Next Steps

@@ -3,6 +3,7 @@
 import pytest
 
 from pyfds.builders import MaterialBuilder
+from pyfds.builders.libraries import CommonMaterials
 
 
 class TestMaterialBuilder:
@@ -54,7 +55,7 @@ class TestMaterialBuilder:
 
     def test_pyrolysis_single_reaction(self):
         """Test material with single pyrolysis reaction."""
-        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+        from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
 
         reaction = PyrolysisReaction(
             a=1e10,
@@ -77,7 +78,7 @@ class TestMaterialBuilder:
 
     def test_pyrolysis_multi_reaction(self):
         """Test material with multiple pyrolysis reactions."""
-        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+        from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
 
         reaction1 = PyrolysisReaction(
             a=1e10,
@@ -107,7 +108,7 @@ class TestMaterialBuilder:
 
     def test_structured_pyrolysis_reaction(self):
         """Test material with structured PyrolysisReaction."""
-        from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+        from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
 
         reaction = PyrolysisReaction(
             a=1e10,
@@ -130,9 +131,6 @@ class TestMaterialBuilder:
 
         assert mat.reactions == [reaction]
         assert mat.n_reactions == 1
-        # Should not have old-style array parameters when using structured reactions
-        assert mat.a is None
-        assert mat.e is None
 
     def test_missing_density_error(self):
         """Test error when density not specified."""
@@ -148,8 +146,8 @@ class TestMaterialBuilder:
             builder.build()
 
     def test_predefined_concrete(self):
-        """Test predefined concrete material."""
-        concrete = MaterialBuilder.concrete()
+        """Test predefined concrete material from CommonMaterials."""
+        concrete = CommonMaterials.concrete()
 
         assert concrete.id == "CONCRETE"
         assert concrete.density == 2400
@@ -157,16 +155,16 @@ class TestMaterialBuilder:
         assert concrete.specific_heat == 0.88
 
     def test_predefined_gypsum(self):
-        """Test predefined gypsum material."""
-        gypsum = MaterialBuilder.gypsum()
+        """Test predefined gypsum material from CommonMaterials."""
+        gypsum = CommonMaterials.gypsum()
 
         assert gypsum.id == "GYPSUM"
         assert gypsum.density == 930
         assert gypsum.conductivity == 0.48
 
     def test_predefined_steel(self):
-        """Test predefined steel material."""
-        steel = MaterialBuilder.steel()
+        """Test predefined steel material from CommonMaterials."""
+        steel = CommonMaterials.steel()
 
         assert steel.id == "STEEL"
         assert steel.density == 7850
@@ -174,23 +172,23 @@ class TestMaterialBuilder:
         assert steel.emissivity == 0.7
 
     def test_predefined_aluminum(self):
-        """Test predefined aluminum material."""
-        aluminum = MaterialBuilder.aluminum()
+        """Test predefined aluminum material from CommonMaterials."""
+        aluminum = CommonMaterials.aluminum()
 
         assert aluminum.id == "ALUMINUM"
         assert aluminum.density == 2700
         assert aluminum.conductivity == 237
 
     def test_predefined_brick(self):
-        """Test predefined brick material."""
-        brick = MaterialBuilder.brick()
+        """Test predefined brick material from CommonMaterials."""
+        brick = CommonMaterials.brick()
 
         assert brick.id == "BRICK"
         assert brick.density == 1920
 
     def test_predefined_wood(self):
-        """Test predefined wood material."""
-        wood = MaterialBuilder.wood()
+        """Test predefined wood material from CommonMaterials."""
+        wood = CommonMaterials.wood()
 
         assert wood.id == "WOOD"
         assert wood.density == 500
@@ -226,19 +224,6 @@ class TestMaterialBuilder:
         assert mat.conductivity is None
         assert mat.conductivity_ramp == "RAMP_K"
 
-    def test_reference_temperature(self):
-        """Test setting reference temperature."""
-        mat = (
-            MaterialBuilder("TEST")
-            .density(1000)
-            .thermal_conductivity(1.0)
-            .specific_heat(1.0)
-            .reference_temperature(20.0)
-            .build()
-        )
-
-        assert mat.reference_temperature == 20.0
-
     def test_custom_absorption_coefficient(self):
         """Test setting custom absorption coefficient."""
         mat = (
@@ -268,10 +253,16 @@ class TestLiquidFuelBuilder:
         )
 
         assert matl.boiling_temperature == 78.5
-        assert matl.spec_id == "ETHANOL"
+        assert matl.reactions is not None
+        assert len(matl.reactions) == 1
+        assert matl.reactions[0].products[0].spec_id == "ETHANOL"
 
     def test_liquid_fuel_with_all_params(self):
-        """Test liquid fuel with all optional parameters."""
+        """Test liquid fuel with all optional parameters.
+
+        Note: In FDS, heat_of_vaporization is passed as heat_of_reaction
+        on the evaporation reaction, not as a separate Material parameter.
+        """
         matl = (
             MaterialBuilder("METHANOL")
             .thermal_conductivity(0.2)
@@ -289,5 +280,8 @@ class TestLiquidFuelBuilder:
 
         assert matl.boiling_temperature == 64.7
         assert matl.mw == 32.04
-        assert matl.heat_of_vaporization == 1100
+        # heat_of_vaporization is set as heat_of_reaction on the evaporation reaction
+        assert matl.reactions is not None
+        assert matl.reactions[0].heat_of_reaction == 1100
         assert matl.absorption_coefficient == 140
+        assert matl.reactions[0].products[0].spec_id == "METHANOL"

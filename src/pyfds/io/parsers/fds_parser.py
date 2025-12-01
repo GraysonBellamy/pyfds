@@ -204,9 +204,7 @@ class FDSParser:
         # Default to string
         return value
 
-    def _build_simulation(
-        self, namelists: list[dict[str, Any]], _comments: list[str]
-    ) -> Simulation:
+    def _build_simulation(self, namelists: list[dict[str, Any]], comments: list[str]) -> Simulation:
         """Build Simulation object from parsed namelists."""
         # Find HEAD namelist for basic info
         head_params = None
@@ -231,8 +229,11 @@ class FDSParser:
         # Create simulation
         sim = Simulation(chid=chid, title=title)
 
-        # Add metadata
-        # sim._metadata = {"comments": comments}  # TODO: Add metadata support to Simulation
+        # Store metadata including preserved comments
+        sim._metadata = {
+            "comments": [c.strip().lstrip("!").strip() for c in comments],
+            "source": "parsed",
+        }
 
         # Convert and add other namelists
         for namelist_dict in other_namelists:
@@ -243,53 +244,25 @@ class FDSParser:
         return sim
 
     def _dict_to_namelist(self, namelist_dict: dict[str, Any]) -> NamelistBase | None:
-        """Convert parsed namelist dict to NamelistBase object."""
+        """Convert parsed namelist dict to NamelistBase object.
+
+        Uses NamelistFactory to dynamically get the appropriate class,
+        ensuring parser support matches factory support.
+        """
         group_name = namelist_dict.pop("_fds_group")
 
-        # Import the appropriate namelist class
         try:
-            from pyfds.core.namelists import (
-                Combustion,
-                Ctrl,
-                Device,
-                Head,
-                Material,
-                Mesh,
-                Mult,
-                Obstruction,
-                Prop,
-                Ramp,
-                Reaction,
-                Species,
-                Surface,
-                Time,
-                Vent,
-            )
+            from pyfds.core.namelists.factory import NamelistFactory
 
-            namelist_classes = {
-                "TIME": Time,
-                "HEAD": Head,
-                "RAMP": Ramp,
-                "COMB": Combustion,
-                "MESH": Mesh,
-                "SURF": Surface,
-                "MATL": Material,
-                "DEVC": Device,
-                "OBST": Obstruction,
-                "VENT": Vent,
-                "REAC": Reaction,
-                "SPEC": Species,
-                "PROP": Prop,
-                "CTRL": Ctrl,
-                "MULT": Mult,
-            }
+            cls = NamelistFactory.get_class(group_name)
+            if cls is None:
+                logger.warning(f"Unsupported namelist type: {group_name} (skipped)")
+                return None
 
-            cls = namelist_classes.get(group_name)
-            if cls:
-                logger.debug(f"Creating {group_name} object with data: {namelist_dict}")
-                obj = cls.from_dict(namelist_dict)  # type: ignore
-                logger.debug(f"Created object: {obj}, type: {type(obj)}")
-                return obj  # type: ignore
+            logger.debug(f"Creating {group_name} object with data: {namelist_dict}")
+            obj = cls.from_dict(namelist_dict)
+            logger.debug(f"Created object: {obj}, type: {type(obj)}")
+            return obj
 
         except ImportError as e:
             logger.warning(f"Import error: {e}")
@@ -297,5 +270,4 @@ class FDSParser:
             # Log the full exception with traceback using structured logging
             logger.exception(f"Error creating {group_name}: {e}")
 
-        # Unknown namelist type - skip for now
         return None

@@ -3,21 +3,20 @@ Process management utilities for FDS execution.
 """
 
 import os
-import shutil
 import subprocess
 from pathlib import Path
-
-from ..exceptions import FDSNotFoundError
 
 
 def find_fds_executable() -> Path:
     """
     Find the FDS executable.
 
+    Delegates to PlatformExecutor for cross-platform discovery.
     Searches in the following order:
     1. Environment variable FDS_EXECUTABLE
-    2. System PATH for 'fds' command
-    3. Common installation locations
+    2. Windows fds_local wrapper (on Windows)
+    3. System PATH for 'fds' command
+    4. Common installation locations
 
     Returns
     -------
@@ -34,37 +33,18 @@ def find_fds_executable() -> Path:
     >>> fds_path = find_fds_executable()
     >>> print(f"Found FDS at: {fds_path}")
     """
-    # Check environment variable
+    # Check environment variable first
     env_path = os.environ.get("FDS_EXECUTABLE")
     if env_path:
         fds_path = Path(env_path)
         if fds_path.exists() and fds_path.is_file():
             return fds_path
 
-    # Check system PATH
-    fds_in_path = shutil.which("fds")
-    if fds_in_path:
-        return Path(fds_in_path)
+    # Delegate to PlatformExecutor for cross-platform discovery
+    from pyfds.execution.platform import PlatformExecutor
 
-    # Check common installation locations
-    common_locations = [
-        Path("/usr/local/bin/fds"),
-        Path("/usr/bin/fds"),
-        Path.home() / "bin" / "fds",
-        Path("C:/Program Files/FDS/FDS6/bin/fds.exe"),  # Windows
-        Path("C:/Program Files (x86)/FDS/FDS6/bin/fds.exe"),  # Windows
-    ]
-
-    for location in common_locations:
-        if location.exists() and location.is_file():
-            return location
-
-    # Not found
-    raise FDSNotFoundError(
-        "FDS executable not found. Please install FDS or set the FDS_EXECUTABLE "
-        "environment variable to point to the FDS executable.\n"
-        "Download FDS from: https://pages.nist.gov/fds-smv/"
-    )
+    executor = PlatformExecutor()
+    return executor.fds_command
 
 
 def validate_fds_executable(fds_path: Path) -> tuple[bool, str]:

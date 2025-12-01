@@ -207,7 +207,7 @@ from pyfds import Simulation, Mesh, Obstruction, Hole
 sim = Simulation('room_with_door')
 
 # Domain
-sim.add(Mesh(xb=Bounds3D.of(0, 6, 0, 4, 0, 3), ijk=Grid3D.of(30, 20, 15))
+sim.add(Mesh(xb=Bounds3D.of(0, 6, 0, 4, 0, 3), ijk=Grid3D.of(30, 20, 15)))
 
 # Walls
 sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 3), surf_id='WALL')  # Left wall
@@ -216,11 +216,11 @@ sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 0.2, 0, 3), surf_id='WALL')  # Back 
 sim.add(Obstruction(xb=Bounds3D.of(0, 6, 3.8, 4, 0, 3), surf_id='WALL')  # Front wall
 
 # Floor and ceiling
-sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 4, 0, 0.1), surf_id='FLOOR')
-sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 4, 2.9, 3), surf_id='CEILING')
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 4, 0, 0.1), surf_id='FLOOR'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 4, 2.9, 3), surf_id='CEILING'))
 
 # Door
-sim.add(Hole(xb=Bounds3D.of(2.9, 3.1, 0, 0.2, 0, 2.1), id='DOOR')
+sim.add(Hole(xb=Bounds3D.of(2.9, 3.1, 0, 0.2, 0, 2.1), id='DOOR'))
 ```
 
 ### Storage Warehouse with Arrays

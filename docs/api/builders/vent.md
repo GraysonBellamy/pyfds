@@ -1,9 +1,28 @@
-# VentBuilder
+# Vent Builder (Planned)
 
-::: pyfds.builders.vent.VentBuilder
-    options:
-      show_source: true
-      heading_level: 2
+!!! warning "Not Yet Implemented"
+    `VentBuilder` is planned for a future release. For now, use the `Vent` namelist class directly.
+
+## Current Usage
+
+```python
+from pyfds import Simulation, Vent
+from pyfds.core.geometry import Bounds3D
+
+sim = Simulation(chid="vent_example")
+
+# Open boundary
+sim.add(Vent(
+    xb=Bounds3D.of(0, 0, 0, 5, 0, 2.5),
+    surf_id="OPEN"
+))
+
+# Door opening
+sim.add(Vent(
+    xb=Bounds3D.of(4.8, 4.8, 1, 2, 0, 2.1),
+    surf_id="OPEN"
+))
+```
 
 ## Overview
 
@@ -22,6 +41,7 @@ Like `PropBuilder`, `VentBuilder` uses **class methods** (factory pattern):
 
 ```python
 from pyfds.builders import VentBuilder
+from pyfds.core.geometry import Bounds3D
 
 # Factory methods (not fluent)
 door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0)
@@ -35,6 +55,9 @@ supply = VentBuilder.hvac_supply(xb=Bounds3D.of(5, 6, 5, 6, 3, 3), volume_flow=0
 ### Openings
 
 ```python
+from pyfds.builders import VentBuilder
+from pyfds.core.geometry import Bounds3D
+
 # Generic opening to ambient
 opening = VentBuilder.opening(
     xb=Bounds3D.of(5, 5, 2, 4, 0, 2.1),
@@ -219,7 +242,7 @@ supply_temp = VentBuilder.hvac_supply(
     id='SUPPLY_TEMP'
 )
 # Note: Set temperature via surface
-sim.surface(id='HVAC', tmp_front=20.0)  # 20°C supply air
+sim.add(Surface(id='HVAC', tmp_front=20.0)  # 20°C supply air
 ```
 
 ### Exhaust Vent
@@ -382,7 +405,7 @@ from pyfds import Simulation
 from pyfds.builders import VentBuilder
 
 sim = Simulation('natural_vent')
-sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
 # Openings for natural ventilation
 door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0, id='DOOR')
@@ -413,7 +436,7 @@ sim.add_vent(supply)
 sim.add_vent(exhaust)
 
 # Define HVAC surface
-sim.surface(id='HVAC', tmp_front=20.0, color='BLUE')
+sim.add(Surface(id='HVAC', tmp_front=20.0, color='BLUE'))
 ```
 
 ### Fire Source
@@ -429,7 +452,7 @@ burner = VentBuilder.circular_burner(
 sim.add_vent(burner)
 
 # Fire surface
-sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
+sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
 ```
 
 ### Controlled Opening

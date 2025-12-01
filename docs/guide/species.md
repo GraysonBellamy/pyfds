@@ -121,9 +121,9 @@ from pyfds import Simulation
 sim = Simulation(chid="lumped_example")
 
 # Define component species (must be marked as lumped components)
-sim.add(Species(id="N2_COMPONENT", lumped_component_only=True)
-sim.add(Species(id="O2_COMPONENT", lumped_component_only=True)
-sim.add(Species(id="CO2_COMPONENT", lumped_component_only=True)
+sim.add(Species(id="N2_COMPONENT", lumped_component_only=True))
+sim.add(Species(id="O2_COMPONENT", lumped_component_only=True))
+sim.add(Species(id="CO2_COMPONENT", lumped_component_only=True))
 
 # Define lumped air mixture
 sim.add(Species(
@@ -192,7 +192,7 @@ from pyfds import Simulation
 sim = Simulation(chid="temp_dependent")
 
 # Create temperature ramps
-sim.ramp(id="VISCOSITY_RAMP", x=[20, 100, 500], f=[1.8e-5, 2.1e-5, 3.5e-5])
+sim.add(Ramp(id="VISCOSITY_RAMP", x=[20, 100, 500], f=[1.8e-5, 2.1e-5, 3.5e-5]))
 
 # Define species with temperature-dependent viscosity
 sim.add(Species(
@@ -288,13 +288,13 @@ sim.combustion(
 from pyfds import Simulation
 
 sim = Simulation(chid="simple_combustion")
-sim.add(Time(t_end=60.0)
-sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2))
+sim.add(Time(t_end=60.0))
+sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
 
 # Use predefined species
-sim.add(Species(id="PROPANE", mass_fraction_0=0.0)
-sim.add(Species(id="OXYGEN", mass_fraction_0=0.23)
-sim.add(Species(id="NITROGEN", mass_fraction_0=0.77)
+sim.add(Species(id="PROPANE", mass_fraction_0=0.0))
+sim.add(Species(id="OXYGEN", mass_fraction_0=0.23))
+sim.add(Species(id="NITROGEN", mass_fraction_0=0.77))
 
 # Combustion reaction
 sim.add(Reaction(
@@ -374,7 +374,7 @@ sim.combustion(
 
 ## See Also
 
-- [API Reference: Species](api/species.md) - Complete API documentation
-- [Examples: Chemical Species](examples/species.md) - Working examples
+- [API Reference: Species](../api/species.md) - Complete API documentation
+- [Examples: Chemical Species](../examples/species.md) - Working examples
 - [Combustion Chemistry](combustion_chemistry.md) - Advanced combustion modeling
 - [FDS User Guide Chapter 12](https://pages.nist.gov/fds-smv/manuals/fds-user-guide/) - Official FDS documentation

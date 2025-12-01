@@ -3,7 +3,7 @@
 Tests real-world fire simulation scenarios using SURF, DEVC, REAC, and MESH enhancements.
 """
 
-from pyfds.builders import MeshBuilder, ReactionBuilder
+from pyfds.builders import ReactionBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import Device, Mesh, Reaction, Surface
 
@@ -98,18 +98,15 @@ class TestMultiMeshParallelSimulation:
 
     def test_single_mesh_with_mpi(self):
         """Test single mesh with MPI assignment."""
-        mesh = (
-            MeshBuilder()
-            .with_id("MESH1")
-            .with_bounds(Bounds3D.of(0, 10, 0, 10, 0, 3))
-            .with_grid(Grid3D.of(50, 50, 15))
-            .with_mpi(process=0, n_threads=4)
-            .build()
+        mesh = Mesh(
+            id="MESH1",
+            xb=Bounds3D.of(0, 10, 0, 10, 0, 3),
+            ijk=Grid3D.of(50, 50, 15),
+            mpi_process=0,
         )
 
         assert mesh.id == "MESH1"
         assert mesh.mpi_process == 0
-        assert mesh.n_threads == 4
         assert mesh.xb == Bounds3D.of(0, 10, 0, 10, 0, 3)
         assert mesh.ijk == Grid3D.of(50, 50, 15)
 
@@ -117,41 +114,40 @@ class TestMultiMeshParallelSimulation:
         """Test array of meshes for parallel processing."""
         meshes = []
         for i in range(4):
-            mesh = (
-                MeshBuilder()
-                .with_id(f"MESH{i}")
-                .with_bounds(Bounds3D.of(i * 10, (i + 1) * 10, 0, 10, 0, 3))
-                .with_grid(Grid3D.of(50, 50, 15))
-                .with_mpi(process=i, n_threads=2)
-                .build()
+            mesh = Mesh(
+                id=f"MESH{i}",
+                xb=Bounds3D.of(i * 10, (i + 1) * 10, 0, 10, 0, 3),
+                ijk=Grid3D.of(50, 50, 15),
+                mpi_process=i,
             )
             meshes.append(mesh)
 
         assert len(meshes) == 4
         assert all(m.mpi_process is not None for m in meshes)
-        assert all(m.n_threads == 2 for m in meshes)
         assert meshes[0].xb == Bounds3D.of(0, 10, 0, 10, 0, 3)
         assert meshes[3].xb == Bounds3D.of(30, 40, 0, 10, 0, 3)
 
     def test_mesh_with_stability_control(self):
-        """Test mesh with custom stability parameters."""
-        mesh = (
-            MeshBuilder()
-            .with_bounds(Bounds3D.of(0, 10, 0, 10, 0, 3))
-            .with_grid(Grid3D.of(100, 100, 30))
-            .with_stability_control(cfl_max=0.9, cfl_min=0.7, vn_max=0.9)
-            .with_max_iterations(20)
-            .build()
+        """Test mesh with valid FDS MESH parameters.
+
+        Note: Stability parameters like CFL_MAX, VN_MAX belong on MISC namelist,
+        not MESH. This test now uses actual MESH parameters per FDS User Guide.
+        """
+        mesh = Mesh(
+            id="FINE_MESH",
+            xb=Bounds3D.of(0, 10, 0, 10, 0, 3),
+            ijk=Grid3D.of(100, 100, 30),
+            check_mesh_alignment=True,
+            color="BLUE",
         )
 
-        assert mesh.cfl_max == 0.9
-        assert mesh.cfl_min == 0.7
-        assert mesh.vn_max == 0.9
-        assert mesh.maximum_internal_iterations == 20
+        assert mesh.id == "FINE_MESH"
+        assert mesh.check_mesh_alignment is True
+        assert mesh.color == "BLUE"
 
         fds_output = mesh.to_fds()
-        assert "20" in fds_output  # max_iterations
-        # Stability parameters are not output in MESH (they belong in MISC)
+        assert "FINE_MESH" in fds_output
+        assert "CHECK_MESH_ALIGNMENT" in fds_output
 
 
 class TestStatisticalTemperatureMonitoring:
@@ -162,14 +158,14 @@ class TestStatisticalTemperatureMonitoring:
         avg_temp = Device(
             id="AVG_TEMP",
             quantity="TEMPERATURE",
-            statistics="MEAN",
+            spatial_statistic="MEAN",
             statistics_start=10.0,
             xb=Bounds3D.of(0, 10, 0, 10, 0, 3),
         )
 
         assert avg_temp.id == "AVG_TEMP"
         assert avg_temp.quantity == "TEMPERATURE"
-        assert avg_temp.statistics == "MEAN"
+        assert avg_temp.spatial_statistic == "MEAN"
         assert avg_temp.statistics_start == 10.0
         assert avg_temp.xb == Bounds3D.of(0, 10, 0, 10, 0, 3)
 
@@ -186,7 +182,7 @@ class TestStatisticalTemperatureMonitoring:
             Device(
                 id="MEAN_TEMP",
                 quantity="TEMPERATURE",
-                statistics="MEAN",
+                spatial_statistic="MEAN",
                 xb=Bounds3D.of(0, 5, 0, 5, 0, 3),
             )
         )
@@ -196,7 +192,7 @@ class TestStatisticalTemperatureMonitoring:
             Device(
                 id="MAX_TEMP",
                 quantity="TEMPERATURE",
-                statistics="MAX",
+                spatial_statistic="MAX",
                 xb=Bounds3D.of(0, 5, 0, 5, 0, 3),
             )
         )
@@ -206,28 +202,26 @@ class TestStatisticalTemperatureMonitoring:
             Device(
                 id="MIN_TEMP",
                 quantity="TEMPERATURE",
-                statistics="MIN",
+                spatial_statistic="MIN",
                 xb=Bounds3D.of(0, 5, 0, 5, 0, 3),
             )
         )
 
         assert len(devices) == 3
-        assert devices[0].statistics == "MEAN"
-        assert devices[1].statistics == "MAX"
-        assert devices[2].statistics == "MIN"
+        assert devices[0].spatial_statistic == "MEAN"
+        assert devices[1].spatial_statistic == "MAX"
+        assert devices[2].spatial_statistic == "MIN"
 
     def test_temporal_and_spatial_statistics(self):
         """Test device with both temporal and spatial statistics."""
         devc = Device(
             id="COMPLEX_STAT",
             quantity="VELOCITY",
-            statistics="MEAN",
             temporal_statistic="RMS",
             spatial_statistic="MAX",
             xb=Bounds3D.of(0, 10, 0, 10, 0, 3),
         )
 
-        assert devc.statistics == "MEAN"
         assert devc.temporal_statistic == "RMS"
         assert devc.spatial_statistic == "MAX"
 
@@ -236,43 +230,44 @@ class TestExtinctionAndSuppressionModeling:
     """Test combustion extinction and suppression features."""
 
     def test_reaction_with_extinction(self):
-        """Test reaction with extinction model."""
+        """Test reaction with extinction parameters.
+
+        Note: EXTINCTION_MODEL is a MISC parameter, not REAC.
+        REAC has CRITICAL_FLAME_TEMPERATURE and LOWER_OXYGEN_LIMIT.
+        """
         reac = (
             ReactionBuilder()
             .fuel("PROPANE")
-            .with_extinction("EXTINCTION_1", critical_temp=1200.0)
+            .with_extinction(critical_temp=1200.0)
+            .with_extinction_limit(0.12)
             .radiative_fraction(0.35)
             .build()
         )
 
         assert reac.fuel == "PROPANE"
-        assert reac.extinction_model == "EXTINCTION_1"
         assert reac.critical_flame_temperature == 1200.0
+        assert reac.lower_oxygen_limit == 0.12
         assert reac.radiative_fraction == 0.35
 
         fds_output = reac.to_fds()
         assert "PROPANE" in fds_output
-        assert "EXTINCTION_1" in fds_output
-        assert "1200" in fds_output or "1200.0" in fds_output
+        assert "CRITICAL_FLAME_TEMPERATURE=1200" in fds_output
+        assert "LOWER_OXYGEN_LIMIT=0.12" in fds_output
 
-    def test_reaction_with_suppression(self):
-        """Test reaction with suppression model."""
-        reac = (
-            ReactionBuilder()
-            .fuel("WOOD")
-            .with_suppression(k_suppression=0.5)
-            .soot_yield(0.015)
-            .build()
-        )
+    def test_reaction_with_lower_oxygen_limit(self):
+        """Test reaction with lower oxygen limit for extinction.
+
+        Note: Suppression parameters are not on REAC namelist.
+        """
+        reac = ReactionBuilder().fuel("WOOD").with_extinction_limit(0.10).soot_yield(0.015).build()
 
         assert reac.fuel == "WOOD"
-        assert reac.suppression is True
-        assert reac.k_suppression == 0.5
+        assert reac.lower_oxygen_limit == 0.10
         assert reac.soot_yield == 0.015
 
         fds_output = reac.to_fds()
         assert "WOOD" in fds_output
-        assert "0.5" in fds_output
+        assert "LOWER_OXYGEN_LIMIT=0.1" in fds_output
 
     def test_reaction_with_species_stoichiometry(self):
         """Test reaction with species stoichiometry."""
@@ -287,14 +282,16 @@ class TestExtinctionAndSuppressionModeling:
         assert reac.spec_id_nu == ["CO2", "H2O"]
         assert reac.nu == [1.0, 2.0]
 
-    def test_reaction_with_time_scales(self):
-        """Test reaction with custom time scales."""
-        reac = (
-            ReactionBuilder().fuel("PROPANE").with_time_scales(tau_chem=0.1, tau_flame=0.5).build()
-        )
+    def test_reaction_with_two_step_chemistry(self):
+        """Test reaction with two-step chemistry.
 
-        assert reac.tau_chem == 0.1
-        assert reac.tau_flame == 0.5
+        Note: TAU_CHEM and TAU_FLAME are COMB namelist parameters, not REAC.
+        REAC has N_SIMPLE_CHEMISTRY_REACTIONS for two-step chemistry.
+        """
+        reac = ReactionBuilder().fuel("PROPANE").with_two_step_chemistry(co_fraction=0.5).build()
+
+        assert reac.n_simple_chemistry_reactions == 2
+        assert reac.fuel_c_to_co_fraction == 0.5
 
     def test_reaction_with_non_ideal_hoc(self):
         """Test reaction with non-ideal heat of combustion."""
@@ -308,12 +305,10 @@ class TestCylindricalMesh:
 
     def test_cylindrical_mesh_creation(self):
         """Test creation of cylindrical coordinate mesh."""
-        mesh = (
-            MeshBuilder()
-            .with_bounds(Bounds3D.of(0, 1, 0, 1, 0, 3))
-            .with_grid(Grid3D.of(50, 50, 100))
-            .as_cylindrical()
-            .build()
+        mesh = Mesh(
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 3),
+            ijk=Grid3D.of(50, 50, 100),
+            cylindrical=True,
         )
 
         assert mesh.cylindrical is True
@@ -346,13 +341,10 @@ class TestComplexFireScenario:
     def test_compartment_fire_with_full_instrumentation(self):
         """Test complete compartment fire with all Stage 1 features."""
         # Mesh
-        mesh = (
-            MeshBuilder()
-            .with_id("ROOM")
-            .with_bounds(Bounds3D.of(0, 6, 0, 4, 0, 3))
-            .with_grid(Grid3D.of(60, 40, 30))
-            .with_stability_control(cfl_max=0.95)
-            .build()
+        mesh = Mesh(
+            id="ROOM",
+            xb=Bounds3D.of(0, 6, 0, 4, 0, 3),
+            ijk=Grid3D.of(60, 40, 30),
         )
 
         # Fire surface with ignition
@@ -371,7 +363,7 @@ class TestComplexFireScenario:
         reaction = (
             ReactionBuilder()
             .fuel("POLYURETHANE")
-            .with_extinction("EXTINCTION_1", critical_temp=1100.0)
+            .with_extinction("EXTINCTION 1", critical_temp=1100.0)
             .radiative_fraction(0.30)
             .yields(soot=0.10, co=0.04)
             .build()
@@ -391,7 +383,7 @@ class TestComplexFireScenario:
         temp_ceiling = Device(
             id="TEMP_CEILING_AVG",
             quantity="TEMPERATURE",
-            statistics="MEAN",
+            spatial_statistic="MEAN",
             statistics_start=5.0,
             xb=Bounds3D.of(0, 6, 0, 4, 2.5, 3.0),
         )
@@ -404,38 +396,38 @@ class TestComplexFireScenario:
         assert isinstance(temp_ceiling, Device)
 
         # Verify key properties
-        assert mesh.cfl_max == 0.95
+        assert mesh.id == "ROOM"
         assert fire.ignition_temperature == 300.0
         assert fire.burn_away is True
-        assert reaction.extinction_model == "EXTINCTION_1"
+        assert reaction.critical_flame_temperature == 1100.0
         assert sprinkler.setpoint == 74.0
-        assert temp_ceiling.statistics == "MEAN"
+        assert temp_ceiling.spatial_statistic == "MEAN"
 
         # Verify FDS output generation
         assert all(obj.to_fds() for obj in [mesh, fire, reaction, sprinkler, temp_ceiling])
 
 
-class TestBackwardCompatibility:
-    """Test that Stage 1 enhancements don't break existing functionality."""
+class TestCoreNamelistCreation:
+    """Test that core namelist classes work correctly."""
 
-    def test_simple_surf_still_works(self):
-        """Test that simple SURF creation still works."""
+    def test_simple_surf_creation(self):
+        """Test that simple SURF creation works."""
         surf = Surface(id="SIMPLE", hrrpua=500.0, color="RED")
         assert surf.id == "SIMPLE"
         assert surf.hrrpua == 500.0
 
-    def test_simple_devc_still_works(self):
-        """Test that simple DEVC creation still works."""
+    def test_simple_devc_creation(self):
+        """Test that simple DEVC creation works."""
         devc = Device(id="TEMP", quantity="TEMPERATURE", xyz=Point3D.of(5, 5, 2))
         assert devc.id == "TEMP"
         assert devc.quantity == "TEMPERATURE"
 
-    def test_simple_mesh_still_works(self):
-        """Test that simple MESH creation still works."""
+    def test_simple_mesh_creation(self):
+        """Test that simple MESH creation works."""
         mesh = Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
         assert mesh.ijk == Grid3D.of(50, 50, 25)
 
-    def test_simple_reaction_still_works(self):
-        """Test that simple REAC creation still works."""
+    def test_simple_reaction_creation(self):
+        """Test that simple REAC creation works."""
         reac = Reaction(fuel="PROPANE")
         assert reac.fuel == "PROPANE"

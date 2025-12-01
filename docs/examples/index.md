@@ -61,11 +61,11 @@ A simple 5m × 5m room with a 1m² fire source.
 from pyfds import Simulation
 
 sim = Simulation(chid='room_fire', title='Basic Room Fire')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
-sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+sim.add(Device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4)))
 sim.write('room_fire.fds')
 ```
 
@@ -78,17 +78,17 @@ Room with supply and exhaust ventilation.
 from pyfds import Simulation
 
 sim = Simulation(chid='hvac_room', title='HVAC Room Simulation')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(60, 60, 30), xb=Bounds3D.of(0, 6, 0, 6, 0, 3))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(60, 60, 30), xb=Bounds3D.of(0, 6, 0, 6, 0, 3)))
 
 # Set ambient conditions
 sim.set_misc(tmpa=22.0, humidity=50.0)
 
 # Supply vent (0.5 m³/s)
-sim.add(Vent(xb=Bounds3D.of(2, 2.5, 2, 2.5, 3, 3), surf_id='HVAC', volume_flow=0.5)
+sim.add(Vent(xb=Bounds3D.of(2, 2.5, 2, 2.5, 3, 3), surf_id='HVAC', volume_flow=0.5))
 
 # Exhaust vent (-0.4 m³/s)
-sim.add(Vent(xb=Bounds3D.of(4, 4.5, 4, 4.5, 3, 3), surf_id='HVAC', volume_flow=-0.4)
+sim.add(Vent(xb=Bounds3D.of(4, 4.5, 4, 4.5, 3, 3), surf_id='HVAC', volume_flow=-0.4))
 
 sim.write('hvac_room.fds')
 ```
@@ -103,8 +103,8 @@ from pyfds import Simulation
 from pyfds.core.enums import TurbulenceModel
 
 sim = Simulation(chid='wildfire', title='Wildfire Spread')
-sim.add(Time(t_end=1800.0)
-sim.add(Mesh(ijk=Grid3D.of(100, 100, 30), xb=Bounds3D.of(0, 100, 0, 100, 0, 30))
+sim.add(Time(t_end=1800.0))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 30), xb=Bounds3D.of(0, 100, 0, 100, 0, 30)))
 
 # Configure for wildfire
 sim.set_misc(
@@ -115,10 +115,10 @@ sim.set_misc(
 )
 
 # Open boundaries
-sim.add(Vent(mb='XMIN', surf_id='OPEN')
-sim.add(Vent(mb='XMAX', surf_id='OPEN')
-sim.add(Vent(mb='YMIN', surf_id='OPEN')
-sim.add(Vent(mb='YMAX', surf_id='OPEN')
+sim.add(Vent(mb='XMIN', surf_id='OPEN'))
+sim.add(Vent(mb='XMAX', surf_id='OPEN'))
+sim.add(Vent(mb='YMIN', surf_id='OPEN'))
+sim.add(Vent(mb='YMAX', surf_id='OPEN'))
 
 sim.write('wildfire.fds')
 ```

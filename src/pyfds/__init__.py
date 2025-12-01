@@ -19,40 +19,39 @@ import sys
 
 __version__ = "0.1.0"
 
-# Builders
-from .builders import (
-    HoleBuilder,
+# Builders (high-value only - for complex domain logic)
+from pyfds.builders import (
+    ControlBuilder,
+    GeomBuilder,
     MaterialBuilder,
-    MeshBuilder,
-    ObstructionBuilder,
-    PropBuilder,
+    PartBuilder,
     RampBuilder,
+    ReactionBuilder,
     SurfaceBuilder,
-    VentBuilder,
 )
 
 # Configuration
-from .config import RunConfig
+from pyfds.config import RunConfig
 
 # Geometry value objects
-from .core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 # Namelist classes
-from .core.namelists import (
+from pyfds.core.namelists import (
     Combustion,
-    Ctrl,
+    Control,
     Device,
     FdsField,
     Head,
     Hole,
-    Init,
+    Initialization,
     Material,
     Mesh,
     Misc,
-    Mult,
+    Multiplier,
     Obstruction,
-    Part,
-    Prop,
+    Particle,
+    Property,
     Ramp,
     Reaction,
     Species,
@@ -62,10 +61,10 @@ from .core.namelists import (
 )
 
 # Core simulation
-from .core.simulation import Simulation
+from pyfds.core.simulation import Simulation
 
 # Exceptions
-from .exceptions import (
+from pyfds.exceptions import (
     DuplicateIdError,
     ExecutionError,
     FDSNotFoundError,
@@ -75,41 +74,41 @@ from .exceptions import (
 )
 
 # Execution functions
-from .execution import run_fds
+from pyfds.execution import run_fds
 
 # IO functions
-from .io import parse_fds
+from pyfds.io import parse_fds
 
 __all__ = [
     "Bounds3D",
     "Combustion",
-    "Ctrl",
+    "Control",
+    "ControlBuilder",
     "Device",
     "DuplicateIdError",
     "ExecutionError",
     "FDSNotFoundError",
     "FdsField",
+    "GeomBuilder",
     "Grid3D",
     "Head",
     "Hole",
-    "HoleBuilder",
-    "Init",
+    "Initialization",
     "Material",
     "MaterialBuilder",
     "Mesh",
-    "MeshBuilder",
     "Misc",
-    "Mult",
+    "Multiplier",
     "Obstruction",
-    "ObstructionBuilder",
-    "Part",
+    "PartBuilder",
+    "Particle",
     "Point3D",
-    "Prop",
-    "PropBuilder",
+    "Property",
     "PyFDSError",
     "Ramp",
     "RampBuilder",
     "Reaction",
+    "ReactionBuilder",
     "RunConfig",
     "Simulation",
     "Species",
@@ -119,7 +118,6 @@ __all__ = [
     "UnknownIdError",
     "ValidationError",
     "Vent",
-    "VentBuilder",
     "__version__",
     "parse_fds",
     "run_fds",
@@ -128,6 +126,6 @@ __all__ = [
 
 def main() -> None:
     """CLI entry point."""
-    from .cli import main as cli_main
+    from pyfds.cli import main as cli_main
 
     sys.exit(cli_main())

@@ -7,12 +7,14 @@ Define material properties and surface characteristics for your FDS simulations.
 Surfaces (SURF) define boundary conditions and material properties. Materials (MATL) define the physical properties of solids.
 
 ```python
+from pyfds import Surface, Material
+
 # Simple fire surface
-sim.surface(id='FIRE', hrrpua=1000.0)
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
 
 # Material surface
-sim.material(id='WOOD', conductivity=0.12, specific_heat=1.0, density=500.0)
-sim.surface(id='WOOD_WALL', matl_id='WOOD', thickness=0.02)
+sim.add(Material(id='WOOD', conductivity=0.12, specific_heat=1.0, density=500.0))
+sim.add(Surface(id='WOOD_WALL', matl_id='WOOD', thickness=0.02))
 ```
 
 ## Surface Types
@@ -22,7 +24,7 @@ sim.surface(id='WOOD_WALL', matl_id='WOOD', thickness=0.02)
 For combustion sources:
 
 ```python
-sim.surface(
+sim.add(Surface(
     id='BURNER',
     hrrpua=1000.0,      # Heat release rate per unit area (kW/m²)
     color='RED'          # Visualization color
@@ -37,7 +39,7 @@ For walls, floors, objects:
 
 ```python
 # Define material
-sim.material(
+sim.add(Material(
     id='CONCRETE',
     conductivity=1.8,    # Thermal conductivity (W/m·K)
     specific_heat=0.88,  # Specific heat (kJ/kg·K)
@@ -45,7 +47,7 @@ sim.material(
 )
 
 # Create surface with material
-sim.surface(
+sim.add(Surface(
     id='CONCRETE_WALL',
     matl_id='CONCRETE',
     thickness=0.2  # meters
@@ -64,7 +66,7 @@ FDS includes predefined surfaces:
 
 ```python
 # Use predefined
-sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id='INERT')
+sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id='INERT'))
 ```
 
 ## Material Properties
@@ -72,7 +74,7 @@ sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id='INERT')
 ### Basic Material
 
 ```python
-sim.material(
+sim.add(Material(
     id='MATERIAL_NAME',
     conductivity=0.5,    # W/m·K
     specific_heat=1.0,   # kJ/kg·K
@@ -84,7 +86,7 @@ sim.material(
 
 ```python
 # Gypsum board
-sim.material(
+sim.add(Material(
     id='GYPSUM',
     conductivity=0.48,
     specific_heat=0.84,
@@ -92,7 +94,7 @@ sim.material(
 )
 
 # Wood (generic)
-sim.material(
+sim.add(Material(
     id='WOOD',
     conductivity=0.12,
     specific_heat=1.0,
@@ -100,7 +102,7 @@ sim.material(
 )
 
 # Steel
-sim.material(
+sim.add(Material(
     id='STEEL',
     conductivity=45.8,
     specific_heat=0.46,
@@ -108,7 +110,7 @@ sim.material(
 )
 
 # Concrete
-sim.material(
+sim.add(Material(
     id='CONCRETE',
     conductivity=1.8,
     specific_heat=0.88,
@@ -116,7 +118,7 @@ sim.material(
 )
 
 # Insulation
-sim.material(
+sim.add(Material(
     id='INSULATION',
     conductivity=0.04,
     specific_heat=0.84,
@@ -130,11 +132,11 @@ sim.material(
 
 ```python
 # Define each material layer
-sim.material(id='GYPSUM', conductivity=0.48, specific_heat=0.84, density=1440.0)
-sim.material(id='INSULATION', conductivity=0.04, specific_heat=0.84, density=100.0)
+sim.add(Material(id='GYPSUM', conductivity=0.48, specific_heat=0.84, density=1440.0))
+sim.add(Material(id='INSULATION', conductivity=0.04, specific_heat=0.84, density=100.0))
 
 # Create surface with multiple layers
-sim.surface(
+sim.add(Surface(
     id='COMPOSITE_WALL',
     matl_id=['GYPSUM', 'INSULATION', 'GYPSUM'],  # Inside to outside
     thickness=[0.0127, 0.10, 0.0127]             # Thickness of each layer (m)
@@ -149,13 +151,13 @@ Using RAMP for temperature-dependent conductivity:
 
 ```python
 # Conductivity ramp (temperature in °C, conductivity factor)
-sim.ramp(
+sim.add(Ramp(
     id='K_RAMP',
     t=[20, 100, 200, 400, 600],          # Temperature (°C)
     f=[1.0, 1.1, 1.3, 1.6, 2.0]          # Conductivity multiplier
 )
 
-sim.material(
+sim.add(Material(
     id='TEMP_DEP_MATL',
     conductivity=0.5,
     specific_heat=1.0,
@@ -170,11 +172,11 @@ For visualization in Smokeview:
 
 ```python
 # Named colors
-sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
-sim.surface(id='WALL', matl_id='CONCRETE', thickness=0.2, color='GRAY')
+sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
+sim.add(Surface(id='WALL', matl_id='CONCRETE', thickness=0.2, color='GRAY'))
 
 # RGB values (0-255)
-sim.surface(id='CUSTOM', matl_id='WOOD', thickness=0.02, rgb=(139, 69, 19))
+sim.add(Surface(id='CUSTOM', matl_id='WOOD', thickness=0.02, rgb=(139, 69, 19)))
 ```
 
 Common colors: `RED`, `ORANGE`, `YELLOW`, `GREEN`, `BLUE`, `GRAY`, `BLACK`, `WHITE`
@@ -184,14 +186,14 @@ Common colors: `RED`, `ORANGE`, `YELLOW`, `GREEN`, `BLUE`, `GRAY`, `BLACK`, `WHI
 ### Emissivity
 
 ```python
-sim.surface(
+sim.add(Surface(
     id='BLACK_SURFACE',
     matl_id='STEEL',
     thickness=0.005,
     emissivity=0.95  # 0.0 to 1.0
 )
 
-sim.surface(
+sim.add(Surface(
     id='SHINY_SURFACE',
     matl_id='ALUMINUM',
     thickness=0.003,
@@ -203,7 +205,7 @@ sim.surface(
 
 ```python
 # Insulated backing
-sim.surface(
+sim.add(Surface(
     id='INSULATED_WALL',
     matl_id='CONCRETE',
     thickness=0.2,
@@ -211,7 +213,7 @@ sim.surface(
 )
 
 # Exposed backing (default)
-sim.surface(
+sim.add(Surface(
     id='EXPOSED_WALL',
     matl_id='CONCRETE',
     thickness=0.2,
@@ -227,10 +229,10 @@ sim.surface(
 from pyfds import Simulation
 
 sim = Simulation(chid='wall_material')
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Define gypsum material
-sim.material(
+sim.add(Material(
     id='GYPSUM',
     conductivity=0.48,
     specific_heat=0.84,
@@ -238,7 +240,7 @@ sim.material(
 )
 
 # Create surface with gypsum
-sim.surface(
+sim.add(Surface(
     id='GYPSUM_WALL',
     matl_id='GYPSUM',
     thickness=0.0127,  # 1/2 inch
@@ -246,7 +248,7 @@ sim.surface(
 )
 
 # Apply to walls
-sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL'))
 
 sim.write('wall_material.fds')
 ```
@@ -255,15 +257,15 @@ sim.write('wall_material.fds')
 
 ```python
 sim = Simulation(chid='composite_wall')
-sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5)))
 
 # Define materials
-sim.material(id='GYPSUM', conductivity=0.48, specific_heat=0.84, density=1440.0)
-sim.material(id='INSULATION', conductivity=0.04, specific_heat=0.84, density=100.0)
-sim.material(id='WOOD_STUD', conductivity=0.12, specific_heat=1.0, density=500.0)
+sim.add(Material(id='GYPSUM', conductivity=0.48, specific_heat=0.84, density=1440.0))
+sim.add(Material(id='INSULATION', conductivity=0.04, specific_heat=0.84, density=100.0))
+sim.add(Material(id='WOOD_STUD', conductivity=0.12, specific_heat=1.0, density=500.0))
 
 # Composite wall: gypsum-insulation-gypsum
-sim.surface(
+sim.add(Surface(
     id='EXTERIOR_WALL',
     matl_id=['GYPSUM', 'INSULATION', 'GYPSUM'],
     thickness=[0.0127, 0.089, 0.0127],  # Total: ~0.115m
@@ -271,7 +273,7 @@ sim.surface(
 )
 
 # Apply to wall
-sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 2.5), surf_id='EXTERIOR_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 2.5), surf_id='EXTERIOR_WALL'))
 
 sim.write('composite_wall.fds')
 ```
@@ -280,17 +282,17 @@ sim.write('composite_wall.fds')
 
 ```python
 sim = Simulation(chid='temp_dependent')
-sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5))
+sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5)))
 
 # Conductivity increases with temperature
-sim.ramp(
+sim.add(Ramp(
     id='K_VS_T',
     t=[20, 200, 400, 600],
     f=[1.0, 1.2, 1.5, 2.0]
 )
 
 # Material with temperature-dependent conductivity
-sim.material(
+sim.add(Material(
     id='TEMP_MATL',
     conductivity=0.5,
     specific_heat=1.0,
@@ -298,16 +300,16 @@ sim.material(
     conductivity_ramp='K_VS_T'
 )
 
-sim.surface(
+sim.add(Surface(
     id='TEMP_SURF',
     matl_id='TEMP_MATL',
     thickness=0.05
 )
 
 # Fire and wall
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
-sim.add(Obstruction(xb=Bounds3D.of(0, 0.1, 0, 3, 0, 1.5), surf_id='TEMP_SURF')
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.1, 0, 3, 0, 1.5), surf_id='TEMP_SURF'))
 
 sim.write('temp_dependent.fds')
 ```
@@ -325,7 +327,7 @@ Reference material property databases:
 
 ```python
 # Actual 1/2" gypsum board
-sim.surface(
+sim.add(Surface(
     id='GYPSUM_WALL',
     matl_id='GYPSUM',
     thickness=0.0127  # 0.5 inches = 0.0127 m
@@ -342,7 +344,7 @@ Thickness should be greater than thermal penetration depth:
 # δ ≈ √(8.5×10⁻⁷ × 600) ≈ 0.023 m
 
 # Use thickness > δ
-sim.surface(
+sim.add(Surface(
     id='CONCRETE_WALL',
     matl_id='CONCRETE',
     thickness=0.05  # > 0.023 m
@@ -354,7 +356,7 @@ sim.surface(
 ```python
 # Clear documentation
 # Material properties from: SFPE Handbook, 5th Ed., Table X.Y
-sim.material(
+sim.add(Material(
     id='CONCRETE',
     conductivity=1.8,     # W/m·K
     specific_heat=0.88,   # kJ/kg·K

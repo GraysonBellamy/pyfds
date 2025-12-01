@@ -13,8 +13,8 @@ The `Validator` class checks PyFDS simulation configurations for errors and warn
 from pyfds import Simulation, Validator
 
 sim = Simulation(chid='test')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Create validator
 validator = Validator()
@@ -51,13 +51,13 @@ Checks that all ID references are valid:
 
 ```python
 # Invalid - SURF_ID 'FIRE' doesn't exist
-sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
 
 errors = validator.validate(sim)
 # Returns error about undefined SURF_ID 'FIRE'
 
 # Add surface to fix
-sim.surface(id='FIRE', hrrpua=1000.0)
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
 errors = validator.validate(sim)
 # No errors
 ```
@@ -69,12 +69,12 @@ Validates mesh bounds and geometry:
 ```python
 # Invalid bounds (x1 < x0)
 try:
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(5, 0, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(5, 0, 0, 5, 0, 2.5)))
 except ValidationError as e:
     print(f"Invalid bounds: {e}")
 
 # Valid bounds
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 ```
 
 ### Mesh Quality
@@ -83,7 +83,7 @@ Checks mesh resolution and aspect ratios:
 
 ```python
 # Coarse mesh warning
-sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
+sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
 validator = Validator()
 warnings = validator.get_warnings(sim)

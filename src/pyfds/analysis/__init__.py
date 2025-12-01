@@ -2,6 +2,6 @@
 Analysis module for FDS simulation results.
 """
 
-from .results import Results
+from pyfds.analysis.results import Results
 
 __all__ = ["Results"]

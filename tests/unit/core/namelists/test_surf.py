@@ -544,18 +544,18 @@ class TestSurfFDSOutput:
         assert "REFERENCE_THICKNESS" in output or "reference_thickness" in output.lower()
 
 
-class TestSurfBackwardCompatibility:
-    """Test backward compatibility with existing code."""
+class TestSurfCoreCreation:
+    """Test that core Surface creation patterns work correctly."""
 
-    def test_simple_fire_surface_still_works(self):
-        """Test that existing simple fire surfaces still work."""
+    def test_simple_fire_surface(self):
+        """Test that simple fire surfaces work."""
         surf = Surface(id="FIRE", hrrpua=1000.0, color="RED")
         assert surf.id == "FIRE"
         assert surf.hrrpua == 1000.0
         assert surf.color == "RED"
 
-    def test_material_surface_still_works(self):
-        """Test that existing material surfaces still work."""
+    def test_material_surface(self):
+        """Test that material surfaces work."""
         surf = Surface(id="WALL", matl_id="CONCRETE", thickness=0.2)
         assert surf.matl_id == "CONCRETE"
         assert surf.thickness == 0.2
@@ -703,3 +703,317 @@ class TestSurfConeCalorimeter:
         fds_str = surf.to_fds()
         assert "RAMP_EF='FLUX_RAMP'" in fds_str
         assert "TAU_EF=5.0" in fds_str
+
+
+class TestSurfWallModel:
+    """Test wall model parameters."""
+
+    def test_free_slip(self):
+        """Test FREE_SLIP parameter."""
+        surf = Surface(id="SLIP", free_slip=True)
+        assert surf.free_slip is True
+        output = surf.to_fds()
+        assert "FREE_SLIP" in output or "free_slip" in output.lower()
+
+    def test_no_slip(self):
+        """Test NO_SLIP parameter."""
+        surf = Surface(id="NOSLIP", no_slip=True)
+        assert surf.no_slip is True
+
+    def test_roughness(self):
+        """Test ROUGHNESS parameter."""
+        surf = Surface(id="ROUGH", roughness=0.001)
+        assert surf.roughness == 0.001
+        output = surf.to_fds()
+        assert "ROUGHNESS" in output or "roughness" in output.lower()
+
+    def test_near_wall_eddy_viscosity(self):
+        """Test NEAR_WALL_EDDY_VISCOSITY parameter."""
+        surf = Surface(id="TURB", near_wall_eddy_viscosity=0.001)
+        assert surf.near_wall_eddy_viscosity == 0.001
+
+    def test_near_wall_turbulence_model(self):
+        """Test NEAR_WALL_TURBULENCE_MODEL parameter."""
+        surf = Surface(id="TURB", near_wall_turbulence_model="WALE")
+        assert surf.near_wall_turbulence_model == "WALE"
+
+    def test_near_wall_turbulence_model_invalid(self):
+        """Test invalid NEAR_WALL_TURBULENCE_MODEL raises error."""
+        with pytest.raises(ValidationError):
+            Surface(id="BAD", near_wall_turbulence_model="INVALID")
+
+
+class TestSurfParticleParameters:
+    """Test particle-related parameters."""
+
+    def test_allow_surface_particles(self):
+        """Test ALLOW_SURFACE_PARTICLES parameter."""
+        surf = Surface(id="TEST", allow_surface_particles=False)
+        assert surf.allow_surface_particles is False
+
+    def test_allow_underside_particles(self):
+        """Test ALLOW_UNDERSIDE_PARTICLES parameter."""
+        surf = Surface(id="TEST", allow_underside_particles=True)
+        assert surf.allow_underside_particles is True
+
+    def test_particle_surface_density(self):
+        """Test PARTICLE_SURFACE_DENSITY parameter."""
+        surf = Surface(id="TEST", part_id="DROPS", particle_surface_density=0.01)
+        assert surf.particle_surface_density == 0.01
+
+    def test_particle_extraction_velocity(self):
+        """Test PARTICLE_EXTRACTION_VELOCITY parameter."""
+        surf = Surface(id="EXHAUST", particle_extraction_velocity=5.0)
+        assert surf.particle_extraction_velocity == 5.0
+
+    def test_dt_insert(self):
+        """Test DT_INSERT parameter."""
+        surf = Surface(id="SPRAY", part_id="WATER", dt_insert=0.05)
+        assert surf.dt_insert == 0.05
+
+    def test_ramp_part(self):
+        """Test RAMP_PART parameter."""
+        surf = Surface(id="SPRAY", part_id="WATER", ramp_part="SPRAY_RAMP")
+        assert surf.ramp_part == "SPRAY_RAMP"
+
+    def test_tau_part(self):
+        """Test TAU_PART parameter."""
+        surf = Surface(id="SPRAY", part_id="WATER", tau_part=5.0)
+        assert surf.tau_part == 5.0
+
+
+class TestSurfFlowParameters:
+    """Test flow-related parameters."""
+
+    def test_vel_bulk(self):
+        """Test VEL_BULK parameter."""
+        surf = Surface(id="VENT", vel=1.0, vel_bulk=0.8)
+        assert surf.vel_bulk == 0.8
+
+    def test_vel_grad(self):
+        """Test VEL_GRAD parameter."""
+        surf = Surface(id="VENT", vel_grad=0.1)
+        assert surf.vel_grad == 0.1
+
+    def test_vel_t(self):
+        """Test VEL_T parameter."""
+        surf = Surface(id="LOUVER", vel_t=(0.5, 0.3))
+        assert surf.vel_t == (0.5, 0.3)
+
+    def test_profile(self):
+        """Test PROFILE parameter."""
+        surf = Surface(id="INLET", vel=2.0, profile="PARABOLIC")
+        assert surf.profile == "PARABOLIC"
+
+    def test_profile_invalid(self):
+        """Test invalid PROFILE raises error."""
+        with pytest.raises(ValidationError):
+            Surface(id="BAD", vel=1.0, profile="INVALID")
+
+    def test_convert_volume_to_mass(self):
+        """Test CONVERT_VOLUME_TO_MASS parameter."""
+        surf = Surface(id="VENT", convert_volume_to_mass=True)
+        assert surf.convert_volume_to_mass is True
+
+    def test_mass_flux_array(self):
+        """Test MASS_FLUX array parameter."""
+        surf = Surface(id="VENT", spec_id=["CO2", "H2O"], mass_flux=[0.01, 0.02])
+        assert surf.mass_flux == [0.01, 0.02]
+
+    def test_mass_flux_var(self):
+        """Test MASS_FLUX_VAR parameter."""
+        surf = Surface(id="VENT", mass_flux_var=0.1)
+        assert surf.mass_flux_var == 0.1
+
+    def test_velocity_ramps(self):
+        """Test velocity ramp parameters."""
+        surf = Surface(
+            id="INLET",
+            vel=1.0,
+            ramp_v="VEL_RAMP",
+            ramp_v_x="VEL_X",
+            ramp_v_y="VEL_Y",
+            ramp_v_z="VEL_Z",
+        )
+        assert surf.ramp_v == "VEL_RAMP"
+        assert surf.ramp_v_x == "VEL_X"
+        assert surf.ramp_v_y == "VEL_Y"
+        assert surf.ramp_v_z == "VEL_Z"
+
+
+class TestSurfVegetation:
+    """Test vegetation/boundary fuel model parameters."""
+
+    def test_drag_coefficient(self):
+        """Test DRAG_COEFFICIENT parameter."""
+        surf = Surface(id="VEG", drag_coefficient=3.0)
+        assert surf.drag_coefficient == 3.0
+
+    def test_shape_factor(self):
+        """Test SHAPE_FACTOR parameter."""
+        surf = Surface(id="VEG", shape_factor=0.3)
+        assert surf.shape_factor == 0.3
+
+    def test_mass_per_volume(self):
+        """Test MASS_PER_VOLUME parameter."""
+        surf = Surface(id="VEG", mass_per_volume=[0.5, 0.3])
+        assert surf.mass_per_volume == [0.5, 0.3]
+
+    def test_surface_volume_ratio(self):
+        """Test SURFACE_VOLUME_RATIO parameter."""
+        surf = Surface(id="VEG", surface_volume_ratio=[5000.0])
+        assert surf.surface_volume_ratio == [5000.0]
+
+    def test_moisture_content(self):
+        """Test MOISTURE_CONTENT parameter."""
+        surf = Surface(id="VEG", moisture_content=[0.1, 0.15])
+        assert surf.moisture_content == [0.1, 0.15]
+
+    def test_minimum_burnout_time(self):
+        """Test MINIMUM_BURNOUT_TIME parameter."""
+        surf = Surface(id="VEG", minimum_burnout_time=60.0)
+        assert surf.minimum_burnout_time == 60.0
+
+    def test_init_ids(self):
+        """Test INIT_IDS parameter."""
+        surf = Surface(id="TREE", init_ids=["TREE_INIT"])
+        assert surf.init_ids == ["TREE_INIT"]
+
+    def test_init_per_area(self):
+        """Test INIT_PER_AREA parameter."""
+        surf = Surface(id="GRASS", init_per_area=100.0)
+        assert surf.init_per_area == 100.0
+
+
+class TestSurfEmber:
+    """Test ember generation parameters."""
+
+    def test_ember_generation_height(self):
+        """Test EMBER_GENERATION_HEIGHT parameter."""
+        surf = Surface(id="FIRE", hrrpua=1000.0, ember_generation_height=(0.0, 5.0))
+        assert surf.ember_generation_height == (0.0, 5.0)
+
+    def test_ember_ignition_power_mean(self):
+        """Test EMBER_IGNITION_POWER_MEAN parameter."""
+        surf = Surface(id="FIRE", hrrpua=1000.0, ember_ignition_power_mean=0.5)
+        assert surf.ember_ignition_power_mean == 0.5
+
+    def test_ember_ignition_power_sigma(self):
+        """Test EMBER_IGNITION_POWER_SIGMA parameter."""
+        surf = Surface(id="FIRE", hrrpua=1000.0, ember_ignition_power_sigma=0.1)
+        assert surf.ember_ignition_power_sigma == 0.1
+
+    def test_ember_tracking_ratio(self):
+        """Test EMBER_TRACKING_RATIO parameter."""
+        surf = Surface(id="FIRE", hrrpua=1000.0, ember_tracking_ratio=50.0)
+        assert surf.ember_tracking_ratio == 50.0
+
+    def test_ember_yield(self):
+        """Test EMBER_YIELD parameter."""
+        surf = Surface(id="FIRE", hrrpua=1000.0, ember_yield=0.01)
+        assert surf.ember_yield == 0.01
+
+
+class TestSurfLeakage:
+    """Test leakage parameters."""
+
+    def test_leak_path(self):
+        """Test LEAK_PATH parameter."""
+        surf = Surface(id="LEAK", leak_path=(1, 2))
+        assert surf.leak_path == (1, 2)
+
+    def test_leak_path_id(self):
+        """Test LEAK_PATH_ID parameter."""
+        surf = Surface(id="LEAK", leak_path_id=("ZONE1", "ZONE2"))
+        assert surf.leak_path_id == ("ZONE1", "ZONE2")
+
+
+class TestSurfHVAC:
+    """Test HVAC parameters."""
+
+    def test_node_id(self):
+        """Test NODE_ID parameter."""
+        surf = Surface(id="HVAC_SURF", node_id="NODE_1")
+        assert surf.node_id == "NODE_1"
+
+
+class TestSurfLevelSet:
+    """Test level set wildland fire parameters."""
+
+    def test_veg_lset_defaults(self):
+        """Test VEG_LSET default values."""
+        surf = Surface(id="WILDFIRE")
+        assert surf.veg_lset_beta == 0.01
+        assert surf.veg_lset_char_fraction == 0.2
+        assert surf.veg_lset_ht == 0.2
+        assert surf.veg_lset_sigma == 5000.0
+        assert surf.veg_lset_surf_load == 1.0
+
+    def test_veg_lset_fuel_moisture(self):
+        """Test VEG_LSET fuel moisture parameters."""
+        surf = Surface(id="WILDFIRE", veg_lset_m1=0.05, veg_lset_m10=0.06, veg_lset_m100=0.08)
+        assert surf.veg_lset_m1 == 0.05
+        assert surf.veg_lset_m10 == 0.06
+        assert surf.veg_lset_m100 == 0.08
+
+    def test_veg_lset_ros(self):
+        """Test VEG_LSET rate of spread parameters."""
+        surf = Surface(
+            id="WILDFIRE",
+            veg_lset_ros_head=0.02,
+            veg_lset_ros_back=0.005,
+            veg_lset_ros_flank=0.01,
+            veg_lset_ros_00=0.003,
+        )
+        assert surf.veg_lset_ros_head == 0.02
+        assert surf.veg_lset_ros_back == 0.005
+        assert surf.veg_lset_ros_flank == 0.01
+        assert surf.veg_lset_ros_00 == 0.003
+
+    def test_veg_lset_ros_fixed(self):
+        """Test VEG_LSET_ROS_FIXED parameter."""
+        surf = Surface(id="WILDFIRE", veg_lset_ros_fixed=True)
+        assert surf.veg_lset_ros_fixed is True
+
+    def test_veg_lset_fuel_index(self):
+        """Test VEG_LSET_FUEL_INDEX parameter."""
+        surf = Surface(id="WILDFIRE", veg_lset_fuel_index=5)
+        assert surf.veg_lset_fuel_index == 5
+
+    def test_veg_lset_ignite_time(self):
+        """Test VEG_LSET_IGNITE_TIME parameter."""
+        surf = Surface(id="WILDFIRE", veg_lset_ignite_time=10.0)
+        assert surf.veg_lset_ignite_time == 10.0
+
+    def test_veg_lset_wind_ramp(self):
+        """Test VEG_LSET_WIND_RAMP parameter."""
+        surf = Surface(id="WILDFIRE", veg_lset_wind_ramp="WIND_RAMP")
+        assert surf.veg_lset_wind_ramp == "WIND_RAMP"
+
+
+class TestSurfStratification:
+    """Test stratification/wind parameters."""
+
+    def test_ple(self):
+        """Test PLE parameter."""
+        surf = Surface(id="ATMO", ple=0.25)
+        assert surf.ple == 0.25
+
+    def test_z0(self):
+        """Test Z0 parameter."""
+        surf = Surface(id="ATMO", z0=15.0)
+        assert surf.z0 == 15.0
+
+    def test_z_0(self):
+        """Test Z_0 parameter."""
+        surf = Surface(id="GROUND", z_0=0.1)
+        assert surf.z_0 == 0.1
+
+
+class TestSurfSuppression:
+    """Test suppression parameters."""
+
+    def test_e_coefficient(self):
+        """Test E_COEFFICIENT parameter."""
+        surf = Surface(id="SUPPRESSED", e_coefficient=0.005)
+        assert surf.e_coefficient == 0.005

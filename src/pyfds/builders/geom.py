@@ -7,10 +7,10 @@ Provides fluent API for creating complex geometry objects.
 from typing import Any, Self
 
 from pyfds.builders.base import Builder
-from pyfds.core.namelists.geom import Geom
+from pyfds.core.namelists.geom import Geometry
 
 
-class GeomBuilder(Builder[Geom]):
+class GeomBuilder(Builder[Geometry]):
     """
     Builder for FDS GEOM namelist.
 
@@ -45,6 +45,23 @@ class GeomBuilder(Builder[Geom]):
         self._params: dict[str, Any] = {}
         if id is not None:
             self._params["id"] = id
+
+    def with_id(self, id: str) -> Self:
+        """
+        Set the geometry identifier.
+
+        Parameters
+        ----------
+        id : str
+            Unique identifier for the geometry
+
+        Returns
+        -------
+        Self
+            Builder instance for method chaining
+        """
+        self._params["id"] = id
+        return self
 
     def with_surface(
         self,
@@ -381,21 +398,6 @@ class GeomBuilder(Builder[Geom]):
             self._params["texture_scale"] = scale
         return self
 
-    def build(self) -> Geom:
-        """
-        Build and return the Geom object.
-
-        Returns
-        -------
-        Geom
-            The constructed geometry object
-
-        Raises
-        ------
-        RuntimeError
-            If builder has already been used
-        """
-        if self._built:
-            raise RuntimeError("Builder has already been used")
-        self._built = True
-        return Geom(**self._params)
+    def _create(self) -> Geometry:
+        """Create the Geometry object."""
+        return Geometry(**self._params)

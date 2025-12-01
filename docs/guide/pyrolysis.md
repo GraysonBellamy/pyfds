@@ -88,7 +88,7 @@ The structured API uses dedicated classes for better type safety and validation.
 
 ```python
 from pyfds.builders import MaterialBuilder
-from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+from pyfds.core.models import PyrolysisReaction, PyrolysisProduct
 
 # Method 1: Arrhenius kinetics (explicit A and E)
 wood = MaterialBuilder("WOOD") \
@@ -172,24 +172,6 @@ simple = MaterialBuilder("SIMPLE") \
     - Do not specify both REFERENCE_RATE and PYROLYSIS_RANGE
     - REFERENCE_RATE and PYROLYSIS_RANGE require REFERENCE_TEMPERATURE
 
-### Legacy Array-Based API
-
-For backward compatibility, the original array-based API is still supported:
-
-```python
-from pyfds.builders import MaterialBuilder
-
-wood = MaterialBuilder("WOOD") \
-    .density(500) \
-    .thermal_conductivity(0.13) \
-    .specific_heat(2.5) \
-    .add_pyrolysis_reaction(
-        a=1e10, e=100000, heat_of_reaction=1800,
-        product_species="WOOD_GAS"
-    ) \
-    .build()
-```
-
 ## Advanced Pyrolysis Parameters
 
 ### Temperature-Dependent Properties
@@ -224,7 +206,7 @@ PyFDS supports multiple ways to specify reaction kinetics based on available dat
 When you have thermogravimetric analysis (TGA) data:
 
 ```python
-from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+from pyfds.core.models import PyrolysisReaction, PyrolysisProduct
 
 # Option 1: With known peak mass loss rate
 reaction_with_rate = PyrolysisReaction(
@@ -263,7 +245,7 @@ reaction_auto = PyrolysisReaction(
 For complex materials requiring advanced reaction order parameters and rate limits:
 
 ```python
-from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+from pyfds.core.models import PyrolysisReaction, PyrolysisProduct
 
 # Structured API with advanced parameters
 advanced_reaction = PyrolysisReaction(

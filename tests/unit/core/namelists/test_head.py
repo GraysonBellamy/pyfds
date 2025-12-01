@@ -45,7 +45,27 @@ class TestHead:
         with pytest.raises(ValidationError):
             Head(chid="test case")
 
-    def test_chid_validation_length(self):
-        """Test CHID length limit."""
+    def test_chid_validation_periods(self):
+        """Test CHID cannot contain periods (per FDS User Guide)."""
         with pytest.raises(ValidationError):
-            Head(chid="a" * 61)
+            Head(chid="test.case")
+
+    def test_chid_validation_length(self):
+        """Test CHID length limit (50 characters per FDS User Guide)."""
+        # 50 characters should be valid
+        head = Head(chid="a" * 50)
+        assert len(head.chid) == 50
+
+        # 51 characters should fail
+        with pytest.raises(ValidationError):
+            Head(chid="a" * 51)
+
+    def test_title_validation_length(self):
+        """Test TITLE length limit (256 characters per FDS User Guide)."""
+        # 256 characters should be valid
+        head = Head(chid="test", title="a" * 256)
+        assert len(head.title) == 256
+
+        # 257 characters should fail
+        with pytest.raises(ValidationError):
+            Head(chid="test", title="a" * 257)

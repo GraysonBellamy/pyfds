@@ -1,7 +1,14 @@
-"""
-FDS HOLE namelist.
+"""FDS HOLE namelist for holes in obstructions.
 
-Holes in obstructions (doors, windows, vents).
+Holes are used to create openings in obstructions such as doors,
+windows, and vents.
+
+Field Groups:
+    identification: Hole ID
+    geometry: Hole bounds (XB)
+    control: Device and control activation
+    visualization: Color and transparency
+    replication: Array multiplier reference
 """
 
 from pydantic import field_validator
@@ -9,10 +16,11 @@ from pydantic import field_validator
 from pyfds.core.geometry import Bounds3D
 from pyfds.core.namelists.base import FdsField, NamelistBase
 
+__all__ = ["Hole"]
+
 
 class Hole(NamelistBase):
-    """
-    FDS HOLE namelist - holes in obstructions.
+    """FDS HOLE namelist - holes in obstructions.
 
     Holes are used to create openings in obstructions such as doors,
     windows, and vents. They can be controlled to open/close during
@@ -21,50 +29,74 @@ class Hole(NamelistBase):
     Parameters
     ----------
     xb : Bounds3D
-        Hole bounds (xmin, xmax, ymin, ymax, zmin, zmax)
+        Hole bounds (xmin, xmax, ymin, ymax, zmin, zmax).
     id : str, optional
-        Hole identifier
+        Hole identifier.
     ctrl_id : str, optional
-        Control ID for activation/deactivation
+        Control ID for activation/deactivation.
     devc_id : str, optional
-        Device ID for activation/deactivation
+        Device ID for activation/deactivation.
     color : str, optional
-        Color when hole is closed
+        Color when hole is closed.
     rgb : tuple[int, int, int], optional
-        RGB color when closed (0-255)
+        RGB color when closed (0-255).
     transparency : float, optional
-        Transparency when closed (0-1, default: 1.0)
+        Transparency when closed (0-1), default: 1.0.
     mult_id : str, optional
-        Multiplier ID for array replication
+        Multiplier ID for array replication.
 
     Examples
     --------
     >>> from pyfds.core.geometry import Bounds3D
-    >>> door = Hole(xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1).1), id='DOOR')
-    >>> print(door.to_fds())
-    &HOLE XB=5,5.1,2,4,0,2.1, ID='DOOR' /
+    >>> door = Hole(xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1), id='DOOR')
 
-    >>> # Controlled hole
-    >>> window = Hole(
-    ...     xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1),
-    ...     id='WINDOW',
-    ...     ctrl_id='WINDOW_CTRL',
-    ...     color='GRAY'
-    ... )
-    >>> print(window.to_fds())
-    &HOLE XB=5,5.1,2,4,0,2.1, ID='WINDOW', CTRL_ID='WINDOW_CTRL', COLOR='GRAY' /
+    See Also
+    --------
+    Obstruction : Solid objects that holes are created in.
+    Control : Control logic for dynamic hole activation.
+    Multiplier : Array replication of holes.
     """
 
-    xb: Bounds3D = FdsField(..., description="Hole bounds (xmin,xmax,ymin,ymax,zmin,zmax)")
-    id: str | None = FdsField(None, description="Hole identifier")
-    ctrl_id: str | None = FdsField(None, description="Control ID for activation/deactivation")
-    devc_id: str | None = FdsField(None, description="Device ID for activation/deactivation")
-    color: str | None = FdsField(None, description="Color when hole is closed")
-    rgb: tuple[int, int, int] | None = FdsField(None, description="RGB color when closed (0-255)")
-    transparency: float | None = FdsField(
-        1.0, ge=0, le=1, exclude_if=1.0, description="Transparency when closed (0-1)"
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "HOLE"
+
+    # --- Identification ---
+    id: str | None = FdsField(None, description="Hole identifier", group="identification")
+
+    # --- Geometry ---
+    xb: Bounds3D = FdsField(
+        ..., description="Hole bounds (xmin,xmax,ymin,ymax,zmin,zmax)", group="geometry"
     )
-    mult_id: str | None = FdsField(None, description="Multiplier ID for array replication")
+
+    # --- Control ---
+    ctrl_id: str | None = FdsField(
+        None, description="Control ID for activation/deactivation", group="control"
+    )
+    devc_id: str | None = FdsField(
+        None, description="Device ID for activation/deactivation", group="control"
+    )
+
+    # --- Visualization ---
+    color: str | None = FdsField(
+        None, description="Color when hole is closed", group="visualization"
+    )
+    rgb: tuple[int, int, int] | None = FdsField(
+        None, description="RGB color when closed (0-255)", group="visualization"
+    )
+    transparency: float | None = FdsField(
+        1.0,
+        ge=0,
+        le=1,
+        exclude_if=1.0,
+        description="Transparency when closed (0-1)",
+        group="visualization",
+    )
+
+    # --- Replication ---
+    mult_id: str | None = FdsField(
+        None, description="Multiplier ID for array replication", group="replication"
+    )
 
     @field_validator("rgb", mode="before")
     @classmethod
@@ -78,11 +110,3 @@ class Hole(NamelistBase):
             if not (0 <= component <= 255):
                 raise ValueError("RGB components must be between 0 and 255")
         return v
-
-    def _get_namelist_name(self) -> str:
-        """Get the FDS namelist name."""
-        return "HOLE"
-
-    def _extra_fds_params(self) -> list[str]:
-        """Handle special formatting cases for FDS parameters."""
-        return [f"XB={self.xb.as_tuple()}"]

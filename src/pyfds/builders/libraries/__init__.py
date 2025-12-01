@@ -1,9 +1,11 @@
-"""Predefined libraries for common materials, fuels, and species."""
+"""Predefined libraries for common materials, fuels, species, and device properties."""
 
-from .fuels import FUEL_DATABASE, get_fuel_info, list_fuels
-from .materials import CommonMaterials
-from .ramps import CommonRamps
-from .species import (
+from pyfds.builders.libraries.fuels import FUEL_DATABASE, get_fuel_info, list_fuels
+from pyfds.builders.libraries.holes import CommonHoles
+from pyfds.builders.libraries.materials import CommonMaterials
+from pyfds.builders.libraries.props import CommonProps
+from pyfds.builders.libraries.ramps import CommonRamps
+from pyfds.builders.libraries.species import (
     PREDEFINED_SPECIES,
     create_standard_air,
     get_species_formula,
@@ -16,7 +18,9 @@ from .species import (
 __all__ = [
     "FUEL_DATABASE",
     "PREDEFINED_SPECIES",
+    "CommonHoles",
     "CommonMaterials",
+    "CommonProps",
     "CommonRamps",
     "create_standard_air",
     "get_fuel_info",

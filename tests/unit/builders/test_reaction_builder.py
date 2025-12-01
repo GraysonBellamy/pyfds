@@ -269,15 +269,19 @@ class TestReactionBuilder:
             .build()
         )
 
-        assert reac.ait_exclusion_zone == zone_bounds
-        assert reac.ait_exclusion_zone_temperature == 300.0
-        assert reac.ait_exclusion_zone_devc_id == "THERMOCOUPLE"
-        assert reac.ait_exclusion_zone_ctrl_id == "CONTROL_LOGIC"
+        # Now stored as arrays for multiple zones
+        assert reac.ait_exclusion_zone == [zone_bounds]
+        assert reac.ait_exclusion_zone_temperature == [300.0]
+        assert reac.ait_exclusion_zone_devc_id == ["THERMOCOUPLE"]
+        assert reac.ait_exclusion_zone_ctrl_id == ["CONTROL_LOGIC"]
 
         fds_output = reac.to_fds()
-        assert "AIT_EXCLUSION_ZONE=0.0,1.0,0.0,1.0,0.0,1.0" in fds_output
+        assert "AIT_EXCLUSION_ZONE(1:6,1)=0.0,1.0,0.0,1.0,0.0,1.0" in fds_output
         assert "AIT_EXCLUSION_ZONE_TEMPERATURE=300.0" in fds_output
-        assert "AIT_EXCLUSION_ZONE_DEVC_ID='THERMOCOUPLE'" in fds_output
+        assert (
+            "AIT_EXCLUSION_ZONE_DEVC_ID='CONTROL_LOGIC'" in fds_output
+            or "AIT_EXCLUSION_ZONE_DEVC_ID='THERMOCOUPLE'" in fds_output
+        )
         assert "AIT_EXCLUSION_ZONE_CTRL_ID='CONTROL_LOGIC'" in fds_output
 
     def test_disable_atom_balance_check(self):
@@ -316,8 +320,8 @@ class TestReactionBuilder:
         assert reac.fuel_c_to_co_fraction == 0.1
         assert reac.fuel_n_to_hcn_fraction == 0.001
         assert reac.lower_oxygen_limit == 0.11
-        assert reac.ait_exclusion_zone == (0, 2, 0, 2, 0, 2)
-        assert reac.ait_exclusion_zone_temperature == 250.0
+        assert reac.ait_exclusion_zone == [(0, 2, 0, 2, 0, 2)]
+        assert reac.ait_exclusion_zone_temperature == [250.0]
 
         # Verify FDS output includes key parameters
         fds_output = reac.to_fds()

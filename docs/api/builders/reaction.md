@@ -153,8 +153,8 @@ reac = ReactionBuilder().fuel('PROPANE').build()
 sim.add_reaction(reac)
 
 # Create fire surface
-sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
-sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 4.5, 5.5, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
+sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 4.5, 5.5, 0, 0.1), surf_id='FIRE'))
 ```
 
 ### With Pyrolysis
@@ -178,7 +178,7 @@ reac = ReactionBuilder().fuel('POLYURETHANE').build()
 sim.add_reaction(reac)
 
 # Surface with pyrolysis
-sim.surface(id='FOAM', matl_id='POLYMER', thickness=0.05)
+sim.add(Surface(id='FOAM', matl_id='POLYMER', thickness=0.05))
 ```
 
 ### Custom Fuel with Species

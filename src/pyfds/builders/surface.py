@@ -1,7 +1,7 @@
 """Builder for creating SURF namelists with fluent API."""
 
-from ..core.namelists import Surface
-from .base import Builder
+from pyfds.builders.base import Builder
+from pyfds.core.namelists import Surface
 
 
 class SurfaceBuilder(Builder[Surface]):
@@ -620,27 +620,15 @@ class SurfaceBuilder(Builder[Surface]):
 
     # === Build ===
 
-    def build(self) -> Surface:
-        """
-        Build the Surface object.
-
-        Returns
-        -------
-        Surface
-            The constructed Surface namelist object
-
-        Raises
-        ------
-        ValueError
-            If required parameters are missing (id is required)
-        RuntimeError
-            If the builder has already been used
-        """
-        self._check_built()
-
+    def _validate(self) -> list[str]:
+        """Validate builder state before building."""
+        errors = []
         if "id" not in self._params:
-            raise ValueError("SurfaceBuilder: id is required (use .id())")
+            errors.append("id is required (use .id() method)")
+        return errors
 
+    def _create(self) -> Surface:
+        """Create the Surface object."""
         # Handle material layers
         if self._matl_ids:
             if len(self._matl_ids) == 1:
@@ -650,6 +638,4 @@ class SurfaceBuilder(Builder[Surface]):
                 self._params["matl_id"] = self._matl_ids
                 self._params["thickness"] = self._thicknesses
 
-        surface = Surface(**self._params)
-        self._mark_built()
-        return surface
+        return Surface(**self._params)

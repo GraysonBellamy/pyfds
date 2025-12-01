@@ -1,17 +1,27 @@
-"""
-FDS MULT namelist.
+"""FDS MULT namelist for creating arrays of repeated objects.
 
-Multiplier for creating arrays of repeated objects.
+Used with MESH, OBST, VENT, HOLE, and INIT to create regular
+arrays of objects without specifying each one individually.
+
+Field Groups:
+    identification: Multiplier ID
+    spacing: X, Y, Z spacing distances
+    offset: Initial offset values
+    bounds: I, J, K array bounds
+    sequential: N-based sequential mode
+    skip: Skip ranges for gaps
+    xb_offset: Incremental XB offsets
 """
 
 from pydantic import model_validator
 
 from pyfds.core.namelists.base import FdsField, NamelistBase
 
+__all__ = ["Multiplier"]
 
-class Mult(NamelistBase):
-    """
-    FDS MULT namelist - creates arrays of repeated objects.
+
+class Multiplier(NamelistBase):
+    """FDS MULT namelist - creates arrays of repeated objects.
 
     Used with MESH, OBST, VENT, HOLE, and INIT to create regular
     arrays of objects without specifying each one individually.
@@ -19,99 +29,81 @@ class Mult(NamelistBase):
     Parameters
     ----------
     id : str
-        Multiplier identifier (referenced by MULT_ID on other namelists)
+        Multiplier identifier (referenced by MULT_ID on other namelists).
     dx, dy, dz : float, optional
-        Spacing in each direction [m]
+        Spacing in each direction [m].
     dx0, dy0, dz0 : float, optional
-        Initial offset [m] (default: 0.0)
+        Initial offset [m] (default: 0.0).
     i_lower, i_upper : int, optional
-        X-direction array bounds (default: 0)
+        X-direction array bounds (default: 0).
     j_lower, j_upper : int, optional
-        Y-direction array bounds (default: 0)
+        Y-direction array bounds (default: 0).
     k_lower, k_upper : int, optional
-        Z-direction array bounds (default: 0)
-    n_lower, n_upper : int, optional
-        Sequential range (alternative to i,j,k bounds)
-    i_lower_skip, i_upper_skip : int, optional
-        X-direction skip ranges (for creating gaps)
-    j_lower_skip, j_upper_skip : int, optional
-        Y-direction skip ranges (for creating gaps)
-    k_lower_skip, k_upper_skip : int, optional
-        Z-direction skip ranges (for creating gaps)
-    dxb : tuple[float, float, float, float, float, float], optional
-        Incremental XB offsets (xmin, xmax, ymin, ymax, zmin, zmax)
+        Z-direction array bounds (default: 0).
 
     Examples
     --------
-    >>> # 3x3 array of objects spaced 2m apart
-    >>> mult = Mult(
+    >>> mult = Multiplier(
     ...     id='ARRAY_3X3',
     ...     dx=2.0, dy=2.0,
     ...     i_lower=0, i_upper=2,
     ...     j_lower=0, j_upper=2
     ... )
 
-    >>> # Linear array of 10 objects
-    >>> mult = Mult(
-    ...     id='ROW_10',
-    ...     dx=1.0,
-    ...     n_lower=0, n_upper=9
-    ... )
-
-    >>> # Array with gaps (skip indices 2-3)
-    >>> mult = Mult(
-    ...     id='ARRAY_WITH_GAPS',
-    ...     dx=1.0,
-    ...     n_lower=0, n_upper=9,
-    ...     n_lower_skip=2, n_upper_skip=3
-    ... )
+    See Also
+    --------
+    Mesh : Meshes that can be replicated.
+    Obstruction : Obstructions that can be replicated.
+    Vent : Vents that can be replicated.
+    Hole : Holes that can be replicated.
     """
-
-    id: str = FdsField(..., description="Multiplier identifier")
 
     def _get_namelist_name(self) -> str:
         """Get the FDS namelist name."""
         return "MULT"
 
-    # Spacing
-    dx: float | None = FdsField(None, description="X spacing [m]")
-    dy: float | None = FdsField(None, description="Y spacing [m]")
-    dz: float | None = FdsField(None, description="Z spacing [m]")
+    # --- Identification ---
+    id: str = FdsField(..., description="Multiplier identifier", group="identification")
 
-    # Initial offset
-    dx0: float = FdsField(0.0, exclude_if=0.0, description="Initial X offset [m]")
-    dy0: float = FdsField(0.0, exclude_if=0.0, description="Initial Y offset [m]")
-    dz0: float = FdsField(0.0, exclude_if=0.0, description="Initial Z offset [m]")
+    # --- Spacing ---
+    dx: float | None = FdsField(None, description="X spacing [m]", group="spacing")
+    dy: float | None = FdsField(None, description="Y spacing [m]", group="spacing")
+    dz: float | None = FdsField(None, description="Z spacing [m]", group="spacing")
 
-    # Array bounds (3D mode)
-    i_lower: int = FdsField(0, exclude_if=0, description="X lower bound")
-    i_upper: int = FdsField(0, exclude_if=0, description="X upper bound")
-    j_lower: int = FdsField(0, exclude_if=0, description="Y lower bound")
-    j_upper: int = FdsField(0, exclude_if=0, description="Y upper bound")
-    k_lower: int = FdsField(0, exclude_if=0, description="Z lower bound")
-    k_upper: int = FdsField(0, exclude_if=0, description="Z upper bound")
+    # --- Initial offset ---
+    dx0: float = FdsField(0.0, exclude_if=0.0, description="Initial X offset [m]", group="offset")
+    dy0: float = FdsField(0.0, exclude_if=0.0, description="Initial Y offset [m]", group="offset")
+    dz0: float = FdsField(0.0, exclude_if=0.0, description="Initial Z offset [m]", group="offset")
 
-    # Sequential mode
-    n_lower: int | None = FdsField(None, description="Sequential lower bound")
-    n_upper: int | None = FdsField(None, description="Sequential upper bound")
+    # --- Array bounds (3D mode) ---
+    i_lower: int = FdsField(0, exclude_if=0, description="X lower bound", group="bounds")
+    i_upper: int = FdsField(0, exclude_if=0, description="X upper bound", group="bounds")
+    j_lower: int = FdsField(0, exclude_if=0, description="Y lower bound", group="bounds")
+    j_upper: int = FdsField(0, exclude_if=0, description="Y upper bound", group="bounds")
+    k_lower: int = FdsField(0, exclude_if=0, description="Z lower bound", group="bounds")
+    k_upper: int = FdsField(0, exclude_if=0, description="Z upper bound", group="bounds")
 
-    # Skip ranges (for creating gaps in arrays)
-    i_lower_skip: int | None = FdsField(None, description="X skip lower")
-    i_upper_skip: int | None = FdsField(None, description="X skip upper")
-    j_lower_skip: int | None = FdsField(None, description="Y skip lower")
-    j_upper_skip: int | None = FdsField(None, description="Y skip upper")
-    k_lower_skip: int | None = FdsField(None, description="Z skip lower")
-    k_upper_skip: int | None = FdsField(None, description="Z skip upper")
-    n_lower_skip: int | None = FdsField(None, description="Sequential skip lower")
-    n_upper_skip: int | None = FdsField(None, description="Sequential skip upper")
+    # --- Sequential mode ---
+    n_lower: int | None = FdsField(None, description="Sequential lower bound", group="sequential")
+    n_upper: int | None = FdsField(None, description="Sequential upper bound", group="sequential")
 
-    # Incremental XB offsets
+    # --- Skip ranges (for creating gaps in arrays) ---
+    i_lower_skip: int | None = FdsField(None, description="X skip lower", group="skip")
+    i_upper_skip: int | None = FdsField(None, description="X skip upper", group="skip")
+    j_lower_skip: int | None = FdsField(None, description="Y skip lower", group="skip")
+    j_upper_skip: int | None = FdsField(None, description="Y skip upper", group="skip")
+    k_lower_skip: int | None = FdsField(None, description="Z skip lower", group="skip")
+    k_upper_skip: int | None = FdsField(None, description="Z skip upper", group="skip")
+    n_lower_skip: int | None = FdsField(None, description="Sequential skip lower", group="skip")
+    n_upper_skip: int | None = FdsField(None, description="Sequential skip upper", group="skip")
+
+    # --- Incremental XB offsets ---
     dxb: tuple[float, float, float, float, float, float] | None = FdsField(
-        None, description="Incremental XB offsets"
+        None, description="Incremental XB offsets", group="xb_offset"
     )
 
     @model_validator(mode="after")
-    def validate_mult(self) -> "Mult":
+    def validate_mult(self) -> "Multiplier":
         """Validate multiplier configuration."""
         # Check that at least one spacing is defined
         if self.dx is None and self.dy is None and self.dz is None and self.dxb is None:

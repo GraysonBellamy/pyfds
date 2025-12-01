@@ -8,25 +8,50 @@ programmatically in Python.
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pyfds.core.registry import SimulationRegistry
-from pyfds.core.registry_view import RegistryView
-from pyfds.validation import Validator
-
-from ..utils import get_logger, validate_chid
-from .namelists import (
+from pyfds.core.enums import BuiltinSurface
+from pyfds.core.namelists import (
     Combustion,
-    Ctrl,
+    Control,
     Device,
     Head,
     Hole,
-    Init,
+    Hvac,
+    Initialization,
     Material,
     Mesh,
     Misc,
-    Mult,
+    Multiplier,
     NamelistBase,
     Obstruction,
-    Prop,
+    Particle,
+    Property,
+    Ramp,
+    Reaction,
+    Species,
+    Surface,
+    Time,
+    Vent,
+)
+from pyfds.core.registry import SimulationRegistry
+from pyfds.core.registry_view import RegistryView
+from pyfds.utils import get_logger, validate_chid
+from pyfds.validation import Validator
+
+_PLACEHOLDER_NAMELISTS = (
+    Combustion,
+    Control,
+    Device,
+    Head,
+    Hole,
+    Initialization,
+    Material,
+    Mesh,
+    Misc,
+    Multiplier,
+    NamelistBase,
+    Obstruction,
+    Particle,
+    Property,
     Ramp,
     Reaction,
     Species,
@@ -36,9 +61,9 @@ from .namelists import (
 )
 
 if TYPE_CHECKING:
-    from ..analysis.results import Results
-    from ..config import RunConfig
-    from ..execution.runner import Job
+    from pyfds.analysis.results import Results
+    from pyfds.config import RunConfig
+    from pyfds.execution.runner import Job
 
 logger = get_logger(__name__)
 
@@ -78,9 +103,9 @@ class Simulation:
         Read-only view of registered holes
     devices : RegistryView[Device]
         Read-only view of registered devices
-    props : RegistryView[Prop]
+    props : RegistryView[Property]
         Read-only view of registered properties
-    ctrls : RegistryView[Ctrl]
+    ctrls : RegistryView[Control]
         Read-only view of registered controls
     species : RegistryView[Species]
         Read-only view of registered species
@@ -88,9 +113,9 @@ class Simulation:
         Read-only view of registered reactions
     ramps : RegistryView[Ramp]
         Read-only view of registered ramps
-    mults : RegistryView[Mult]
+    mults : RegistryView[Multiplier]
         Read-only view of registered multipliers
-    inits : RegistryView[Init]
+    inits : RegistryView[Initialization]
         Read-only view of registered initial conditions
 
     Examples
@@ -136,6 +161,9 @@ class Simulation:
         self._head = Head(chid=chid, title=title)
         self._time: Time | None = None
 
+        # Metadata storage (comments, source info, etc.)
+        self._metadata: dict[str, Any] = {}
+
         # Register head in registry
         self._registry.head = self._head
 
@@ -172,6 +200,11 @@ class Simulation:
         return RegistryView(self._registry.vents)
 
     @property
+    def hvacs(self) -> RegistryView["Hvac"]:
+        """Read-only view of registered HVAC components."""
+        return RegistryView(self._registry.hvacs)
+
+    @property
     def holes(self) -> RegistryView[Hole]:
         """Read-only view of registered holes."""
         return RegistryView(self._registry.holes)
@@ -182,12 +215,12 @@ class Simulation:
         return RegistryView(self._registry.devices)
 
     @property
-    def props(self) -> RegistryView[Prop]:
+    def props(self) -> RegistryView[Property]:
         """Read-only view of registered properties."""
         return RegistryView(self._registry.props)
 
     @property
-    def ctrls(self) -> RegistryView[Ctrl]:
+    def ctrls(self) -> RegistryView[Control]:
         """Read-only view of registered controls."""
         return RegistryView(self._registry.ctrls)
 
@@ -207,14 +240,36 @@ class Simulation:
         return RegistryView(self._registry.ramps)
 
     @property
-    def mults(self) -> RegistryView[Mult]:
+    def mults(self) -> RegistryView[Multiplier]:
         """Read-only view of registered multipliers."""
         return RegistryView(self._registry.mults)
 
     @property
-    def inits(self) -> RegistryView[Init]:
+    def inits(self) -> RegistryView[Initialization]:
         """Read-only view of registered initial conditions."""
         return RegistryView(self._registry.inits)
+
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Get simulation metadata (comments, source info, etc.).
+
+        Returns
+        -------
+        dict[str, Any]
+            Copy of metadata dictionary
+        """
+        return self._metadata.copy()
+
+    @property
+    def comments(self) -> list[str]:
+        """Get preserved comments from parsed FDS file.
+
+        Returns
+        -------
+        list[str]
+            List of comment strings (without leading '!')
+        """
+        return list(self._metadata.get("comments", []))
 
     # =========================================================================
     # Singleton Accessors
@@ -326,7 +381,7 @@ class Simulation:
 
     def _validate_item_references(self, item: NamelistBase) -> None:
         """Validate cross-references for a single item (eager validation)."""
-        builtin_surfaces = {"INERT", "OPEN", "MIRROR", "PERIODIC"}
+        builtin_surfaces = BuiltinSurface.values()
 
         # Validate SURF_ID references
         if isinstance(item, (Obstruction, Vent)):
@@ -371,7 +426,6 @@ class Simulation:
         t_end: float,
         t_begin: float = 0.0,
         dt: float | None = None,
-        wall_clock_time: float | None = None,
     ) -> "Simulation":
         """
         Set time parameters for the simulation.
@@ -384,8 +438,6 @@ class Simulation:
             Start time in seconds (default: 0.0)
         dt : float, optional
             Initial time step in seconds
-        wall_clock_time : float, optional
-            Maximum wall clock time in seconds
 
         Returns
         -------
@@ -397,7 +449,7 @@ class Simulation:
         >>> sim = Simulation('test')
         >>> sim.set_time(t_end=600.0, dt=0.1)
         """
-        time_obj = Time(t_end=t_end, t_begin=t_begin, dt=dt, wall_clock_time=wall_clock_time)
+        time_obj = Time(t_end=t_end, t_begin=t_begin, dt=dt)
         self.add(time_obj)
         return self
 
@@ -561,6 +613,12 @@ class Simulation:
             for surface in self.surfaces:
                 lines.append(surface.to_fds())
 
+        # PART namelists (after SPEC, before PROP that references them)
+        if self._registry.parts:
+            lines.append("! --- Particles ---")
+            for part in self._registry.parts:
+                lines.append(part.to_fds())
+
         # OBST namelists
         if self.obstructions:
             lines.append("! --- Obstructions ---")
@@ -578,6 +636,12 @@ class Simulation:
             lines.append("! --- Vents ---")
             for vent in self.vents:
                 lines.append(vent.to_fds())
+
+        # HVAC namelists (after VENT, references VENT_ID)
+        if self._registry.hvacs:
+            lines.append("! --- HVAC System ---")
+            for hvac in self._registry.hvacs:
+                lines.append(hvac.to_fds())
 
         # PROP namelists
         if self.props:
@@ -716,8 +780,8 @@ class Simulation:
         >>> results = job.get_results()
         """
         # Import here to avoid circular import
-        from ..config import RunConfig
-        from ..execution import FDSRunner
+        from pyfds.config import RunConfig
+        from pyfds.execution import FDSRunner
 
         # Create config from kwargs if not provided
         if config is None:
@@ -763,19 +827,3 @@ class Simulation:
             timeout=config.timeout,
             simulation=self,  # Pass simulation for parallel validation
         )
-
-    # =========================================================================
-    # Legacy Compatibility Properties (Deprecated - to be removed)
-    # =========================================================================
-
-    @property
-    def time_params(self) -> Time | None:
-        """Deprecated: use time_config instead."""
-        return self._time
-
-    @time_params.setter
-    def time_params(self, value: Time | None) -> None:
-        """Deprecated: use add(Time(...)) instead."""
-        if value is not None:
-            self._time = value
-            self._registry.time = value

@@ -7,7 +7,7 @@ import os
 from typing import TYPE_CHECKING
 
 from pyfds.core.enums import Severity
-from pyfds.validation.base import Issue
+from pyfds.validation.base import Issue, ValidationResult
 
 if TYPE_CHECKING:
     from pyfds.core.simulation import Simulation
@@ -31,7 +31,7 @@ class ExecutionValidator:
         simulation: "Simulation",
         n_mpi: int = 1,
         n_threads: int = 1,
-    ) -> list[Issue]:
+    ) -> ValidationResult:
         """Validate parallel configuration.
 
         Parameters
@@ -45,15 +45,15 @@ class ExecutionValidator:
 
         Returns
         -------
-        list[Issue]
-            Validation issues
+        ValidationResult
+            Validation result containing any issues found.
         """
         issues: list[Issue] = []
         issues.extend(self._check_mpi_vs_meshes(simulation, n_mpi))
         issues.extend(self._check_thread_count(n_threads))
         if n_mpi > 1 or n_threads > 1:
             issues.extend(self._check_total_parallelism(n_mpi, n_threads))
-        return issues
+        return ValidationResult(issues=issues)
 
     def _check_mpi_vs_meshes(self, simulation: "Simulation", n_mpi: int) -> list[Issue]:
         """Check MPI process count vs mesh count."""
@@ -183,49 +183,5 @@ class ExecutionValidator:
             ),
         }
 
-    # Legacy method names for backward compatibility
-    def validate_mpi_mesh_count(self, sim: "Simulation", n_mpi: int) -> list[str]:
-        """Validate MPI process count matches mesh configuration.
 
-        Returns list of warning strings for backward compatibility.
-        """
-        issues = self._check_mpi_vs_meshes(sim, n_mpi)
-        return [str(issue) for issue in issues]
-
-    def validate_thread_count(self, n_threads: int) -> list[str]:
-        """Validate OpenMP thread count.
-
-        Returns list of warning strings for backward compatibility.
-        """
-        issues = self._check_thread_count(n_threads)
-        return [str(issue) for issue in issues]
-
-    def validate_combined_parallelism(self, n_mpi: int, n_threads: int) -> list[str]:
-        """Validate combined MPI + OpenMP configuration.
-
-        Returns list of warning strings for backward compatibility.
-        """
-        issues = self._check_total_parallelism(n_mpi, n_threads)
-        return [str(issue) for issue in issues]
-
-    def validate_all(self, sim: "Simulation", n_mpi: int, n_threads: int) -> list[str]:
-        """Run all validation checks.
-
-        Returns list of warning strings for backward compatibility.
-        """
-        issues = self.validate(sim, n_mpi, n_threads)
-        return [str(issue) for issue in issues]
-
-    def recommend_configuration(self, sim: "Simulation") -> dict[str, int | str]:
-        """Recommend optimal parallel configuration.
-
-        Alias for suggest_config for backward compatibility.
-        """
-        return self.suggest_config(sim)
-
-
-# Backward compatibility alias
-ParallelValidator = ExecutionValidator
-
-
-__all__ = ["ExecutionValidator", "ParallelValidator"]
+__all__ = ["ExecutionValidator"]

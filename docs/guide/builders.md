@@ -588,8 +588,8 @@ from pyfds.builders import (
 
 # Create simulation
 sim = Simulation('apartment_fire', title='Apartment Fire Demo')
-sim.add(Time(t_end=600)
-sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
+sim.add(Time(t_end=600))
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
 # Add combustion reaction
 reac = (
@@ -651,11 +651,11 @@ alarm = (
 sim.add_ctrl(alarm)
 
 # Add surfaces
-sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
-sim.surface(id='WALL', matl_id='STEEL', thickness=0.012)
+sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
+sim.add(Surface(id='WALL', matl_id='STEEL', thickness=0.012))
 
 # Add geometry
-sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 4.5, 5.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 4.5, 5.5, 0, 0.1), surf_id='FIRE'))
 
 # Write FDS file
 sim.write('apartment_fire.fds')

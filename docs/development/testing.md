@@ -129,39 +129,39 @@ def test_required_parameters():
     assert any('T_END' in str(e) for e in errors)
 
     # Add TIME
-    sim.add(Time(t_end=600.0)
+    sim.add(Time(t_end=600.0))
     errors = validator.validate(sim)
     assert not any('T_END' in str(e) for e in errors)
 
 def test_mesh_bounds_validation():
     """Test mesh bounds validation."""
     sim = Simulation(chid='test')
-    sim.add(Time(t_end=600.0)
+    sim.add(Time(t_end=600.0))
 
     # Invalid bounds (x1 < x0)
     with pytest.raises(ValidationError):
-        sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(5, 0, 0, 5, 0, 2.5))
+        sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(5, 0, 0, 5, 0, 2.5)))
 
     # Valid bounds
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
     assert len(sim.geometry.meshes) == 1
 
 def test_reference_validation():
     """Test ID reference validation."""
     sim = Simulation(chid='test')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
     # Invalid SURF_ID reference
-    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='UNKNOWN')
+    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='UNKNOWN'))
 
     validator = Validator()
     errors = validator.validate(sim)
     assert any('UNKNOWN' in str(e) for e in errors)
 
     # Add surface
-    sim.surface(id='FIRE', hrrpua=1000.0)
-    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
+    sim.add(Surface(id='FIRE', hrrpua=1000.0))
+    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
 
     errors = validator.validate(sim)
     assert not any('FIRE' in str(e) for e in errors)
@@ -169,10 +169,10 @@ def test_reference_validation():
 def test_mesh_quality():
     """Test mesh quality checks."""
     sim = Simulation(chid='test')
-    sim.add(Time(t_end=600.0)
+    sim.add(Time(t_end=600.0))
 
     # Very coarse mesh
-    sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
+    sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
     validator = Validator()
     warnings = validator.get_warnings(sim)
@@ -193,8 +193,8 @@ from pyfds.io import FDSWriter, FDSReader
 def test_write_fds_file(tmp_path):
     """Test writing FDS file."""
     sim = Simulation(chid='test')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
     output = tmp_path / 'test.fds'
     sim.write(str(output))
@@ -264,19 +264,19 @@ def test_basic_room_fire():
     sim = Simulation(chid='room_fire')
 
     # Setup
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5)))
 
     # Fire
-    sim.surface(id='FIRE', hrrpua=1000.0)
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Surface(id='FIRE', hrrpua=1000.0))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
 
     # Boundaries
-    sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN')
+    sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN'))
 
     # Devices
-    sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4))
-    sim.device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=Point3D.of(0.1, 2.5, 1.5), ior=1)
+    sim.add(Device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4)))
+    sim.add(Device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=Point3D.of(0.1, 2.5, 1.5), ior=1))
 
     # Validate
     assert sim.is_valid()
@@ -295,10 +295,10 @@ def test_parametric_study():
 
     for hrr in hrr_values:
         sim = Simulation(chid=f'fire_{hrr}')
-        sim.add(Time(t_end=600.0)
-        sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
-        sim.surface(id='FIRE', hrrpua=hrr)
-        sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+        sim.add(Time(t_end=600.0))
+        sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+        sim.add(Surface(id='FIRE', hrrpua=hrr))
+        sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
         assert sim.is_valid()
         simulations.append(sim)
@@ -308,14 +308,14 @@ def test_parametric_study():
 def test_complex_geometry():
     """Test complex geometry with multiple obstructions."""
     sim = Simulation(chid='complex')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(100, 80, 40), xb=Bounds3D.of(0, 10, 0, 8, 0, 4))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(100, 80, 40), xb=Bounds3D.of(0, 10, 0, 8, 0, 4)))
 
     # Walls
-    sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 8, 0, 3), surf_id='WALL')
-    sim.add(Obstruction(xb=Bounds3D.of(9.8, 10, 0, 8, 0, 3), surf_id='WALL')
-    sim.add(Obstruction(xb=Bounds3D.of(0, 10, 0, 0.2, 0, 3), surf_id='WALL')
-    sim.add(Obstruction(xb=Bounds3D.of(0, 10, 7.8, 8, 0, 3), surf_id='WALL')
+    sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 8, 0, 3), surf_id='WALL'))
+    sim.add(Obstruction(xb=Bounds3D.of(9.8, 10, 0, 8, 0, 3), surf_id='WALL'))
+    sim.add(Obstruction(xb=Bounds3D.of(0, 10, 0, 0.2, 0, 3), surf_id='WALL'))
+    sim.add(Obstruction(xb=Bounds3D.of(0, 10, 7.8, 8, 0, 3), surf_id='WALL'))
 
     # Furniture
     for x in range(1, 9, 2):
@@ -348,8 +348,8 @@ def test_run_simple_simulation():
     """Test running simple FDS simulation."""
     # Create minimal simulation
     sim = Simulation(chid='test_run')
-    sim.add(Time(t_end=10.0)  # Short duration
-    sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
+    sim.add(Time(t_end=10.0))  # Short duration
+    sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
     sim.write('test_run.fds')
 
     # Run
@@ -362,8 +362,8 @@ def test_run_simple_simulation():
 def test_background_execution():
     """Test running in background."""
     sim = Simulation(chid='test_bg')
-    sim.add(Time(t_end=20.0)
-    sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
+    sim.add(Time(t_end=20.0))
+    sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
     sim.write('test_bg.fds')
 
     # Run in background
@@ -380,8 +380,8 @@ def test_background_execution():
 def test_parallel_execution():
     """Test running with OpenMP."""
     sim = Simulation(chid='test_omp')
-    sim.add(Time(t_end=10.0)
-    sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2))
+    sim.add(Time(t_end=10.0))
+    sim.add(Mesh(ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 2)))
     sim.write('test_omp.fds')
 
     # Run with 4 threads
@@ -414,15 +414,15 @@ def test_complete_workflow(tmp_path):
 
     # 1. Create simulation
     sim = Simulation(chid='workflow_test')
-    sim.add(Time(t_end=30.0)
-    sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
+    sim.add(Time(t_end=30.0))
+    sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1)))
 
     # Fire
-    sim.surface(id='FIRE', hrrpua=500.0)
-    sim.add(Obstruction(xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0.05), surf_id='FIRE')
+    sim.add(Surface(id='FIRE', hrrpua=500.0))
+    sim.add(Obstruction(xb=Bounds3D.of(0.8, 1.2, 0.8, 1.2, 0, 0.05), surf_id='FIRE'))
 
     # Device
-    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 0.8))
+    sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 0.8)))
 
     # 2. Validate
     assert sim.is_valid()
@@ -454,11 +454,11 @@ def test_parametric_workflow(tmp_path):
 
     for hrr in hrr_values:
         sim = Simulation(chid=f'param_{hrr}')
-        sim.add(Time(t_end=20.0)
-        sim.add(Mesh(ijk=Grid3D.of(15, 15, 10), xb=Bounds3D.of(0, 1.5, 0, 1.5, 0, 1))
-        sim.surface(id='FIRE', hrrpua=hrr)
-        sim.add(Obstruction(xb=Bounds3D.of(0.6, 0.9, 0.6, 0.9, 0, 0.05), surf_id='FIRE')
-        sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(0.75, 0.75, 0.8))
+        sim.add(Time(t_end=20.0))
+        sim.add(Mesh(ijk=Grid3D.of(15, 15, 10), xb=Bounds3D.of(0, 1.5, 0, 1.5, 0, 1)))
+        sim.add(Surface(id='FIRE', hrrpua=hrr))
+        sim.add(Obstruction(xb=Bounds3D.of(0.6, 0.9, 0.6, 0.9, 0, 0.05), surf_id='FIRE'))
+        sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(0.75, 0.75, 0.8)))
 
         sim.write(f'param_{hrr}.fds')
         job = sim.run(wait=True)
@@ -493,26 +493,26 @@ def tmp_working_dir(tmp_path, monkeypatch):
 def simple_simulation():
     """Create simple test simulation."""
     sim = Simulation(chid='test')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
     return sim
 
 @pytest.fixture
 def room_fire_simulation():
     """Create room fire simulation."""
     sim = Simulation(chid='room_fire')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5)))
 
     # Fire
-    sim.surface(id='FIRE', hrrpua=1000.0)
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Surface(id='FIRE', hrrpua=1000.0))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
 
     # Door
-    sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN')
+    sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN'))
 
     # Devices
-    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4))
+    sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4)))
 
     return sim
 

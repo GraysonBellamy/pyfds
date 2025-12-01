@@ -169,7 +169,7 @@ pyfds provides a structured API for defining pyrolysis reactions that is cleaner
 The `PyrolysisReaction` class represents a single decomposition reaction with validation for kinetic parameters and product yields.
 
 ```python
-from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+from pyfds.core.models import PyrolysisReaction, PyrolysisProduct
 
 # Arrhenius kinetics with gas and char products
 reaction = PyrolysisReaction(
@@ -199,8 +199,8 @@ reaction = PyrolysisReaction(
 You can use `PyrolysisReaction` directly with the `Material` class:
 
 ```python
+from pyfds.core.models import PyrolysisReaction, PyrolysisProduct
 from pyfds.core.namelists import Material
-from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
 
 material = Material(
     id="WOOD",
@@ -220,7 +220,7 @@ material = Material(
 )
 ```
 
-> **Note:** You cannot mix the `reactions` list with the legacy array parameters (`a`, `e`, `nu_spec`, etc.). Use one format or the other.
+> **Note:** The `reactions` list provides structured pyrolysis modeling with full validation. Use `PyrolysisReaction` objects to define reaction kinetics and products.
 
 ### Advanced Material Properties
 

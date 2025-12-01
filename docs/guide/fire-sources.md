@@ -7,11 +7,14 @@ Learn how to create and configure fire sources in FDS simulations.
 Fire sources in FDS are created by applying fire surfaces to obstructions or vents. The fire is defined by its **heat release rate per unit area (HRRPUA)**.
 
 ```python
+from pyfds import Surface, Obstruction
+from pyfds.core.geometry import Bounds3D
+
 # Create fire surface
-sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
+sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
 
 # Apply to obstruction
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 ```
 
 ## Basic Fire Surface
@@ -19,14 +22,14 @@ sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
 ### Simple Fire
 
 ```python
-sim.surface(
+sim.add(Surface(
     id='BURNER',
     hrrpua=1000.0,      # Heat release rate per unit area (kW/m²)
     color='RED'          # Visualization color
 )
 
 # Apply to 1m x 1m burner
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER'))
 ```
 
 Total HRR = HRRPUA × Area = 1000 kW/m² × 1 m² = 1000 kW
@@ -46,14 +49,14 @@ Create a fire that grows over time:
 
 ```python
 # Define fire growth ramp
-sim.ramp(
+sim.add(Ramp(
     id='FIRE_GROWTH',
     t=[0, 60, 120, 180, 300],
     f=[0.0, 0.25, 0.5, 1.0, 1.0]
 )
 
 # Fire surface with ramp
-sim.surface(
+sim.add(Surface(
     id='GROWING_FIRE',
     hrrpua=2000.0,
     ramp_q='FIRE_GROWTH'
@@ -66,7 +69,7 @@ See [RAMP Guide](ramps.md) for more time-varying options.
 
 ### Square Burner
 ```python
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 ```
 
 ### Circular Burner
@@ -81,8 +84,8 @@ sim.add(Vent(
 
 ### Multiple Fires
 ```python
-sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
-sim.add(Obstruction(xb=Bounds3D.of(3, 4, 3, 4, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(3, 4, 3, 4, 0, 0.1), surf_id='FIRE'))
 ```
 
 ## Complete Example
@@ -91,13 +94,13 @@ sim.add(Obstruction(xb=Bounds3D.of(3, 4, 3, 4, 0, 0.1), surf_id='FIRE')
 from pyfds import Simulation
 
 sim = Simulation(chid='fire_demo')
-sim.add(Time(t_end=300.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=300.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Growing fire
-sim.ramp(id='GROWTH', t=[0, 60, 180], f=[0, 0.3, 1.0])
-sim.surface(id='FIRE', hrrpua=1500.0, ramp_q='GROWTH', color='ORANGE')
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Ramp(id='GROWTH', t=[0, 60, 180], f=[0, 0.3, 1.0]))
+sim.add(Surface(id='FIRE', hrrpua=1500.0, ramp_q='GROWTH', color='ORANGE'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 sim.write('fire_demo.fds')
 ```

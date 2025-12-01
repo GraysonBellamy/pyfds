@@ -67,27 +67,28 @@ sim = Simulation(chid='123_test')  # Starts with number
 Build simulations by adding components in logical order:
 
 ```python
-from pyfds import Simulation
+from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Device
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 # 1. Create simulation
 sim = Simulation(chid='example', title='Example Fire')
 
 # 2. Set time parameters
-sim.add(Time(t_end=600.0)
+sim.add(Time(t_end=600.0))
 
 # 3. Define computational domain
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # 4. Create surfaces
-sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
-sim.surface(id='WALL', matl_id='CONCRETE', thickness=0.2)
+sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
+sim.add(Surface(id='WALL', matl_id='CONCRETE', thickness=0.2))
 
 # 5. Add geometry
-sim.add(Obstruction(ion(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_id='WALL')
-sim.add(Obstruction(ion(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_id='WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 # 6. Add measurement devices
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
+sim.add(Device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4)))
 
 # 7. Write FDS file
 sim.write('example.fds')
@@ -98,11 +99,14 @@ sim.write('example.fds')
 For more concise code, use method chaining:
 
 ```python
+from pyfds import Simulation, Time, Mesh, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = (Simulation(chid='fire_test', title='Fire Test')
-       .time(t_end=300.0)
-       .mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5))
-       .surface(id='FIRE', hrrpua=500.0)
-       .obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
+       .add(Time(t_end=300.0))
+       .add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5)))
+       .add(Surface(id='FIRE', hrrpua=500.0))
+       .add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')))
 
 sim.write('fire_test.fds')
 ```
@@ -117,7 +121,8 @@ sim.write('fire_test.fds')
 Organize your simulation code for clarity:
 
 ```python
-from pyfds import Simulation
+from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Vent, Device, Material
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 # ============================================================
 # SIMULATION SETUP
@@ -127,58 +132,58 @@ sim = Simulation(chid='organized_fire', title='Well Organized Simulation')
 # ============================================================
 # TIME AND DOMAIN
 # ============================================================
-sim.add(Time(t_end=600.0, dt=0.1)
+sim.add(Time(t_end=600.0, dt=0.1))
 sim.set_misc(tmpa=20.0, radiation=True)
 
 # ============================================================
 # COMPUTATIONAL MESH
 # ============================================================
-sim.add(Mesh(ijk=Grid3D.of(60, 40, 30), xb=Bounds3D.of(0, 6, 0, 4, 0, 3), id='MAIN_MESH')
+sim.add(Mesh(ijk=Grid3D.of(60, 40, 30), xb=Bounds3D.of(0, 6, 0, 4, 0, 3), id='MAIN_MESH'))
 
 # ============================================================
 # MATERIALS AND SURFACES
 # ============================================================
 # Materials
-sim.material(id='CONCRETE', conductivity=1.8, specific_heat=0.88, density=2400.0)
-sim.material(id='STEEL', conductivity=45.8, specific_heat=0.46, density=7850.0)
+sim.add(Material(id='CONCRETE', conductivity=1.8, specific_heat=0.88, density=2400.0))
+sim.add(Material(id='STEEL', conductivity=45.8, specific_heat=0.46, density=7850.0))
 
 # Surfaces
-sim.surface(id='FIRE', hrrpua=1000.0, color='RED')
-sim.surface(id='CONCRETE_WALL', matl_id='CONCRETE', thickness=0.2)
-sim.surface(id='STEEL_DOOR', matl_id='STEEL', thickness=0.05)
+sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
+sim.add(Surface(id='CONCRETE_WALL', matl_id='CONCRETE', thickness=0.2))
+sim.add(Surface(id='STEEL_DOOR', matl_id='STEEL', thickness=0.05))
 
 # ============================================================
 # GEOMETRY
 # ============================================================
 # Walls
-sim.add(Obstruction(ion(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 3), surf_id='CONCRETE_WALL')  # West wall
-sim.add(Obstruction(ion(xb=Bounds3D.of(5.8, 6, 0, 4, 0, 3), surf_id='CONCRETE_WALL')  # East wall
-sim.add(Obstruction(ion(xb=Bounds3D.of(0, 6, 0, 0.2, 0, 3), surf_id='CONCRETE_WALL')  # South wall
-sim.add(Obstruction(ion(xb=Bounds3D.of(0, 6, 3.8, 4, 0, 3), surf_id='CONCRETE_WALL')  # North wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 3), surf_id='CONCRETE_WALL'))  # West wall
+sim.add(Obstruction(xb=Bounds3D.of(5.8, 6, 0, 4, 0, 3), surf_id='CONCRETE_WALL'))  # East wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 0, 0.2, 0, 3), surf_id='CONCRETE_WALL'))  # South wall
+sim.add(Obstruction(xb=Bounds3D.of(0, 6, 3.8, 4, 0, 3), surf_id='CONCRETE_WALL'))  # North wall
 
 # Door
-sim.add(Vent(xb=Bounds3D.of(5.8, 5.8, 1, 2, 0, 2.1), surf_id='OPEN')  # Door opening
+sim.add(Vent(xb=Bounds3D.of(5.8, 5.8, 1, 2, 0, 2.1), surf_id='OPEN'))  # Door opening
 
 # Fire source
-sim.add(Obstruction(ion(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE'))
 
 # ============================================================
 # MEASUREMENT DEVICES
 # ============================================================
 # Temperature measurements
 for i, x in enumerate([1.5, 3.0, 4.5]):
-    sim.device(
+    sim.add(Device(
         id=f'TEMP_{i+1}',
         quantity='TEMPERATURE',
         xyz=Point3D.of(x, 2.0, 2.7)
-    )
+    ))
 
 # Heat flux at floor
-sim.device(
+sim.add(Device(
     id='HF_FLOOR',
     quantity='HEAT FLUX',
     xb=Bounds3D.of(0, 6, 0, 4, 0, 0)
-)
+))
 
 # ============================================================
 # WRITE OUTPUT
@@ -191,23 +196,26 @@ sim.write('organized_fire.fds')
 Create helper functions for repeated patterns:
 
 ```python
+from pyfds import Simulation, Mesh, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 def add_room(sim, origin, size, wall_surf='WALL'):
     """Add a rectangular room to the simulation."""
     x0, y0, z0 = origin
     lx, ly, lz = size
 
     # Four walls
-    sim.add(Obstruction(ion(xb=Bounds3D.of(x0, x0+0.2, y0, y0+ly, z0, z0+lz), surf_id=wall_surf)
-    sim.add(Obstruction(ion(xb=Bounds3D.of(x0+lx-0.2, x0+lx, y0, y0+ly, z0, z0+lz), surf_id=wall_surf)
-    sim.add(Obstruction(ion(xb=Bounds3D.of(x0, x0+lx, y0, y0+0.2, z0, z0+lz), surf_id=wall_surf)
-    sim.add(Obstruction(ion(xb=Bounds3D.of(x0, x0+lx, y0+ly-0.2, y0+ly, z0, z0+lz), surf_id=wall_surf)
+    sim.add(Obstruction(xb=Bounds3D.of(x0, x0+0.2, y0, y0+ly, z0, z0+lz), surf_id=wall_surf))
+    sim.add(Obstruction(xb=Bounds3D.of(x0+lx-0.2, x0+lx, y0, y0+ly, z0, z0+lz), surf_id=wall_surf))
+    sim.add(Obstruction(xb=Bounds3D.of(x0, x0+lx, y0, y0+0.2, z0, z0+lz), surf_id=wall_surf))
+    sim.add(Obstruction(xb=Bounds3D.of(x0, x0+lx, y0+ly-0.2, y0+ly, z0, z0+lz), surf_id=wall_surf))
 
     return sim
 
 # Use the function
 sim = Simulation(chid='multi_room')
-sim.add(Mesh(ijk=Grid3D.of(100, 50, 30), xb=Bounds3D.of(0, 10, 0, 5, 0, 3))
-sim.surface(id='WALL', matl_id='CONCRETE', thickness=0.2)
+sim.add(Mesh(ijk=Grid3D.of(100, 50, 30), xb=Bounds3D.of(0, 10, 0, 5, 0, 3)))
+sim.add(Surface(id='WALL', matl_id='CONCRETE', thickness=0.2))
 
 add_room(sim, origin=(0, 0, 0), size=(5, 5, 3))
 add_room(sim, origin=(5, 0, 0), size=(5, 5, 3))
@@ -305,11 +313,12 @@ sim.write(output_dir / 'fire_1000kw.fds')
 The absolute minimum for a valid FDS simulation:
 
 ```python
-from pyfds import Simulation
+from pyfds import Simulation, Time, Mesh
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='minimal')
-sim.add(Time(t_end=10.0)
-sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
+sim.add(Time(t_end=10.0))
+sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 sim.write('minimal.fds')
 ```
 
@@ -318,25 +327,26 @@ sim.write('minimal.fds')
 A complete, runnable room fire:
 
 ```python
-from pyfds import Simulation
+from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Device
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 # Create simulation
 sim = Simulation(chid='room_fire', title='5x5x2.5m Room Fire')
 
 # Time: 10 minutes
-sim.add(Time(t_end=600.0)
+sim.add(Time(t_end=600.0))
 
 # Domain: 5m x 5m x 2.5m room, 0.1m cells
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Fire: 1m x 1m burner, 1000 kW/m²
-sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
-sim.add(Obstruction(ion(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
+sim.add(Surface(id='BURNER', hrrpua=1000.0, color='RED'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER'))
 
 # Measurements
-sim.device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
-sim.device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 0.1))
-sim.device(id='VEL_CEILING', quantity='VELOCITY', xyz=Point3D.of(2.5, 2.5, 2.4))
+sim.add(Device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4)))
+sim.add(Device(id='TEMP_FLOOR', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 0.1)))
+sim.add(Device(id='VEL_CEILING', quantity='VELOCITY', xyz=Point3D.of(2.5, 2.5, 2.4)))
 
 # Write
 sim.write('room_fire.fds')
@@ -348,35 +358,36 @@ print("Simulation created successfully!")
 Room with door opening:
 
 ```python
-from pyfds import Simulation
+from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Vent, Device
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 sim = Simulation(chid='room_vent', title='Room with Door')
 
-sim.add(Time(t_end=300.0)
-sim.add(Mesh(ijk=Grid3D.of(60, 40, 30), xb=Bounds3D.of(0, 6, 0, 4, 0, 3))
+sim.add(Time(t_end=300.0))
+sim.add(Mesh(ijk=Grid3D.of(60, 40, 30), xb=Bounds3D.of(0, 6, 0, 4, 0, 3)))
 
 # Ambient conditions
 sim.set_misc(tmpa=20.0)
 
 # Surfaces
-sim.surface(id='FIRE', hrrpua=500.0)
-sim.surface(id='WALL', matl_id='GYPSUM', thickness=0.013)
+sim.add(Surface(id='FIRE', hrrpua=500.0))
+sim.add(Surface(id='WALL', matl_id='GYPSUM', thickness=0.013))
 
 # Walls (with door opening)
-sim.add(Obstruction(ion(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 3), surf_id='WALL')
-sim.add(Obstruction(ion(xb=Bounds3D.of(5.8, 6, 0, 1.5, 0, 3), surf_id='WALL')  # Wall beside door
-sim.add(Obstruction(ion(xb=Bounds3D.of(5.8, 6, 2.5, 4, 0, 3), surf_id='WALL')  # Wall above door
-sim.add(Obstruction(ion(xb=Bounds3D.of(5.8, 6, 1.5, 2.5, 2.1, 3), surf_id='WALL')  # Wall above door
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 3), surf_id='WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(5.8, 6, 0, 1.5, 0, 3), surf_id='WALL'))  # Wall beside door
+sim.add(Obstruction(xb=Bounds3D.of(5.8, 6, 2.5, 4, 0, 3), surf_id='WALL'))  # Wall above door
+sim.add(Obstruction(xb=Bounds3D.of(5.8, 6, 1.5, 2.5, 2.1, 3), surf_id='WALL'))  # Wall above door
 
 # Door opening
-sim.add(Vent(xb=Bounds3D.of(5.8, 5.8, 1.5, 2.5, 0, 2.1), surf_id='OPEN')
+sim.add(Vent(xb=Bounds3D.of(5.8, 5.8, 1.5, 2.5, 0, 2.1), surf_id='OPEN'))
 
 # Fire
-sim.add(Obstruction(ion(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 1.5, 2.5, 0, 0.1), surf_id='FIRE'))
 
 # Devices
-sim.device(id='TEMP_DOOR', quantity='TEMPERATURE', xyz=Point3D.of(5.8, 2.0, 1.0))
-sim.device(id='VEL_DOOR', quantity='VELOCITY', xyz=Point3D.of(5.8, 2.0, 1.0))
+sim.add(Device(id='TEMP_DOOR', quantity='TEMPERATURE', xyz=Point3D.of(5.8, 2.0, 1.0)))
+sim.add(Device(id='VEL_DOOR', quantity='VELOCITY', xyz=Point3D.of(5.8, 2.0, 1.0)))
 
 sim.write('room_vent.fds')
 ```
@@ -389,61 +400,61 @@ Begin with coarse meshes and short times for testing:
 
 ```python
 # Quick test (runs in seconds)
-sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
-sim.add(Time(t_end=10.0)
+sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1)))
+sim.add(Time(t_end=10.0))
 ```
 
 Then refine for production:
 
 ```python
 # Production run
-sim.add(Mesh(ijk=Grid3D.of(40, 40, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
-sim.add(Time(t_end=300.0)
+sim.add(Mesh(ijk=Grid3D.of(40, 40, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 1)))
+sim.add(Time(t_end=300.0))
 ```
 
 ### 2. Use Descriptive IDs
 
 ```python
 # Good - clear and specific
-sim.surface(id='WOOD_WALL_12MM', ...)
-sim.device(id='TEMP_CEILING_CENTER', ...)
+sim.add(Surface(id='WOOD_WALL_12MM', ...))
+sim.add(Device(id='TEMP_CEILING_CENTER', ...))
 
 # Bad - unclear
-sim.surface(id='S1', ...)
-sim.device(id='D1', ...)
+sim.add(Surface(id='S1', ...))
+sim.add(Device(id='D1', ...))
 ```
 
 ### 3. Comment Your Code
 
 ```python
 # Heat release rate per unit area for medium intensity fire
-sim.surface(id='FIRE', hrrpua=1000.0)  # 1 MW/m²
+sim.add(Surface(id='FIRE', hrrpua=1000.0))  # 1 MW/m²
 
 # Cell size: 0.1m x 0.1m x 0.1m
 # Total cells: 50 * 50 * 25 = 62,500
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 ```
 
 ### 4. Keep Related Items Together
 
 ```python
 # Material and its surface together
-sim.material(id='CONCRETE', conductivity=1.8, density=2400.0)
-sim.surface(id='CONCRETE_WALL', matl_id='CONCRETE', thickness=0.2)
+sim.add(Material(id='CONCRETE', conductivity=1.8, density=2400.0))
+sim.add(Surface(id='CONCRETE_WALL', matl_id='CONCRETE', thickness=0.2))
 
 # Fire source and measurement together
-sim.add(Obstruction(ion(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
-sim.device(id='TEMP_ABOVE_FIRE', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 0.5))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+sim.add(Device(id='TEMP_ABOVE_FIRE', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 0.5)))
 ```
 
 ### 5. Validate Early and Often
 
 ```python
 # Validate after each major addition
-sim.add(Mesh(...)
+sim.add(Mesh(...))
 assert len(sim.validate()) == 0, "Mesh validation failed"
 
-sim.add(Obstruction(ion(...)
+sim.add(Obstruction(...))
 assert len(sim.validate()) == 0, "Geometry validation failed"
 ```
 
@@ -468,8 +479,8 @@ assert len(sim.validate()) == 0, "Geometry validation failed"
 
     **Solution**: Every simulation needs time and mesh
     ```python
-    sim.add(Time(t_end=100.0)  # Required
-    sim.add(Mesh(...)  # Required
+    sim.add(Time(t_end=100.0))  # Required
+    sim.add(Mesh(...))  # Required
     ```
 
 ??? question "Geometry outside mesh"
@@ -479,13 +490,13 @@ assert len(sim.validate()) == 0, "Geometry validation failed"
     **Solution**: Check your coordinates
     ```python
     # Mesh: 0 to 5 in X
-    sim.add(Mesh(xb=(0, 5, ...))
+    sim.add(Mesh(xb=(0, 5, ...)))
 
     # Bad: X goes to 6
-    sim.add(Obstruction(ion(xb=(4, 6, ...))  # ERROR
+    sim.add(Obstruction(xb=(4, 6, ...))  # ERROR
 
     # Good: X stays within 0-5
-    sim.add(Obstruction(ion(xb=(4, 5, ...))  # OK
+    sim.add(Obstruction(xb=(4, 5, ...))  # OK
     ```
 
 ## Next Steps

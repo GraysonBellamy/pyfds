@@ -1,7 +1,7 @@
 """Integration tests for MULT functionality."""
 
 from pyfds.core.geometry import Bounds3D, Grid3D
-from pyfds.core.namelists import Mesh, Mult, Obstruction, Time
+from pyfds.core.namelists import Mesh, Multiplier, Obstruction, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -15,7 +15,9 @@ class TestMultIntegration:
         sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add multiplier for 3x3 array
-        sim.add(Mult(id="ARRAY_3X3", dx=2.0, dy=2.0, i_lower=0, i_upper=2, j_lower=0, j_upper=2))
+        sim.add(
+            Multiplier(id="ARRAY_3X3", dx=2.0, dy=2.0, i_lower=0, i_upper=2, j_lower=0, j_upper=2)
+        )
 
         # Add obstruction that uses the multiplier
         sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 0.5), mult_id="ARRAY_3X3"))
@@ -40,8 +42,8 @@ class TestMultIntegration:
         sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
         # Add two different multipliers
-        sim.add(Mult(id="ROW_5", dx=1.0, n_lower=0, n_upper=4))
-        sim.add(Mult(id="COLUMN_3", dy=2.0, n_lower=0, n_upper=2))
+        sim.add(Multiplier(id="ROW_5", dx=1.0, n_lower=0, n_upper=4))
+        sim.add(Multiplier(id="COLUMN_3", dy=2.0, n_lower=0, n_upper=2))
 
         # Add obstructions using different multipliers
         sim.add(Obstruction(xb=Bounds3D.of(0, 0.5, 0, 0.5, 0, 0.5), mult_id="ROW_5"))
@@ -64,7 +66,7 @@ class TestMultIntegration:
 
         # Add multiplier with skip range (skip indices 2-3)
         sim.add(
-            Mult(
+            Multiplier(
                 id="ARRAY_WITH_GAP",
                 dx=1.0,
                 n_lower=0,

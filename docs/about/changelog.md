@@ -148,24 +148,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Migrating to 0.1.0
 
 No breaking changes. New features:
-- Use `.vent()` for boundary conditions
-- Use `.set_misc()` for global settings
+- Use `sim.add(Vent())` for boundary conditions
+- Use `sim.set_misc()` for global settings
 
 ```python
 # New in 0.1.0
-sim.add(Vent(mb='XMIN', surf_id='OPEN')
+sim.add(Vent(mb='XMIN', surf_id='OPEN'))
 sim.set_misc(tmpa=25.0, radiation=True)
 ```
 
 ### Migrating to 0.0.3
 
 No breaking changes. New features:
-- Use `.ramp()`, `.material()`, `.reaction()`, etc. for complex features
+- Use `sim.add(Ramp())`, `sim.add(Material())`, `sim.add(Reaction())`, etc. for complex features
 
 ```python
+from pyfds import Ramp, Material
+
 # New in 0.0.3
-sim.ramp(id='T_RAMP', t=[0, 100, 200], f=[0, 0.5, 1.0])
-sim.material(id='WOOD', conductivity=0.12, density=500.0)
+sim.add(Ramp(id='T_RAMP', t=[0, 100, 200], f=[0, 0.5, 1.0]))
+sim.add(Material(id='WOOD', conductivity=0.12, density=500.0))
 ```
 
 ### Migrating to 0.0.2

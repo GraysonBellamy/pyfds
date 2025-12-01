@@ -1,6 +1,21 @@
-# HoleBuilder API Reference
+# Hole Builder (Planned)
 
-The `HoleBuilder` provides a fluent interface for creating holes that carve openings through obstructions.
+!!! warning "Not Yet Implemented"
+    `HoleBuilder` is planned for a future release. For now, use the `Hole` namelist class directly.
+
+## Current Usage
+
+```python
+from pyfds import Simulation, Hole
+from pyfds.core.geometry import Bounds3D
+
+sim = Simulation(chid="hole_example")
+
+# Create a hole (cutout) in an obstruction
+sim.add(Hole(
+    xb=Bounds3D.of(2, 3, 0, 0.2, 0.5, 2.0)
+))
+```
 
 ## Overview
 
@@ -9,13 +24,13 @@ The HOLE namelist creates openings in solid obstructions (OBST namelists). Holes
 ## Basic Usage
 
 ```python
-from pyfds.builders import HoleBuilder
+from pyfds import Hole
+from pyfds.core.geometry import Bounds3D
 
 # Simple door opening
-door = (
-    HoleBuilder('DOOR')
-    .bounds(xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1))
-    .build()
+door = Hole(
+    id='DOOR',
+    xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1)
 )
 
 # Window with control

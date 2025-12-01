@@ -6,11 +6,12 @@ writing or running.
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from pyfds.core.enums import Severity
 from pyfds.exceptions import ValidationError
 from pyfds.validation.base import Issue, ValidationResult
+from pyfds.validation.cross_references import CrossReferenceValidator
 from pyfds.validation.utils import flatten_to_list
 
 if TYPE_CHECKING:
@@ -27,12 +28,6 @@ class SimulationValidator:
     3. Geometry quality checks
     4. Physical reasonableness checks
     """
-
-    # Built-in surfaces that don't need to be defined
-    BUILTIN_SURFACES: ClassVar[set[str]] = {"INERT", "OPEN", "MIRROR", "PERIODIC"}
-
-    # Built-in species that don't need to be defined
-    BUILTIN_SPECIES: ClassVar[set[str]] = {"AIR", "PRODUCTS", "SOOT", "WATER VAPOR"}
 
     def __init__(self, simulation: "Simulation | SimulationRegistry") -> None:
         if hasattr(simulation, "_registry"):
@@ -53,7 +48,6 @@ class SimulationValidator:
         issues.extend(self._check_required())
         issues.extend(self._check_cross_references())
         issues.extend(self._check_geometry())
-        issues.extend(self._check_materials())
         issues.extend(self._check_species())
         issues.extend(self._check_physics())
         issues.extend(self._check_physical_bounds())
@@ -76,71 +70,14 @@ class SimulationValidator:
         return issues
 
     def _check_cross_references(self) -> list[Issue]:
-        """Validate cross-references between components."""
-        issues = []
+        """Validate cross-references between components.
 
-        surface_ids = set(self._registry.surfaces.list_ids())
-        valid_surfaces = surface_ids | self.BUILTIN_SURFACES
-
-        # Check obstruction SURF_ID references
-        for obst in self._registry.obstructions.list_items():
-            for surf_id in [
-                obst.surf_id,
-                obst.surf_id_top,
-                obst.surf_id_bottom,
-                obst.surf_id_sides,
-            ]:
-                if surf_id and surf_id not in valid_surfaces:
-                    issues.append(
-                        Issue(
-                            Severity.ERROR,
-                            f"References undefined surface '{surf_id}'",
-                            "OBST",
-                            "surf_id",
-                        )
-                    )
-
-        # Check species references in materials
-        species_ids = set(self._registry.species.list_ids())
-        for reaction in self._registry.reactions.list_items():
-            if reaction.fuel:
-                species_ids.add(reaction.fuel)
-        species_ids.update(self.BUILTIN_SPECIES)
-
-        for matl in self._registry.materials.list_items():
-            if matl.spec_id:
-                for spec_id in flatten_to_list(matl.spec_id):
-                    if spec_id and spec_id not in species_ids:
-                        issues.append(
-                            Issue(
-                                Severity.WARNING,
-                                f"References undefined species '{spec_id}'",
-                                "MATL",
-                                "spec_id",
-                            )
-                        )
-
-        return issues
-
-    def _check_materials(self) -> list[Issue]:
-        """Validate materials and surface references."""
-        issues = []
-
-        material_ids = set(self._registry.materials.list_ids())
-        for surf in self._registry.surfaces.list_items():
-            if surf.matl_id:
-                for matl_id in flatten_to_list(surf.matl_id):
-                    if matl_id and matl_id not in material_ids:
-                        issues.append(
-                            Issue(
-                                Severity.ERROR,
-                                f"Surface '{surf.id}' references undefined material '{matl_id}'",
-                                "SURF",
-                                "matl_id",
-                            )
-                        )
-
-        return issues
+        Delegates to CrossReferenceValidator for comprehensive
+        reference checking.
+        """
+        validator = CrossReferenceValidator(self._registry)
+        result = validator.validate()
+        return result.issues
 
     def _check_geometry(self) -> list[Issue]:
         """Check geometry configuration: meshes, obstructions, etc."""
@@ -212,9 +149,78 @@ class SimulationValidator:
         return issues
 
     def _check_physics(self) -> list[Issue]:
-        """Validate physics configuration."""
+        """Check physics configuration for consistency."""
         issues: list[Issue] = []
-        # Physics validation logic can be added here as needed
+
+        # Check combustion configuration
+        issues.extend(self._check_combustion())
+
+        # Check species mass fractions
+        issues.extend(self._check_species_fractions())
+
+        return issues
+
+    def _check_combustion(self) -> list[Issue]:
+        """Validate combustion/reaction configuration."""
+        issues: list[Issue] = []
+        reactions = self._registry.reactions.list_items()
+
+        if not reactions:
+            # No reactions defined - check if fire surfaces exist
+            surfaces = self._registry.surfaces.list_items()
+            fire_surfaces = [
+                s for s in surfaces if getattr(s, "hrrpua", None) or getattr(s, "mlrpua", None)
+            ]
+
+            if fire_surfaces:
+                issues.append(
+                    Issue(
+                        Severity.WARNING,
+                        "Fire surfaces defined but no REAC namelist. "
+                        "Simple chemistry will be used.",
+                        "REAC",
+                    )
+                )
+
+        for reac in reactions:
+            # Check stoichiometry - fuel must have C or H atoms
+            c_val = getattr(reac, "c", None)
+            h_val = getattr(reac, "h", None)
+            if c_val is not None and h_val is not None and c_val == 0 and h_val == 0:
+                reac_id = getattr(reac, "id", None) or getattr(reac, "fuel", "unknown")
+                issues.append(
+                    Issue(
+                        Severity.ERROR,
+                        f"Reaction '{reac_id}' has no fuel composition (C=0, H=0)",
+                        "REAC",
+                        reac_id,
+                    )
+                )
+
+        return issues
+
+    def _check_species_fractions(self) -> list[Issue]:
+        """Validate species mass fractions sum to 1.0 where applicable."""
+        issues: list[Issue] = []
+
+        # Check INIT namelists with species specifications
+        inits = self._registry.inits.list_items()
+
+        for init in inits:
+            mass_fraction = getattr(init, "mass_fraction", None)
+            if mass_fraction:
+                total = sum(mass_fraction)
+                if abs(total - 1.0) > 0.01:
+                    init_id = getattr(init, "id", None)
+                    issues.append(
+                        Issue(
+                            Severity.WARNING,
+                            f"INIT mass fractions sum to {total:.3f}, expected 1.0",
+                            "INIT",
+                            init_id,
+                        )
+                    )
+
         return issues
 
     def _check_physical_bounds(self) -> list[Issue]:
@@ -247,7 +253,7 @@ class SimulationValidator:
         return issues
 
 
-# Backward compatibility alias
+# Convenient alias for SimulationValidator
 Validator = SimulationValidator
 
 

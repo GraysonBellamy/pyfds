@@ -6,17 +6,51 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pyfds.validation import ParallelValidator
+from pyfds.exceptions import ExecutionError, FDSTimeoutError
+from pyfds.execution.monitor import ProgressInfo, ProgressMonitor, parse_out_file_for_errors
+from pyfds.execution.platform import PlatformExecutor
+from pyfds.execution.process import get_environment_for_execution, validate_fds_executable
+from pyfds.utils import get_logger
+from pyfds.validation import ExecutionValidator
 
-from ..exceptions import ExecutionError, FDSTimeoutError
-from ..utils import get_logger
-from .monitor import ProgressInfo, ProgressMonitor, parse_out_file_for_errors
-from .platform import PlatformExecutor
-from .process import get_environment_for_execution, validate_fds_executable
+
+def _extract_chid(fds_file: Path) -> str:
+    """Extract CHID from FDS input file.
+
+    Parses the &HEAD namelist to find CHID. Falls back to filename
+    if parsing fails.
+
+    Parameters
+    ----------
+    fds_file : Path
+        Path to FDS input file.
+
+    Returns
+    -------
+    str
+        The CHID value.
+    """
+    import re
+
+    try:
+        content = fds_file.read_text(encoding="utf-8", errors="replace")
+
+        # Look for CHID in &HEAD namelist
+        # Handles both single and double quotes
+        pattern = r"&HEAD\s+.*?CHID\s*=\s*['\"]([^'\"]+)['\"]"
+        match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+
+        if match:
+            return match.group(1)
+    except Exception:
+        pass  # Fall back to filename
+
+    return fds_file.stem
+
 
 if TYPE_CHECKING:
-    from ..analysis.results import Results
-    from ..config import RunConfig
+    from pyfds.analysis.results import Results
+    from pyfds.config import RunConfig
 
 logger = get_logger(__name__)
 
@@ -200,7 +234,7 @@ class Job:
             )
 
         # Import here to avoid circular import
-        from ..analysis.results import Results
+        from pyfds.analysis.results import Results
 
         return Results(chid=self.chid, output_dir=self.output_dir)
 
@@ -308,7 +342,7 @@ class FDSRunner:
         logger.info(f"Initialized FDS runner with version: {version}")
 
         # Initialize validators
-        self.parallel_validator = ParallelValidator()
+        self.execution_validator = ExecutionValidator()
         self.validate_parallel = validate_parallel
 
     def run(
@@ -354,7 +388,7 @@ class FDSRunner:
         >>> results = runner.run("test.fds", simulation=sim, n_mpi=4)
         """
         # Import here to avoid circular import
-        from ..config import RunConfig
+        from pyfds.config import RunConfig
 
         # Create config from kwargs if not provided
         if config is None:
@@ -374,22 +408,13 @@ class FDSRunner:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Extract CHID from file
-        chid = fds_file.stem
+        # Extract CHID from file content (falls back to filename)
+        chid = _extract_chid(fds_file)
 
         logger.info(f"Starting FDS simulation: {chid}")
         logger.debug(f"  Input file: {fds_file}")
         logger.debug(f"  Output directory: {output_dir}")
         logger.debug(f"  Threads: {config.n_threads}, MPI processes: {config.n_mpi}")
-
-        # Validate parallel configuration
-        # Note: Simulation validation should be done by Simulation.run(), not here
-        # if self.validate_parallel and simulation is not None:
-        #     warnings = self.parallel_validator.validate_all(
-        #         simulation, config.n_mpi, config.n_threads
-        #     )
-        #     for warning in warnings:
-        #         logger.warning(warning)
 
         # Build command using platform executor
         cmd = self.platform_executor.build_command(

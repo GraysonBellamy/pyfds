@@ -39,8 +39,11 @@ pip install pyfds
 
 **Solution**: Check coordinates
 ```python
+from pyfds import Mesh, Obstruction
+from pyfds.core.geometry import Bounds3D
+
 # Mesh: (0, 5) in X
-sim.add(Mesh(xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Bad: X goes to 6
 sim.add(Obstruction(xb=Bounds3D.of(4, 6, 0, 5, 0, 2.5))  # ERROR
@@ -56,8 +59,8 @@ sim.add(Obstruction(xb=Bounds3D.of(4, 5, 0, 5, 0, 2.5))  # OK
 **Solution**: Define surfaces first
 ```python
 # Correct order
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 ```
 
 ### Validation warnings
@@ -91,19 +94,19 @@ fds -v
 1. **Fire too intense**
    ```python
    # Too intense
-   sim.surface(id='FIRE', hrrpua=5000.0)
+   sim.add(Surface(id='FIRE', hrrpua=5000.0))
 
    # More reasonable
-   sim.surface(id='FIRE', hrrpua=1500.0)
+   sim.add(Surface(id='FIRE', hrrpua=1500.0))
    ```
 
 2. **Cells too small**
    ```python
    # Too fine (very slow)
-   sim.add(Mesh(ijk=Grid3D.of(200, 200, 100), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(200, 200, 100), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
    # More reasonable
-   sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
    ```
 
 3. **Physical inconsistencies**
@@ -130,10 +133,10 @@ fds -v
 1. **Reduce cell count**
    ```python
    # Before: 500,000 cells
-   sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
    # After: 62,500 cells (8x faster)
-   sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+   sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
    ```
 
 2. **Use parallelization**
@@ -148,10 +151,10 @@ fds -v
 3. **Reduce simulation time**
    ```python
    # Test run
-   sim.add(Time(t_end=30.0)
+   sim.add(Time(t_end=30.0))
 
    # Production run
-   sim.add(Time(t_end=600.0)
+   sim.add(Time(t_end=600.0))
    ```
 
 ### Out of memory

@@ -5,17 +5,16 @@ FDS simulation execution module.
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pyfds.validation import ParallelValidator
-
-from ..exceptions import ExecutionError, FDSNotFoundError, FDSTimeoutError
-from .monitor import ProgressInfo, ProgressMonitor
-from .platform import PlatformExecutor
-from .process import find_fds_executable, validate_fds_executable
-from .runner import FDSRunner, Job
+from pyfds.exceptions import ExecutionError, FDSNotFoundError, FDSTimeoutError
+from pyfds.execution.monitor import ProgressInfo, ProgressMonitor
+from pyfds.execution.platform import PlatformExecutor
+from pyfds.execution.process import find_fds_executable, validate_fds_executable
+from pyfds.execution.runner import FDSRunner, Job
+from pyfds.validation import ExecutionValidator
 
 if TYPE_CHECKING:
-    from ..analysis.results import Results
-    from ..config import RunConfig
+    from pyfds.analysis.results import Results
+    from pyfds.config import RunConfig
 
 
 def run_fds(
@@ -52,11 +51,11 @@ def run_fds(
 
 __all__ = [
     "ExecutionError",
+    "ExecutionValidator",
     "FDSNotFoundError",
     "FDSRunner",
     "FDSTimeoutError",
     "Job",
-    "ParallelValidator",
     "PlatformExecutor",
     "ProgressInfo",
     "ProgressMonitor",

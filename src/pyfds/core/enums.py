@@ -69,6 +69,22 @@ class TurbulenceModel(str, Enum):
     WALE = "WALE"
 
 
+class SimulationMode(str, Enum):
+    """Simulation mode for MISC namelist."""
+
+    VLES = "VLES"
+    LES = "LES"
+    DNS = "DNS"
+    SVLES = "SVLES"
+
+
+class LESFilterType(str, Enum):
+    """LES filter type for MISC namelist."""
+
+    MEAN = "MEAN"
+    MAX = "MAX"
+
+
 # =============================================================================
 # VENT Enums
 # =============================================================================
@@ -89,7 +105,6 @@ class VentShape(str, Enum):
 
     RECTANGULAR = "RECTANGULAR"
     CIRCULAR = "CIRCULAR"
-    ANNULAR = "ANNULAR"
 
 
 # =============================================================================
@@ -109,13 +124,182 @@ class ControlFunction(str, Enum):
     RESTART = "RESTART"
 
 
+# =============================================================================
+# OBST (Obstruction) Enums
+# =============================================================================
+
+
+class ObstShape(str, Enum):
+    """Geometric shape types for OBST."""
+
+    SPHERE = "SPHERE"
+    CYLINDER = "CYLINDER"
+    CONE = "CONE"
+    BOX = "BOX"
+
+
+# =============================================================================
+# GEOM Enums
+# =============================================================================
+
+
+class TextureMapping(str, Enum):
+    """Texture mapping types for GEOM."""
+
+    RECTANGULAR = "RECTANGULAR"
+    SPHERICAL = "SPHERICAL"
+
+
+class CoordinateSystem(str, Enum):
+    """Coordinate system types."""
+
+    RECTANGULAR = "RECTANGULAR"
+    SPHERICAL = "SPHERICAL"
+    CYLINDRICAL = "CYLINDRICAL"
+
+
+# =============================================================================
+# REAC (Reaction) Enums
+# =============================================================================
+
+
+class ExtinctionModel(str, Enum):
+    """Combustion extinction models."""
+
+    EXTINCTION_1 = "EXTINCTION 1"
+    EXTINCTION_2 = "EXTINCTION 2"
+
+
+# =============================================================================
+# DEVC (Device) Enums
+# =============================================================================
+
+
+class StatisticsType(str, Enum):
+    """Device statistics types."""
+
+    MIN = "MIN"
+    MAX = "MAX"
+    MEAN = "MEAN"
+    RMS = "RMS"
+    VARIANCE = "VARIANCE"
+    RANGE = "RANGE"
+    TIME_MIN = "TIME MIN"
+    TIME_MAX = "TIME MAX"
+    COV = "COV"
+    CORRCOEF = "CORRCOEF"
+
+
+# =============================================================================
+# RAMP Enums
+# =============================================================================
+
+
+class RampInterpolation(str, Enum):
+    """RAMP interpolation types."""
+
+    LINEAR = "LINEAR"
+    STEP = "STEP"
+
+
+# =============================================================================
+# PART (Particle) Enums
+# =============================================================================
+
+
+class DragLaw(str, Enum):
+    """Drag law for particles."""
+
+    SPHERE = "SPHERE"
+    CYLINDER = "CYLINDER"
+    SCREEN = "SCREEN"
+
+
+# =============================================================================
+# Mesh Boundary Enums
+# =============================================================================
+
+
+class MeshBoundary(str, Enum):
+    """Mesh boundary locations."""
+
+    XMIN = "XMIN"
+    XMAX = "XMAX"
+    YMIN = "YMIN"
+    YMAX = "YMAX"
+    ZMIN = "ZMIN"
+    ZMAX = "ZMAX"
+
+
+# =============================================================================
+# Built-in FDS Objects (surfaces and species that don't require definition)
+# =============================================================================
+
+
+class BuiltinSurface(str, Enum):
+    """Built-in FDS surfaces that don't require explicit definition.
+
+    These surface IDs are predefined by FDS and can be referenced
+    without creating a corresponding SURF namelist.
+    """
+
+    INERT = "INERT"
+    OPEN = "OPEN"
+    MIRROR = "MIRROR"
+    PERIODIC = "PERIODIC"
+    HVAC = "HVAC"
+    MASSLESS_TRACER = "MASSLESS TRACER"
+    DROPLET = "DROPLET"
+    VEGETATION = "VEGETATION"
+    EVACUATION = "EVACUATION"
+
+    @classmethod
+    def values(cls) -> frozenset[str]:
+        """Return all builtin surface values as a frozenset."""
+        return frozenset(member.value for member in cls)
+
+
+class BuiltinSpecies(str, Enum):
+    """Built-in FDS species that don't require explicit definition.
+
+    These species IDs are predefined by FDS and can be referenced
+    without creating a corresponding SPEC namelist.
+    """
+
+    AIR = "AIR"
+    PRODUCTS = "PRODUCTS"
+    SOOT = "SOOT"
+    WATER_VAPOR = "WATER VAPOR"
+    CARBON_DIOXIDE = "CARBON DIOXIDE"
+    CARBON_MONOXIDE = "CARBON MONOXIDE"
+    NITROGEN = "NITROGEN"
+    OXYGEN = "OXYGEN"
+
+    @classmethod
+    def values(cls) -> frozenset[str]:
+        """Return all builtin species values as a frozenset."""
+        return frozenset(member.value for member in cls)
+
+
 __all__ = [
     "BackingCondition",
+    "BuiltinSpecies",
+    "BuiltinSurface",
     "ControlFunction",
+    "CoordinateSystem",
+    "DragLaw",
+    "ExtinctionModel",
     "HeatTransferModel",
+    "LESFilterType",
+    "MeshBoundary",
+    "ObstShape",
+    "RampInterpolation",
     "Severity",
+    "SimulationMode",
     "SolidGeometry",
     "SprayPattern",
+    "StatisticsType",
+    "TextureMapping",
     "TurbulenceModel",
     "VentShape",
     "VentType",

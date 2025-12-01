@@ -15,8 +15,8 @@ from pyfds.execution import FDSRunner
 
 # Create simulation
 sim = Simulation(chid='test')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 sim.write('test.fds')
 
 # Run FDS
@@ -287,8 +287,8 @@ Run directly from `Simulation` object:
 
 ```python
 sim = Simulation(chid='test')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Write and run in one step
 job = sim.run(wait=True, n_threads=4)

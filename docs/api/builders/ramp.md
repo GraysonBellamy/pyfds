@@ -134,7 +134,7 @@ fire_ramp = RampBuilder('FIRE').t_squared('FAST', peak_hrr=2500, t_peak=300).bui
 sim.add_ramp(fire_ramp)
 
 # Use in surface
-sim.surface(id='BURNER', hrrpua=1000.0, ramp_q='FIRE')
+sim.add(Surface(id='BURNER', hrrpua=1000.0, ramp_q='FIRE'))
 ```
 
 ### Material Properties

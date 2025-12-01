@@ -3,7 +3,7 @@
 import pytest
 
 from pyfds.builders import PartBuilder
-from pyfds.core.namelists import Part
+from pyfds.core.namelists import Particle
 
 
 class TestPartBuilderBasicUsage:
@@ -12,7 +12,7 @@ class TestPartBuilderBasicUsage:
     def test_simple_build(self):
         """Test building a simple particle."""
         part = PartBuilder("TEST").with_diameter(0.001).with_density(1000.0).build()
-        assert isinstance(part, Part)
+        assert isinstance(part, Particle)
         assert part.id == "TEST"
         assert part.diameter == 0.001
         assert part.density == 1000.0

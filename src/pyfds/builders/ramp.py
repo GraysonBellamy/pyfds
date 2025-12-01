@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from ..core.namelists import Ramp
-from .base import Builder
+from pyfds.builders.base import Builder
+from pyfds.core.namelists import Ramp
 
 
 class RampBuilder(Builder[Ramp]):
@@ -15,8 +15,8 @@ class RampBuilder(Builder[Ramp]):
 
     Parameters
     ----------
-    id : str
-        Unique identifier for the ramp
+    id : str, optional
+        Unique identifier for the ramp. Can also be set via with_id().
 
     Examples
     --------
@@ -47,20 +47,43 @@ class RampBuilder(Builder[Ramp]):
     ...     .add_point(120, 500) \\
     ...     .add_point(300, 2000) \\
     ...     .build()
+
+    >>> # Using with_id() method
+    >>> ramp = RampBuilder() \\
+    ...     .with_id('MY_RAMP') \\
+    ...     .linear(0, 100, 0, 1) \\
+    ...     .build()
     """
 
-    def __init__(self, id: str):
+    def __init__(self, id: str | None = None):
         """
         Initialize the RampBuilder.
 
         Parameters
         ----------
-        id : str
+        id : str, optional
             Unique identifier for the ramp
         """
         super().__init__()
         self._id = id
         self._points: list[tuple[float, float]] = []
+
+    def with_id(self, id: str) -> "RampBuilder":
+        """
+        Set the ramp identifier.
+
+        Parameters
+        ----------
+        id : str
+            Unique identifier for the ramp
+
+        Returns
+        -------
+        RampBuilder
+            Self for method chaining
+        """
+        self._id = id
+        return self
 
     def add_point(self, t: float, f: float) -> "RampBuilder":
         """
@@ -342,31 +365,15 @@ class RampBuilder(Builder[Ramp]):
         self._points = list(zip(t_vals.tolist(), f_vals.tolist(), strict=True))
         return self
 
-    def build(self) -> Ramp:
-        """
-        Build the Ramp object.
-
-        Returns
-        -------
-        Ramp
-            The constructed Ramp namelist object
-
-        Raises
-        ------
-        ValueError
-            If no points have been defined
-        RuntimeError
-            If the builder has already been used
-
-        Examples
-        --------
-        >>> ramp = RampBuilder('MY_RAMP').linear(0, 100, 0, 1).build()
-        """
-        self._check_built()
-
+    def _validate(self) -> list[str]:
+        """Validate builder state before building."""
+        errors = []
+        if self._id is None:
+            errors.append("id is required (use constructor or with_id())")
         if not self._points:
-            raise ValueError(f"RampBuilder '{self._id}': No points defined")
+            errors.append("No points defined (use linear(), add_point(), etc.)")
+        return errors
 
-        ramp = Ramp(id=self._id, points=self._points)
-        self._mark_built()
-        return ramp
+    def _create(self) -> Ramp:
+        """Create the Ramp object."""
+        return Ramp(id=self._id, points=self._points)

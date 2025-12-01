@@ -6,8 +6,8 @@ different namelist types (SURF→MATL, MATL→SPEC, SURF→RAMP, etc.).
 
 from typing import TYPE_CHECKING, ClassVar
 
-from pyfds.core.enums import Severity
-from pyfds.validation.base import Issue
+from pyfds.core.enums import BuiltinSpecies, BuiltinSurface, Severity
+from pyfds.validation.base import Issue, ValidationResult
 from pyfds.validation.utils import flatten_to_list, get_surface_ids_from_obstruction
 
 if TYPE_CHECKING:
@@ -23,6 +23,11 @@ class CrossReferenceValidator:
     - RAMP references from SURF and MATL
     - BURN_AWAY surface configurations
     - HT3D configurations
+
+    Returns
+    -------
+    ValidationResult
+        Result containing all validation issues found.
     """
 
     # SURF attributes that can reference RAMPs
@@ -46,9 +51,6 @@ class CrossReferenceValidator:
         "specific_heat_ramp",
     ]
 
-    # Built-in species that don't need to be defined
-    BUILTIN_SPECIES: ClassVar[set[str]] = {"AIR", "PRODUCTS", "SOOT", "WATER VAPOR"}
-
     def __init__(self, simulation: "Simulation | SimulationRegistry") -> None:
         if hasattr(simulation, "_registry"):
             self._registry = simulation._registry
@@ -59,25 +61,26 @@ class CrossReferenceValidator:
         self._material_ids: set[str] = set()
         self._species_ids: set[str] = set()
 
-    def validate(self) -> list[Issue]:
+    def validate(self) -> ValidationResult:
         """Run all cross-reference validations.
 
         Returns
         -------
-        list[Issue]
-            All validation issues found
+        ValidationResult
+            Validation result containing all issues found.
         """
         # Cache IDs for efficiency
         self._cache_ids()
 
         issues: list[Issue] = []
+        issues.extend(self._check_obstruction_surface_refs())
         issues.extend(self._check_surface_material_refs())
         issues.extend(self._check_ramp_refs())
         issues.extend(self._check_material_species_refs())
         issues.extend(self._check_burn_away_config())
         issues.extend(self._check_ht3d_config())
 
-        return issues
+        return ValidationResult(issues=issues)
 
     def _cache_ids(self) -> None:
         """Cache all registered IDs for efficient lookup."""
@@ -92,7 +95,32 @@ class CrossReferenceValidator:
                 self._species_ids.add(reac.fuel)
 
         # Add built-in species
-        self._species_ids.update(self.BUILTIN_SPECIES)
+        self._species_ids.update(BuiltinSpecies.values())
+
+    def _check_obstruction_surface_refs(self) -> list[Issue]:
+        """Check OBST→SURF references."""
+        issues: list[Issue] = []
+        valid_surfaces = self._surface_ids | BuiltinSurface.values()
+
+        for obst in self._registry.obstructions.list_items():
+            for surf_id in [
+                obst.surf_id,
+                getattr(obst, "surf_id_top", None),
+                getattr(obst, "surf_id_bottom", None),
+                getattr(obst, "surf_id_sides", None),
+            ]:
+                if surf_id and surf_id not in valid_surfaces:
+                    obst_id = obst.id or "unnamed"
+                    issues.append(
+                        Issue(
+                            Severity.ERROR,
+                            f"Obstruction '{obst_id}' references undefined surface '{surf_id}'",
+                            "OBST",
+                            "surf_id",
+                        )
+                    )
+
+        return issues
 
     def _check_surface_material_refs(self) -> list[Issue]:
         """Check SURF→MATL references."""
@@ -148,21 +176,24 @@ class CrossReferenceValidator:
         return issues
 
     def _check_material_species_refs(self) -> list[Issue]:
-        """Check MATL→SPEC references."""
+        """Check MATL→SPEC references via structured reactions."""
         issues = []
 
         for matl in self._registry.materials.list_items():
-            if matl.spec_id:
-                for spec_id in flatten_to_list(matl.spec_id):
-                    if spec_id and spec_id not in self._species_ids:
-                        issues.append(
-                            Issue(
-                                Severity.WARNING,
-                                f"Material '{matl.id}' references undefined species '{spec_id}'",
-                                "MATL",
-                                "spec_id",
-                            )
-                        )
+            # Check structured reactions for species references
+            if matl.reactions:
+                for rxn in matl.reactions:
+                    if rxn.products:
+                        for product in rxn.products:
+                            if product.spec_id and product.spec_id not in self._species_ids:
+                                issues.append(
+                                    Issue(
+                                        Severity.WARNING,
+                                        f"Material '{matl.id}' references undefined species '{product.spec_id}'",
+                                        "MATL",
+                                        "reactions.products.spec_id",
+                                    )
+                                )
 
         return issues
 

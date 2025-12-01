@@ -135,7 +135,7 @@ from pyfds.core.namelists import Mesh, Surface
 def create_simulation(name: str) -> Simulation:
     """Create a simulation with type safety."""
     sim = Simulation(chid=name)
-    sim.add(Time(t_end=600.0)
+    sim.add(Time(t_end=600.0))
     return sim
 
 # IDE will autocomplete and type-check
@@ -193,7 +193,7 @@ Executable code examples:
 Examples
 --------
 >>> sim = Simulation(chid='test')
->>> sim.add(Time(t_end=600.0, dt=0.1)
+>>> sim.add(Time(t_end=600.0, dt=0.1))
 >>> sim.write('test.fds')
 ```
 
@@ -228,11 +228,11 @@ Find what you need based on what you want to do:
 | Task | See |
 |------|-----|
 | Create a simulation | [`Simulation`](core/simulation.md) |
-| Add a mesh | [`Simulation.mesh()`](core/simulation.md) |
-| Create fire | [`Simulation.surface()`](core/simulation.md) |
-| Add geometry | [`Simulation.obstruction()`](core/simulation.md) |
-| Add vent | [`Simulation.vent()`](core/simulation.md) |
-| Add device | [`Simulation.device()`](core/simulation.md) |
+| Add a mesh | [`sim.add(Mesh())`](core/simulation.md) |
+| Create fire | [`sim.add(Surface())`](core/simulation.md) |
+| Add geometry | [`sim.add(Obstruction())`](core/simulation.md) |
+| Add vent | [`sim.add(Vent())`](core/simulation.md) |
+| Add device | [`sim.add(Device())`](core/simulation.md) |
 | Validate | [`Validator`](core/validator.md) |
 | Run simulation | [`Simulation.run()`](core/simulation.md) |
 | Load results | [`Results`](analysis/results.md) |
@@ -247,10 +247,10 @@ import inspect
 from pyfds import Simulation
 
 # View source code
-print(inspect.getsource(Simulation.mesh))
+print(inspect.getsource(Simulation.add))
 
 # View docstring
-print(Simulation.mesh.__doc__)
+print(Simulation.add.__doc__)
 ```
 
 Or browse the source on [GitHub](https://github.com/GraysonBellamy/pyfds/tree/main/src/pyfds).

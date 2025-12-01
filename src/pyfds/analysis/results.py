@@ -7,7 +7,7 @@ from typing import Any
 
 import polars as pl
 
-from ..io.parsers.csv_parser import CSVParser
+from pyfds.io.parsers.csv_parser import CSVParser
 
 
 class Results:

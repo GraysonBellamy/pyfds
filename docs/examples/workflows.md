@@ -45,33 +45,33 @@ from pyfds.core.geometry import Point3D
 def create_room_fire():
     """Create room fire simulation."""
     sim = Simulation(chid='room_fire')
-    sim.add(Time(t_end=600.0)
+    sim.add(Time(t_end=600.0))
 
     # Domain
-    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5)))
 
     # Materials
-    sim.material(id='GYPSUM', conductivity=0.48, specific_heat=0.84, density=1440.0)
-    sim.surface(id='GYPSUM_WALL', matl_id='GYPSUM', thickness=0.0127)
+    sim.add(Material(id='GYPSUM', conductivity=0.48, specific_heat=0.84, density=1440.0))
+    sim.add(Surface(id='GYPSUM_WALL', matl_id='GYPSUM', thickness=0.0127))
 
     # Walls
-    sim.add(Obstruction(xb=Bounds3D.of(0, 0.15, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL')
-    sim.add(Obstruction(xb=Bounds3D.of(5.85, 6, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL')
+    sim.add(Obstruction(xb=Bounds3D.of(0, 0.15, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL'))
+    sim.add(Obstruction(xb=Bounds3D.of(5.85, 6, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL'))
 
     # Fire
-    sim.surface(id='FIRE', hrrpua=1000.0, color='ORANGE')
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Surface(id='FIRE', hrrpua=1000.0, color='ORANGE'))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
 
     # Door
-    sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN')
+    sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN'))
 
     # Devices
     for z, label in [(0.5, 'LOW'), (1.5, 'MID'), (2.4, 'HIGH')]:
-        sim.device(id=f'TEMP_{label}', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, z))
+        sim.add(Device(id=f'TEMP_{label}', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, z)))
 
-    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=Point3D.of(3, 2.5, 1.25))
-    sim.device(id='VIS', quantity='VISIBILITY', xyz=Point3D.of(3, 2.5, 1.5))
-    sim.device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=Point3D.of(0.2, 2.5, 1.5), ior=1)
+    sim.add(Device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=Point3D.of(3, 2.5, 1.25)))
+    sim.add(Device(id='VIS', quantity='VISIBILITY', xyz=Point3D.of(3, 2.5, 1.5)))
+    sim.add(Device(id='HF_WALL', quantity='GAUGE HEAT FLUX', xyz=Point3D.of(0.2, 2.5, 1.5), ior=1))
 
     return sim
 
@@ -330,20 +330,20 @@ import json
 def create_parametric_case(case_id, hrr, door_width):
     """Create parametric case."""
     sim = Simulation(chid=f'case_{case_id:03d}')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5)))
 
     # Fire (variable)
-    sim.surface(id='FIRE', hrrpua=hrr)
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Surface(id='FIRE', hrrpua=hrr))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
 
     # Door (variable width)
     y_center = 2.5
-    sim.add(Vent(xb=Bounds3D.of(6, 6, y_center-door_width/2, y_center+door_width/2, 0, 2.1), surf_id='OPEN')
+    sim.add(Vent(xb=Bounds3D.of(6, 6, y_center-door_width/2, y_center+door_width/2, 0, 2.1), surf_id='OPEN'))
 
     # Measurements
-    sim.device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4))
-    sim.device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=Point3D.of(3, 2.5, 1.25))
+    sim.add(Device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4)))
+    sim.add(Device(id='LAYER_HT', quantity='LAYER HEIGHT', xyz=Point3D.of(3, 2.5, 1.25)))
 
     return sim
 

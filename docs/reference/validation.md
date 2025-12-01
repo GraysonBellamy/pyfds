@@ -445,10 +445,10 @@ sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))  # ✓
 
 ```python
 # Error
-sim.device(id='TEMP', quantity='TEMPERATURE')  # ✗ No XYZ or XB
+sim.add(Device(id='TEMP', quantity='TEMPERATURE')  # ✗ No XYZ or XB
 
 # Fix
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 1))  # ✓
+sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(1, 1, 1))  # ✓
 ```
 
 ## Best Practices
@@ -516,7 +516,7 @@ from pyfds import Simulation
 def test_simulation_valid():
     sim = Simulation(chid='test')
     sim.add(Time(t_end=600.0))
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
     assert sim.is_valid(), f"Validation errors: {sim.validate()}"
 

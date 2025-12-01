@@ -1,8 +1,5 @@
 """Tests for Move namelist."""
 
-import pytest
-
-from pyfds.builders.move import MoveBuilder
 from pyfds.core.namelists.move import Move
 
 
@@ -72,52 +69,3 @@ class TestMove:
         move = Move(id="STRETCH", scale=(2.0, 1.5, 1.0))
         fds_output = move.to_fds()
         assert "SCALE=2.0,1.5,1.0" in fds_output
-
-
-class TestMoveBuilder:
-    """Test MoveBuilder functionality."""
-
-    def test_basic_builder(self):
-        """Test basic builder usage."""
-        move = MoveBuilder("TRANSLATE").translate(dx=5.0, dy=0.0, dz=2.0).build()
-        assert move.id == "TRANSLATE"
-        assert move.dx == 5.0
-        assert move.dy == 0.0
-        assert move.dz == 2.0
-
-    def test_rotation_builder(self):
-        """Test rotation builder."""
-        move = MoveBuilder("ROTATE").rotate(axis=(0, 0, 1), angle=90.0).build()
-        assert move.id == "ROTATE"
-        assert move.axis == (0, 0, 1)
-        assert move.rotation_angle == 90.0
-
-    def test_scaling_builder(self):
-        """Test scaling builder."""
-        move = MoveBuilder("SCALE").scale(sx=2.0, sy=1.5, sz=1.0).build()
-        assert move.id == "SCALE"
-        assert move.scale == (2.0, 1.5, 1.0)
-
-    def test_combined_builder(self):
-        """Test combined operations builder."""
-        move = (
-            MoveBuilder("COMPLEX")
-            .translate(dx=1.0, dy=1.0, dz=0.0)
-            .rotate(axis=(0, 0, 1), angle=45.0)
-            .scale(sx=2.0, sy=2.0, sz=1.0)
-            .build()
-        )
-        assert move.id == "COMPLEX"
-        assert move.dx == 1.0
-        assert move.dy == 1.0
-        assert move.dz == 0.0
-        assert move.axis == (0, 0, 1)
-        assert move.rotation_angle == 45.0
-        assert move.scale == (2.0, 2.0, 1.0)
-
-    def test_builder_cannot_be_reused(self):
-        """Test that builder cannot be used twice."""
-        builder = MoveBuilder("TEST").translate(dx=1.0)
-        builder.build()
-        with pytest.raises(RuntimeError, match="already been used"):
-            builder.build()

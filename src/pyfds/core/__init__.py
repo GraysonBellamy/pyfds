@@ -6,11 +6,11 @@ including namelist definitions, the main Simulation class, and validation.
 """
 
 # Validation system (re-exported from validation module)
-from pyfds.validation import Issue, Severity, Validator
-
 # Enumerations (Severity comes from validation module above)
-from .enums import (
+from pyfds.core.enums import (
     BackingCondition,
+    BuiltinSpecies,
+    BuiltinSurface,
     ControlFunction,
     HeatTransferModel,
     SolidGeometry,
@@ -21,27 +21,30 @@ from .enums import (
 )
 
 # Geometry value objects
-from .geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+
+# Data models (non-namelist)
+from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
 
 # Namelist classes
-from .namelists import (
+from pyfds.core.namelists import (
     Combustion,
-    Ctrl,
+    Control,
     Device,
-    Geom,
+    Geometry,
     Head,
     Hole,
-    Init,
+    Initialization,
     Material,
     Mesh,
     Misc,
     Move,
-    Mult,
+    Multiplier,
     NamelistBase,
     NamelistFactory,
     Obstruction,
-    Part,
-    Prop,
+    Particle,
+    Property,
     Ramp,
     Reaction,
     Species,
@@ -51,37 +54,42 @@ from .namelists import (
 )
 
 # Registry system
-from .registry import Registry, SimulationRegistry
-from .registry_view import RegistryView
+from pyfds.core.registry import Registry, SimulationRegistry
+from pyfds.core.registry_view import RegistryView
 
 # Simulation class
-from .simulation import Simulation
+from pyfds.core.simulation import Simulation
+from pyfds.validation import Issue, Severity, Validator
 
 __all__ = [
     "BackingCondition",
     "Bounds3D",
+    "BuiltinSpecies",
+    "BuiltinSurface",
     "Combustion",
+    "Control",
     "ControlFunction",
-    "Ctrl",
     "Device",
-    "Geom",
+    "Geometry",
     "Grid3D",
     "Head",
     "HeatTransferModel",
     "Hole",
-    "Init",
+    "Initialization",
     "Issue",
     "Material",
     "Mesh",
     "Misc",
     "Move",
-    "Mult",
+    "Multiplier",
     "NamelistBase",
     "NamelistFactory",
     "Obstruction",
-    "Part",
+    "Particle",
     "Point3D",
-    "Prop",
+    "Property",
+    "PyrolysisProduct",
+    "PyrolysisReaction",
     "Ramp",
     "Reaction",
     "Registry",

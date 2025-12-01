@@ -398,7 +398,7 @@ sim.add_mesh(50, 50, 25, 0, 5, 0, 5, 0, 2.5)
 
 **After (1.0)**:
 ```python
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 ```
 
 ### Surface API Simplified
@@ -410,7 +410,7 @@ sim.add_surface('FIRE', {'HRRPUA': 1000.0})
 
 **After (1.0)**:
 ```python
-sim.surface(id='FIRE', hrrpua=1000.0)
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
 ```
 ```
 

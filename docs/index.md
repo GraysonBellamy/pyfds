@@ -62,26 +62,27 @@ Create a complete room fire simulation in just a few lines:
 === "Python Code"
 
     ```python
-    from pyfds import Simulation
+    from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Device
+    from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
     # Create simulation
     sim = Simulation(chid='room_fire', title='Simple Room Fire')
 
     # Set time parameters
-    sim.add(Time(t_end=600.0)
+    sim.add(Time(t_end=600.0))
 
     # Define computational domain (5m x 5m x 2.5m room)
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
     # Create fire surface (1000 kW/m²)
-    sim.surface(id='BURNER', hrrpua=1000.0, color='RED')
+    sim.add(Surface(id='BURNER', hrrpua=1000.0, color='RED'))
 
     # Add fire source (1m x 1m burner at floor)
-    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER')
+    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER'))
 
     # Add temperature measurement at ceiling
-    sim.device(id='TEMP_CEILING', quantity='TEMPERATURE',
-               xyz=Point3D.of(2.5, 2.5, 2.4))
+    sim.add(Device(id='TEMP_CEILING', quantity='TEMPERATURE',
+               xyz=Point3D.of(2.5, 2.5, 2.4)))
 
     # Validate and write FDS input file
     sim.write('room_fire.fds')

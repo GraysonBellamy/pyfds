@@ -91,11 +91,11 @@ from pyfds import Simulation
 sim = Simulation(chid='test')
 
 # Each method corresponds to an FDS namelist
-sim.add(Time(t_end=100)           # &TIME ... /
-sim.add(Mesh(...)                  # &MESH ... /
-sim.surface(id='FIRE', ...)   # &SURF ... /
-sim.add(Obstruction(...)           # &OBST ... /
-sim.device(...)                # &DEVC ... /
+sim.add(Time(t_end=100))  # &TIME ... /
+sim.add(Mesh(...))                  # &MESH ... /
+sim.add(Surface(id='FIRE', ...)   # &SURF ... /
+sim.add(Obstruction(...))           # &OBST ... /
+sim.add(Device(...)                # &DEVC ... /
 ```
 
 Common namelists:
@@ -103,14 +103,14 @@ Common namelists:
 | Namelist | Purpose | PyFDS Method |
 |----------|---------|--------------|
 | **HEAD** | Simulation metadata | `Simulation(chid=..., title=...)` |
-| **TIME** | Time control | `.time()` |
-| **MESH** | Computational domain | `.mesh()` |
-| **SURF** | Surface properties | `.surface()` |
-| **OBST** | Solid obstructions | `.obstruction()` |
-| **VENT** | Boundaries and vents | `.vent()` |
-| **DEVC** | Measurement devices | `.device()` |
-| **MATL** | Material properties | `.material()` |
-| **REAC** | Combustion reactions | `.reaction()` |
+| **TIME** | Time control | `.add(Time())` |
+| **MESH** | Computational domain | `.add(Mesh())` |
+| **SURF** | Surface properties | `.add(Surface())` |
+| **OBST** | Solid obstructions | `.add(Obstruction())` |
+| **VENT** | Boundaries and vents | `.add(Vent())` |
+| **DEVC** | Measurement devices | `.add(Device())` |
+| **MATL** | Material properties | `.add(Material())` |
+| **REAC** | Combustion reactions | `.add(Reaction())` |
 
 See [Namelist Reference](../reference/namelist-reference.md) for complete details.
 
@@ -173,7 +173,7 @@ dz = (zmax - zmin) / k  # (2.5 - 0) / 25 = 0.1 m
 === "Fire Surface"
 
     ```python
-    sim.surface(
+    sim.add(Surface(
         id='BURNER',
         hrrpua=1000.0,      # Heat release rate per unit area (kW/m²)
         color='RED'
@@ -183,7 +183,7 @@ dz = (zmax - zmin) / k  # (2.5 - 0) / 25 = 0.1 m
 === "Material Surface"
 
     ```python
-    sim.surface(
+    sim.add(Surface(
         id='CONCRETE',
         matl_id='CONCRETE',
         thickness=0.2
@@ -193,7 +193,7 @@ dz = (zmax - zmin) / k  # (2.5 - 0) / 25 = 0.1 m
 === "Boundary Condition"
 
     ```python
-    sim.surface(
+    sim.add(Surface(
         id='INLET',
         vel=1.0,            # Velocity (m/s)
         tmp_front=25.0      # Temperature (°C)
@@ -224,14 +224,14 @@ sim.add(Vent(
 
 ```python
 # Point measurement
-sim.device(
+sim.add(Device(
     id='TEMP_1',
     quantity='TEMPERATURE',
     xyz=Point3D.of(2.5, 2.5, 2.4)    # Single point
 )
 
 # Area measurement
-sim.device(
+sim.add(Device(
     id='HF_FLOOR',
     quantity='HEAT FLUX',
     xb=Bounds3D.of(0, 5, 0, 5, 0, 0)  # Entire floor
@@ -269,20 +269,23 @@ sim = Simulation(
 Add components using methods:
 
 ```python
+from pyfds import Time, Mesh, Surface, Obstruction, Device
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+
 # Time parameters
-sim.add(Time(t_end=600.0)
+sim.add(Time(t_end=600.0))
 
 # Computational domain
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Materials and surfaces
-sim.surface(id='FIRE', hrrpua=1000.0)
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
 
 # Geometry
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 # Measurements
-sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))
+sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4)))
 ```
 
 ### 3. Validate
@@ -342,11 +345,14 @@ results.plot_hrr('hrr.png')
 PyFDS supports **method chaining** for concise code:
 
 ```python
+from pyfds import Simulation, Time, Mesh, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = (Simulation(chid='test')
-       .time(t_end=100)
-       .mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
-       .surface(id='FIRE', hrrpua=500)
-       .obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE'))
+       .add(Time(t_end=100))
+       .add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1)))
+       .add(Surface(id='FIRE', hrrpua=500))
+       .add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE')))
 ```
 
 Each method returns `self`, allowing chaining.
@@ -358,13 +364,14 @@ Each method returns `self`, allowing chaining.
 PyFDS provides **immediate feedback** on configuration errors:
 
 ```python
-from pyfds import Simulation
+from pyfds import Simulation, Mesh, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='test')
-sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
+sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
 # This will raise a validation error
-sim.add(Obstruction(xb=Bounds3D.of(5, 6, 0, 1, 0, 1), surf_id='FIRE')
+sim.add(Obstruction(xb=Bounds3D.of(5, 6, 0, 1, 0, 1), surf_id='FIRE'))
 # Error: Obstruction outside mesh bounds!
 ```
 
@@ -385,11 +392,14 @@ See [Validation Rules](../reference/validation.md) for details.
 PyFDS uses **Pydantic** for automatic type validation:
 
 ```python
+from pyfds import Mesh
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 # This works
-sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
+sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
 # This raises a type error
-sim.add(Mesh(ijk="invalid", xb=Bounds3D.of(0, 1, 0, 1, 0, 1))
+sim.add(Mesh(ijk="invalid", xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 # ValidationError: ijk must be tuple of 3 integers
 ```
 
@@ -437,16 +447,16 @@ Begin with coarse meshes and short times:
 
 ```python
 # Quick test (runs in seconds)
-sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
-sim.add(Time(t_end=10.0)
+sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1)))
+sim.add(Time(t_end=10.0))
 ```
 
 Refine after validation:
 
 ```python
 # Production run
-sim.add(Mesh(ijk=Grid3D.of(40, 40, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
-sim.add(Time(t_end=300.0)
+sim.add(Mesh(ijk=Grid3D.of(40, 40, 20), xb=Bounds3D.of(0, 2, 0, 2, 0, 1)))
+sim.add(Time(t_end=300.0))
 ```
 
 ### 2. Use Validation
@@ -465,20 +475,20 @@ Use descriptive IDs:
 
 ```python
 # Good
-sim.surface(id='WOOD_WALL', ...)
-sim.device(id='TEMP_CEILING_CENTER', ...)
+sim.add(Surface(id='WOOD_WALL', ...))
+sim.add(Device(id='TEMP_CEILING_CENTER', ...))
 
 # Bad
-sim.surface(id='S1', ...)
-sim.device(id='D1', ...)
+sim.add(Surface(id='S1', ...))
+sim.add(Device(id='D1', ...))
 ```
 
 ### 4. Comment Complex Logic
 
 ```python
 # Create sprinkler activation logic
-sim.prop(id='SPRINKLER', quantity='SPRINKLER LINK TEMPERATURE', activation_temperature=68)
-sim.ctrl(id='SPRINK_CTRL', input_id='TEMP_1', setpoint=68)
+sim.add(Property(id='SPRINKLER', quantity='SPRINKLER LINK TEMPERATURE', activation_temperature=68))
+sim.add(Control(id='SPRINK_CTRL', input_id='TEMP_1', setpoint=68))
 ```
 
 ### 5. Organize Code
@@ -487,17 +497,17 @@ Group related components:
 
 ```python
 # Geometry
-sim.add(Mesh(...)
+sim.add(Mesh(...))
 for x in range(5):
-    sim.add(Obstruction(...)  # Walls
+    sim.add(Obstruction(...))  # Walls
 
 # Fires
-sim.surface(id='FIRE', ...)
-sim.add(Obstruction(..., surf_id='FIRE')
+sim.add(Surface(id='FIRE', ...))
+sim.add(Obstruction(..., surf_id='FIRE'))
 
 # Measurements
 for i in range(10):
-    sim.device(...)
+    sim.add(Device(...))
 ```
 
 ---
@@ -509,10 +519,10 @@ for i in range(10):
 ```python
 for hrr in [500, 1000, 1500, 2000]:
     sim = Simulation(chid=f'fire_{hrr}')
-    sim.add(Time(t_end=300)
-    sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5))
-    sim.surface(id='FIRE', hrrpua=hrr)
-    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE')
+    sim.add(Time(t_end=300))
+    sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5)))
+    sim.add(Surface(id='FIRE', hrrpua=hrr))
+    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
     sim.write(f'fire_{hrr}.fds')
 ```
 
@@ -523,7 +533,7 @@ for resolution in [0.2, 0.1, 0.05]:
     cells = int(5 / resolution)
     sim = Simulation(chid=f'grid_{resolution}')
     sim.add(Mesh(ijk=Grid3D.of(cells, cells, int(2.5/resolution)),
-             xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+             xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
     # ... rest of setup ...
 ```
 
@@ -534,7 +544,7 @@ def create_standard_room(sim, origin=(0,0,0)):
     """Add a standard 4m x 3m x 2.5m room."""
     x0, y0, z0 = origin
     # Walls
-    sim.add(Obstruction(xb=Bounds3D.of(x0, x0+0.2, y0, y0+3, z0, z0+2.5), surf_id='WALL')
+    sim.add(Obstruction(xb=Bounds3D.of(x0, x0+0.2, y0, y0+3, z0, z0+2.5), surf_id='WALL'))
     # ... more walls ...
     return sim
 

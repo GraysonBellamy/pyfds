@@ -1,234 +1,130 @@
+"""FDS MATL namelist for material properties.
+
+Defines thermal, radiative, and pyrolysis properties for solid materials
+used in heat transfer calculations and burning behavior.
+
+Field Groups:
+    core: Basic identification (id) and reactions
+    thermal: Thermal transport properties (density, conductivity, specific_heat)
+    radiation: Radiative properties (emissivity, absorption_coefficient)
+    pyrolysis: Reaction kinetics via structured PyrolysisReaction objects
+    liquid: Liquid fuel evaporation model
 """
-FDS MATL namelist.
 
-Material properties for heat transfer and pyrolysis.
-
-Fields are organized by logical groups (use group= metadata for categorization):
-- core: Basic identification (id)
-- thermal: Core thermal transport properties (density, conductivity, specific_heat)
-- radiation: Radiative properties (emissivity, absorption_coefficient)
-- pyrolysis: Reaction kinetics (Arrhenius and simplified)
-- products: Gas species and solid residue products
-- liquid: Liquid fuel evaporation model parameters
-"""
-
-from typing import TYPE_CHECKING
+from typing import Any
 
 from pydantic import field_validator, model_validator
 
+from pyfds.core.models.pyrolysis import PyrolysisReaction
 from pyfds.core.namelists.base import FdsField, NamelistBase
-from pyfds.core.namelists.pyrolysis import PyrolysisReaction
 
-if TYPE_CHECKING:
-    from pyfds.builders import MaterialBuilder
+__all__ = ["Material"]
 
 
 class Material(NamelistBase):
-    """
-    FDS MATL namelist - material properties.
-
-    All parameters are organized into logical groups via the `group` metadata:
-    - core: Basic identification (id)
-    - thermal: Density, conductivity, specific heat
-    - radiation: Emissivity, absorption coefficient
-    - pyrolysis: Arrhenius kinetics, simplified kinetics, reaction parameters
-    - products: Gas species, solid residue, particle products
-    - liquid: Liquid fuel evaporation model
+    """FDS MATL namelist - material properties.
 
     Parameters
     ----------
     id : str
-        Unique material identifier
+        Unique material identifier.
     density : float
-        Material density [kg/m³]
+        Material density in kg/m³.
     conductivity : float, optional
-        Thermal conductivity [W/(m·K)]
+        Thermal conductivity in W/(m·K).
+    conductivity_ramp : str, optional
+        RAMP ID for temperature-dependent conductivity.
     specific_heat : float, optional
-        Specific heat capacity [kJ/(kg·K)]
+        Specific heat capacity in kJ/(kg·K).
+    specific_heat_ramp : str, optional
+        RAMP ID for temperature-dependent specific heat.
+    reactions : list[PyrolysisReaction], optional
+        Pyrolysis reactions for decomposition behavior.
 
     Examples
     --------
+    Simple inert material:
+
     >>> matl = Material(id='CONCRETE', density=2300, conductivity=1.0, specific_heat=0.88)
     >>> print(matl.to_fds())
-    &MATL ID='CONCRETE', DENSITY=2300.0, CONDUCTIVITY=1.0, SPECIFIC_HEAT=0.88 /
+    &MATL ID='CONCRETE', DENSITY=2300, CONDUCTIVITY=1.0, SPECIFIC_HEAT=0.88 /
+
+    Material with pyrolysis reaction:
+
+    >>> from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
+    >>> wood = Material(
+    ...     id='WOOD',
+    ...     density=500.0,
+    ...     conductivity=0.13,
+    ...     specific_heat=2.5,
+    ...     reactions=[
+    ...         PyrolysisReaction(
+    ...             heat_of_reaction=1800.0,
+    ...             a=1e10,
+    ...             e=100000.0,
+    ...             products=[
+    ...                 PyrolysisProduct(spec_id='WOOD_GAS', nu_spec=0.75),
+    ...                 PyrolysisProduct(matl_id='CHAR', nu_matl=0.25),
+    ...             ],
+    ...         )
+    ...     ],
+    ... )
+
+    See Also
+    --------
+    Surface : Surface properties that reference materials.
+    PyrolysisReaction : Structured pyrolysis reaction definition.
     """
-
-    @classmethod
-    def builder(cls) -> "MaterialBuilder":
-        """Return a fluent builder for Material.
-
-        Returns
-        -------
-        MaterialBuilder
-            A builder instance for fluent construction
-
-        Examples
-        --------
-        >>> matl = Material.builder() \\
-        ...     .id("CONCRETE") \\
-        ...     .density(2300) \\
-        ...     .thermal_conductivity(1.0) \\
-        ...     .specific_heat(0.88) \\
-        ...     .build()
-        """
-        from pyfds.builders import MaterialBuilder
-
-        return MaterialBuilder()
 
     # =========================================================================
     # CORE PARAMETERS
     # =========================================================================
     id: str = FdsField(..., description="Material identifier", group="core")
 
-    # NEW: Structured reactions (preferred)
     reactions: list[PyrolysisReaction] | None = FdsField(
         None,
-        description="Pyrolysis reactions (structured format, preferred over parallel arrays)",
-        group="core",
+        description="Pyrolysis reactions for decomposition behavior",
+        group="pyrolysis",
     )
 
     # =========================================================================
-    # THERMAL PROPERTIES (from ThermalPropertiesMixin)
+    # THERMAL PROPERTIES
     # =========================================================================
     density: float = FdsField(..., gt=0, description="Material density [kg/m³]", group="thermal")
 
-    # Thermal conductivity - constant OR ramp
     conductivity: float | None = FdsField(
         None, gt=0, description="Thermal conductivity [W/(m·K)]", group="thermal"
     )
     conductivity_ramp: str | None = FdsField(
-        None, description="RAMP ID for temperature-dependent conductivity", group="thermal"
+        None,
+        description="RAMP ID for temperature-dependent conductivity",
+        group="thermal",
     )
 
-    # Specific heat - constant OR ramp
     specific_heat: float | None = FdsField(
         None, gt=0, description="Specific heat capacity [kJ/(kg·K)]", group="thermal"
     )
     specific_heat_ramp: str | None = FdsField(
-        None, description="RAMP ID for temperature-dependent specific heat", group="thermal"
+        None,
+        description="RAMP ID for temperature-dependent specific heat",
+        group="thermal",
     )
 
     # =========================================================================
-    # RADIATION PROPERTIES (from ThermalPropertiesMixin)
+    # RADIATION PROPERTIES
     # =========================================================================
     emissivity: float = FdsField(
         0.9, ge=0, le=1, description="Surface emissivity [0-1]", group="radiation"
     )
     absorption_coefficient: float = FdsField(
-        50000.0, ge=0, description="Radiation absorption coefficient [1/m]", group="radiation"
+        50000.0,
+        ge=0,
+        description="Radiation absorption coefficient [1/m]",
+        group="radiation",
     )
 
     # =========================================================================
-    # PYROLYSIS KINETICS (from PyrolysisMixin)
-    # =========================================================================
-    # Arrhenius kinetics
-    a: list[float] | None = FdsField(
-        None, description="Pre-exponential factors [1/s]", group="pyrolysis"
-    )
-    e: list[float] | None = FdsField(
-        None, description="Activation energies [kJ/kmol]", group="pyrolysis"
-    )
-
-    # Reaction orders
-    n_s: list[float] | None = FdsField(
-        None, description="Reaction orders (default: 1.0)", group="pyrolysis"
-    )
-    n_t: list[float] | None = FdsField(
-        None, description="Temperature exponents in reaction rate", group="pyrolysis"
-    )
-    n_o2: list[float] | None = FdsField(
-        None, description="Oxygen reaction orders", group="pyrolysis"
-    )
-
-    # Simplified kinetics (alternative to A, E)
-    reference_temperature: list[float] | float | None = FdsField(
-        None, description="Reference temperature(s) for reactions [°C]", group="pyrolysis"
-    )
-    reference_rate: float | None = FdsField(
-        None, gt=0, description="Reference reaction rate [1/s]", group="pyrolysis"
-    )
-    pyrolysis_range: float | None = FdsField(
-        None, gt=0, description="Temperature width of mass loss curve [°C]", group="pyrolysis"
-    )
-    heating_rate: float = FdsField(
-        5.0, gt=0, description="TGA heating rate for kinetics derivation [K/min]", group="pyrolysis"
-    )
-
-    # Reaction enthalpy
-    heat_of_reaction: list[float] | float | None = FdsField(
-        None, description="Heat of pyrolysis/vaporization [kJ/kg]", group="pyrolysis"
-    )
-
-    # Advanced reaction parameters
-    gas_diffusion_depth: list[float] | None = FdsField(
-        None, description="Gas diffusion length scale [m]", group="pyrolysis"
-    )
-    max_reaction_rate: list[float] | None = FdsField(
-        None, description="Maximum reaction rate [kg/(m³·s)]", group="pyrolysis"
-    )
-    reac_rate_delta: float | None = FdsField(
-        None, description="Reaction rate delta for remeshing control", group="pyrolysis"
-    )
-
-    # Physical behavior during reactions
-    allow_shrinking: bool = FdsField(
-        True, description="Allow material shrinking during pyrolysis", group="pyrolysis"
-    )
-    allow_swelling: bool = FdsField(
-        True, description="Allow material swelling during pyrolysis", group="pyrolysis"
-    )
-
-    # Energy conservation
-    adjust_h: bool = FdsField(
-        True, description="Adjust enthalpies for energy conservation", group="pyrolysis"
-    )
-    reference_enthalpy: float | None = FdsField(
-        None, description="Reference enthalpy [kJ/kg]", group="pyrolysis"
-    )
-    reference_enthalpy_temperature: float | None = FdsField(
-        None, description="Temperature for reference enthalpy [°C]", group="pyrolysis"
-    )
-    x_o2_pyro: float | None = FdsField(
-        None, ge=0, le=1, description="O2 concentration for oxidation kinetics", group="pyrolysis"
-    )
-
-    # =========================================================================
-    # PRODUCTS (from MechanicalPropertiesMixin)
-    # =========================================================================
-    # Gas species products
-    spec_id: list[list[str]] | list[str] | str | None = FdsField(
-        None, description="Gas species ID(s) per reaction", group="products"
-    )
-    nu_spec: list[list[float]] | list[float] | float | None = FdsField(
-        None, description="Gas species yields NU_SPEC(species, reaction)", group="products"
-    )
-
-    # Solid residue products
-    matl_id_products: list[list[str]] | list[str] | str | None = FdsField(
-        None, alias="matl_id", description="Residue material ID(s) per reaction", group="products"
-    )
-    nu_matl: list[list[float]] | list[float] | float | None = FdsField(
-        None, description="Residue yields NU_MATL(material, reaction)", group="products"
-    )
-
-    # Heat of combustion per product
-    heat_of_combustion_array: list[list[float]] | list[float] | float | None = FdsField(
-        None,
-        alias="heat_of_combustion",
-        description="Heat of combustion per species per reaction [kJ/kg]",
-        group="products",
-    )
-
-    # Particle products
-    part_id: list[list[str]] | list[str] | str | None = FdsField(
-        None, description="Particle class ID(s) per reaction", group="products"
-    )
-    nu_part: list[list[float]] | list[float] | float | None = FdsField(
-        None, description="Particle yields NU_PART(particle, reaction)", group="products"
-    )
-
-    # =========================================================================
-    # LIQUID FUEL (from LiquidFuelMixin)
+    # LIQUID FUEL PROPERTIES
     # =========================================================================
     boiling_temperature: float | None = FdsField(
         None, description="Boiling point [°C] - triggers liquid model", group="liquid"
@@ -236,8 +132,45 @@ class Material(NamelistBase):
     mw: float | None = FdsField(
         None, gt=0, description="Molecular weight for liquid [g/mol]", group="liquid"
     )
-    heat_of_vaporization: float | None = FdsField(
-        None, gt=0, description="Heat of vaporization [kJ/kg]", group="liquid"
+
+    # =========================================================================
+    # SHRINKING/SWELLING PARAMETERS
+    # =========================================================================
+    allow_shrinking: bool = FdsField(
+        True, description="Allow material to shrink during pyrolysis", group="shrink_swell"
+    )
+    allow_swelling: bool = FdsField(
+        True, description="Allow material to swell during pyrolysis", group="shrink_swell"
+    )
+
+    # =========================================================================
+    # ENERGY CONSERVATION PARAMETERS
+    # =========================================================================
+    adjust_h: bool = FdsField(
+        True, description="Adjust enthalpy for energy conservation", group="energy"
+    )
+    reference_enthalpy: float | None = FdsField(
+        None, description="Reference enthalpy [kJ/kg]", group="energy"
+    )
+    reference_enthalpy_temperature: float | None = FdsField(
+        None, description="Reference enthalpy temperature [K]", group="energy"
+    )
+
+    # =========================================================================
+    # REACTION CONTROL PARAMETERS
+    # =========================================================================
+    reac_rate_delta: float = FdsField(
+        0.05, description="Fractional change in pyrolysis rate before renoding", group="reaction"
+    )
+
+    # =========================================================================
+    # OXIDATION MODEL PARAMETERS
+    # =========================================================================
+    surface_oxidation_model: bool = FdsField(
+        False, description="Use surface oxidation model (vegetation)", group="oxidation"
+    )
+    x_o2_pyro: bool | None = FdsField(
+        None, description="Include O2 transport in pyrolysis region", group="oxidation"
     )
 
     # =========================================================================
@@ -246,7 +179,12 @@ class Material(NamelistBase):
     @field_validator("density")
     @classmethod
     def validate_density_range(cls, v: float) -> float:
-        """Validate density is in physically reasonable range."""
+        """Validate density is in physically reasonable range.
+
+        Checks:
+        - Density is between 0.1 and 25000 kg/m³
+        - Allows low-density foams and high-density metals
+        """
         if not (0.1 <= v <= 25000.0):
             raise ValueError(f"DENSITY = {v} outside valid range [0.1, 25000.0] kg/m³")
         return v
@@ -269,32 +207,20 @@ class Material(NamelistBase):
 
     @property
     def n_reactions(self) -> int:
-        """Number of reactions (computed from reactions list or array parameters)."""
+        """Number of pyrolysis reactions defined for this material."""
         if self.reactions:
             return len(self.reactions)
-
-        # Check array parameters for multi-reaction indicators
-        array_params = [
-            self.a,
-            self.e,
-            self.heat_of_reaction,
-            self.n_t,
-            self.n_o2,
-            self.gas_diffusion_depth,
-            self.max_reaction_rate,
-            self.part_id,
-            self.nu_part,
-        ]
-
-        for param in array_params:
-            if isinstance(param, list) and len(param) > 1:
-                return len(param)
-
-        return 1
+        return 0
 
     @model_validator(mode="after")
     def validate_material(self) -> "Material":
-        """Validate material properties."""
+        """Validate material property consistency.
+
+        Checks:
+        - Either conductivity or conductivity_ramp must be specified
+        - Either specific_heat or specific_heat_ramp must be specified
+        - Liquid fuel model requirements (boiling_temperature needs spec_id in reactions)
+        """
         # Check that thermal conductivity is specified
         if self.conductivity is None and self.conductivity_ramp is None:
             raise ValueError(
@@ -307,140 +233,218 @@ class Material(NamelistBase):
                 f"Material '{self.id}': Must specify either SPECIFIC_HEAT or SPECIFIC_HEAT_RAMP"
             )
 
-        # Validate density range (allow low-density foams)
-        if not (0.1 <= self.density <= 25000.0):
-            raise ValueError(
-                f"Material '{self.id}': DENSITY = {self.density} "
-                f"is outside valid range [0.1, 25000.0] kg/m³"
-            )
-
-        # Validate conductivity range if specified
-        if self.conductivity is not None and not (0.001 <= self.conductivity <= 2000.0):
-            raise ValueError(
-                f"Material '{self.id}': CONDUCTIVITY = {self.conductivity} "
-                f"is outside valid range [0.001, 2000.0] W/(m·K)"
-            )
-
-        # Validate specific heat range if specified
-        if self.specific_heat is not None and not (0.05 <= self.specific_heat <= 50.0):
-            raise ValueError(
-                f"Material '{self.id}': SPECIFIC_HEAT = {self.specific_heat} "
-                f"is outside valid range [0.05, 50.0] kJ/(kg·K)"
-            )
-
-        # Validate multi-reaction arrays
-        if self.n_reactions > 1:
-            for param_name in [
-                "a",
-                "e",
-                "heat_of_reaction",
-                "n_t",
-                "n_o2",
-                "gas_diffusion_depth",
-                "max_reaction_rate",
-                "reference_temperature",
-            ]:
-                param_value = getattr(self, param_name)
-                if param_value is not None and len(param_value) != self.n_reactions:
-                    raise ValueError(
-                        f"Material '{self.id}': {param_name.upper()} must have "
-                        f"{self.n_reactions} values for N_REACTIONS={self.n_reactions}"
-                    )
-
         # Validate liquid fuel model
         if self.boiling_temperature is not None:
             if self.n_reactions > 1:
                 raise ValueError(
                     f"Material '{self.id}': BOILING_TEMPERATURE (liquid model) "
-                    f"cannot be used with N_REACTIONS > 1"
+                    f"cannot be used with multiple reactions"
                 )
-            if self.spec_id is None:
+            # Check that we have a gas species product for evaporation
+            has_gas_product = False
+            if self.reactions:
+                for rxn in self.reactions:
+                    for product in rxn.products:
+                        if product.spec_id is not None:
+                            has_gas_product = True
+                            break
+            if not has_gas_product:
                 raise ValueError(
-                    f"Material '{self.id}': BOILING_TEMPERATURE requires SPEC_ID "
-                    f"to specify the gaseous fuel species"
+                    f"Material '{self.id}': BOILING_TEMPERATURE requires a reaction "
+                    f"with a gas species product (spec_id) for the evaporated fuel"
                 )
-
-        # Validate REFERENCE_TEMPERATURE and (A, E) mutual exclusivity
-        if self.reference_temperature is not None and (self.a is not None or self.e is not None):
-            raise ValueError(
-                f"Material '{self.id}': Cannot specify both REFERENCE_TEMPERATURE "
-                f"and (A, E). Use one or the other."
-            )
-
-        # Validate PYROLYSIS_RANGE and REFERENCE_RATE mutual exclusivity
-        if self.pyrolysis_range is not None and self.reference_rate is not None:
-            raise ValueError(
-                f"Material '{self.id}': Cannot specify both PYROLYSIS_RANGE and REFERENCE_RATE"
-            )
-
-        # Validate REFERENCE_ENTHALPY requires REFERENCE_ENTHALPY_TEMPERATURE
-        if self.reference_enthalpy is not None and self.reference_enthalpy_temperature is None:
-            raise ValueError(
-                f"Material '{self.id}': REFERENCE_ENTHALPY requires REFERENCE_ENTHALPY_TEMPERATURE"
-            )
-
-        # Validate single reaction REFERENCE_TEMPERATURE list length
-        if (
-            self.n_reactions == 1
-            and self.reference_temperature is not None
-            and isinstance(self.reference_temperature, list)
-            and len(self.reference_temperature) != 1
-        ):
-            raise ValueError(
-                f"Material '{self.id}': REFERENCE_TEMPERATURE list must have length 1 "
-                f"for single reaction, got {len(self.reference_temperature)}"
-            )
-
-        # Validate yield sums for each reaction
-        if self.nu_spec or self.nu_matl:
-            for reaction_idx in range(self.n_reactions):
-                total_yield = 0.0
-
-                if self.nu_spec:
-                    if isinstance(self.nu_spec, (int, float)):
-                        total_yield += self.nu_spec
-                    elif isinstance(self.nu_spec, list) and reaction_idx < len(self.nu_spec):
-                        reaction_spec = self.nu_spec[reaction_idx]
-                        if isinstance(reaction_spec, (int, float)):
-                            total_yield += reaction_spec
-                        elif isinstance(reaction_spec, list):
-                            total_yield += sum(reaction_spec)
-
-                if self.nu_matl:
-                    if isinstance(self.nu_matl, (int, float)):
-                        total_yield += self.nu_matl
-                    elif isinstance(self.nu_matl, list) and reaction_idx < len(self.nu_matl):
-                        reaction_matl = self.nu_matl[reaction_idx]
-                        if isinstance(reaction_matl, (int, float)):
-                            total_yield += reaction_matl
-                        elif isinstance(reaction_matl, list):
-                            total_yield += sum(reaction_matl)
-
-                if total_yield > 1.0:
-                    raise ValueError(
-                        f"Material '{self.id}': Total yield for reaction {reaction_idx + 1} "
-                        f"is {total_yield:.3f}, which exceeds 1.0"
-                    )
-
-        # Validate that user doesn't mix structured and array formats
-        has_structured = self.reactions is not None and len(self.reactions) > 0
-        has_arrays = any(
-            [
-                self.a is not None,
-                self.e is not None,
-                self.reference_temperature is not None,
-            ]
-        )
-
-        if has_structured and has_arrays:
-            raise ValueError(
-                f"Material '{self.id}': Cannot mix 'reactions' list with "
-                f"array parameters (a, e, reference_temperature, etc.). "
-                f"Use one format or the other."
-            )
 
         return self
 
     def _get_namelist_name(self) -> str:
         """Get the FDS namelist name."""
         return "MATL"
+
+    def _collect_fds_params(self) -> dict[str, Any]:
+        """Collect FDS parameters, converting structured reactions to arrays.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary of parameter name-value pairs for FDS output.
+        """
+        params = super()._collect_fds_params()
+
+        # Remove 'reactions' from output - we convert to FDS array format
+        params.pop("REACTIONS", None)
+
+        if self.reactions:
+            reaction_params = self._reactions_to_fds_arrays()
+            params.update(reaction_params)
+
+        return params
+
+    def _reactions_to_fds_arrays(self) -> dict[str, str]:
+        """Convert PyrolysisReaction list to FDS parallel array format.
+
+        FDS uses parallel arrays for multi-reaction materials:
+        - A(1:N_REACTIONS), E(1:N_REACTIONS), etc. for kinetic parameters
+        - SPEC_ID(1:N_SPEC, 1:N_REACTIONS), NU_SPEC(...) for products
+
+        Returns
+        -------
+        dict[str, str]
+            Dictionary of FDS parameter strings.
+        """
+        if not self.reactions:
+            return {}
+
+        n_reactions = len(self.reactions)
+        params: dict[str, str] = {}
+
+        # Collect kinetic parameters from all reactions
+        a_values: list[float] = []
+        e_values: list[float] = []
+        reference_temperature_values: list[float] = []
+        reference_rate_values: list[float] = []
+        pyrolysis_range_values: list[float] = []
+        heating_rate_values: list[float] = []
+        heat_of_reaction_values: list[float] = []
+        n_s_values: list[float] = []
+        n_t_values: list[float] = []
+        n_o2_values: list[float] = []
+        gas_diffusion_depth_values: list[float] = []
+        max_reaction_rate_values: list[float] = []
+
+        # Collect products per reaction
+        spec_ids: list[list[str]] = []
+        nu_specs: list[list[float]] = []
+        heat_of_combustion_values: list[list[float]] = []
+        matl_ids: list[list[str]] = []
+        nu_matls: list[list[float]] = []
+        part_ids: list[list[str]] = []
+        nu_parts: list[list[float]] = []
+
+        for rxn in self.reactions:
+            # Kinetic parameters
+            if rxn.a is not None:
+                a_values.append(rxn.a)
+            if rxn.e is not None:
+                e_values.append(rxn.e)
+            if rxn.reference_temperature is not None:
+                reference_temperature_values.append(rxn.reference_temperature)
+            if rxn.reference_rate is not None:
+                reference_rate_values.append(rxn.reference_rate)
+            if rxn.pyrolysis_range is not None:
+                pyrolysis_range_values.append(rxn.pyrolysis_range)
+
+            heating_rate_values.append(rxn.heating_rate)
+            heat_of_reaction_values.append(rxn.heat_of_reaction)
+            n_s_values.append(rxn.n_s)
+            n_t_values.append(rxn.n_t)
+            n_o2_values.append(rxn.n_o2)
+
+            if rxn.gas_diffusion_depth is not None:
+                gas_diffusion_depth_values.append(rxn.gas_diffusion_depth)
+            if rxn.max_reaction_rate is not None:
+                max_reaction_rate_values.append(rxn.max_reaction_rate)
+
+            # Collect products for this reaction
+            rxn_spec_ids: list[str] = []
+            rxn_nu_specs: list[float] = []
+            rxn_heat_of_combustion: list[float] = []
+            rxn_matl_ids: list[str] = []
+            rxn_nu_matls: list[float] = []
+            rxn_part_ids: list[str] = []
+            rxn_nu_parts: list[float] = []
+
+            for product in rxn.products:
+                if product.spec_id is not None:
+                    rxn_spec_ids.append(product.spec_id)
+                    rxn_nu_specs.append(product.nu_spec or 0.0)
+                    if product.heat_of_combustion is not None:
+                        rxn_heat_of_combustion.append(product.heat_of_combustion)
+                if product.matl_id is not None:
+                    rxn_matl_ids.append(product.matl_id)
+                    rxn_nu_matls.append(product.nu_matl or 0.0)
+                if product.part_id is not None:
+                    rxn_part_ids.append(product.part_id)
+                    rxn_nu_parts.append(product.nu_part or 0.0)
+
+            spec_ids.append(rxn_spec_ids)
+            nu_specs.append(rxn_nu_specs)
+            heat_of_combustion_values.append(rxn_heat_of_combustion)
+            matl_ids.append(rxn_matl_ids)
+            nu_matls.append(rxn_nu_matls)
+            part_ids.append(rxn_part_ids)
+            nu_parts.append(rxn_nu_parts)
+
+        # Build FDS parameter dictionary
+        if n_reactions > 1:
+            params["N_REACTIONS"] = str(n_reactions)
+
+        # Kinetic parameters (only output if values exist)
+        if a_values:
+            params["A"] = self._format_value(a_values)
+        if e_values:
+            params["E"] = self._format_value(e_values)
+        if reference_temperature_values:
+            params["REFERENCE_TEMPERATURE"] = self._format_value(reference_temperature_values)
+        if reference_rate_values:
+            params["REFERENCE_RATE"] = self._format_value(reference_rate_values)
+        if pyrolysis_range_values:
+            params["PYROLYSIS_RANGE"] = self._format_value(pyrolysis_range_values)
+
+        # Only output non-default values
+        if any(v != 5.0 for v in heating_rate_values):
+            params["HEATING_RATE"] = self._format_value(heating_rate_values)
+        if any(v != 0.0 for v in heat_of_reaction_values):
+            params["HEAT_OF_REACTION"] = self._format_value(heat_of_reaction_values)
+        if any(v != 1.0 for v in n_s_values):
+            params["N_S"] = self._format_value(n_s_values)
+        if any(v != 0.0 for v in n_t_values):
+            params["N_T"] = self._format_value(n_t_values)
+        if any(v != 0.0 for v in n_o2_values):
+            params["N_O2"] = self._format_value(n_o2_values)
+
+        if gas_diffusion_depth_values:
+            params["GAS_DIFFUSION_DEPTH"] = self._format_value(gas_diffusion_depth_values)
+        if max_reaction_rate_values:
+            params["MAX_REACTION_RATE"] = self._format_value(max_reaction_rate_values)
+
+        # Format gas species products - flatten for FDS output
+        all_spec_ids: list[str] = []
+        all_nu_specs: list[float] = []
+        for rxn_specs, rxn_nus in zip(spec_ids, nu_specs, strict=True):
+            all_spec_ids.extend(rxn_specs)
+            all_nu_specs.extend(rxn_nus)
+
+        if all_spec_ids:
+            params["SPEC_ID"] = self._format_value(all_spec_ids)
+            params["NU_SPEC"] = self._format_value(all_nu_specs)
+
+        # Format heat of combustion if specified
+        all_hoc: list[float] = []
+        for rxn_hoc in heat_of_combustion_values:
+            all_hoc.extend(rxn_hoc)
+        if all_hoc:
+            params["HEAT_OF_COMBUSTION"] = self._format_value(all_hoc)
+
+        # Format solid residue products
+        all_matl_ids: list[str] = []
+        all_nu_matls: list[float] = []
+        for rxn_matls, rxn_nus in zip(matl_ids, nu_matls, strict=True):
+            all_matl_ids.extend(rxn_matls)
+            all_nu_matls.extend(rxn_nus)
+
+        if all_matl_ids:
+            params["MATL_ID"] = self._format_value(all_matl_ids)
+            params["NU_MATL"] = self._format_value(all_nu_matls)
+
+        # Format particle products
+        all_part_ids: list[str] = []
+        all_nu_parts: list[float] = []
+        for rxn_parts, rxn_nus in zip(part_ids, nu_parts, strict=True):
+            all_part_ids.extend(rxn_parts)
+            all_nu_parts.extend(rxn_nus)
+
+        if all_part_ids:
+            params["PART_ID"] = self._format_value(all_part_ids)
+            params["NU_PART"] = self._format_value(all_nu_parts)
+
+        return params

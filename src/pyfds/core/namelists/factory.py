@@ -1,5 +1,4 @@
-"""
-Namelist Factory for creating namelists from dictionaries and parsing FDS text.
+"""Namelist Factory for creating namelists from dictionaries and parsing FDS text.
 
 This module provides centralized factory methods for creating namelist instances
 from various input formats including dictionaries and FDS text.
@@ -10,21 +9,29 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from pyfds.core.namelists.base import NamelistBase
-from pyfds.core.namelists.ctrl import Ctrl
+from pyfds.core.namelists.comb import Combustion
+from pyfds.core.namelists.ctrl import Control
 from pyfds.core.namelists.devc import Device
+from pyfds.core.namelists.geom import Geometry
 from pyfds.core.namelists.head import Head
-from pyfds.core.namelists.init import Init
+from pyfds.core.namelists.hole import Hole
+from pyfds.core.namelists.init import Initialization
 from pyfds.core.namelists.matl import Material
 from pyfds.core.namelists.mesh import Mesh
 from pyfds.core.namelists.misc import Misc
+from pyfds.core.namelists.move import Move
+from pyfds.core.namelists.mult import Multiplier
 from pyfds.core.namelists.obst import Obstruction
-from pyfds.core.namelists.prop import Prop
+from pyfds.core.namelists.part import Particle
+from pyfds.core.namelists.prop import Property
 from pyfds.core.namelists.ramp import Ramp
 from pyfds.core.namelists.reac import Reaction
 from pyfds.core.namelists.spec import Species
 from pyfds.core.namelists.surf import Surface
 from pyfds.core.namelists.time import Time
 from pyfds.core.namelists.vent import Vent
+
+__all__ = ["NamelistFactory"]
 
 
 class NamelistFactory:
@@ -37,22 +44,61 @@ class NamelistFactory:
 
     # Registry mapping FDS namelist names to their corresponding classes
     _registry: ClassVar[dict[str, type[NamelistBase]]] = {
+        # Simulation control
         "HEAD": Head,
         "TIME": Time,
         "MISC": Misc,
+        # Domain geometry
         "MESH": Mesh,
-        "MATL": Material,
-        "SURF": Surface,
+        "MULT": Multiplier,
         "OBST": Obstruction,
+        "HOLE": Hole,
         "VENT": Vent,
+        "GEOM": Geometry,
+        "MOVE": Move,
+        # Materials and surfaces
+        "SURF": Surface,
+        "MATL": Material,
+        # Combustion and species
         "REAC": Reaction,
         "SPEC": Species,
-        "RAMP": Ramp,
-        "PROP": Prop,
+        "COMB": Combustion,
+        "PART": Particle,
+        # Devices and control
         "DEVC": Device,
-        "CTRL": Ctrl,
-        "INIT": Init,
+        "CTRL": Control,
+        "PROP": Property,
+        "RAMP": Ramp,
+        # Initial conditions
+        "INIT": Initialization,
     }
+
+    @classmethod
+    def get_class(cls, namelist_type: str) -> type[NamelistBase] | None:
+        """Get namelist class for a type, or None if unsupported.
+
+        Parameters
+        ----------
+        namelist_type : str
+            FDS namelist name (case-insensitive)
+
+        Returns
+        -------
+        type[NamelistBase] | None
+            The namelist class, or None if not found
+        """
+        return cls._registry.get(namelist_type.upper())
+
+    @classmethod
+    def supported_types(cls) -> set[str]:
+        """Get set of supported namelist type names.
+
+        Returns
+        -------
+        set[str]
+            Set of all supported namelist type names
+        """
+        return set(cls._registry.keys())
 
     @classmethod
     def create(cls, name: str, **kwargs: Any) -> NamelistBase:

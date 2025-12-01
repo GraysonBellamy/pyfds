@@ -1,23 +1,23 @@
-"""Tests for Geom namelist."""
+"""Tests for Geometry namelist."""
 
 import pytest
 
 from pyfds.builders.geom import GeomBuilder
-from pyfds.core.namelists.geom import Geom
+from pyfds.core.namelists.geom import Geometry
 
 
 class TestGeom:
-    """Test Geom namelist functionality."""
+    """Test Geometry namelist functionality."""
 
     def test_basic_geom(self):
         """Test basic geometry creation."""
-        geom = Geom(id="TEST_GEOM", surf_id="STEEL", verts=[0, 0, 0], faces=[1, 1, 1, 1])
+        geom = Geometry(id="TEST_GEOM", surf_id="STEEL", verts=[0, 0, 0], faces=[1, 1, 1, 1])
         assert geom.id == "TEST_GEOM"
         assert geom.surf_id == "STEEL"
 
     def test_triangulated_surface(self):
         """Test triangulated surface geometry."""
-        geom = Geom(
+        geom = Geometry(
             id="TRIANGLE", surf_id="INERT", verts=[0, 0, 0, 1, 0, 0, 0.5, 1, 0], faces=[1, 2, 3, 1]
         )
         assert geom.id == "TRIANGLE"
@@ -26,7 +26,7 @@ class TestGeom:
 
     def test_sphere_geometry(self):
         """Test sphere geometry."""
-        geom = Geom(
+        geom = Geometry(
             id="BALL", surf_id="STEEL", sphere_origin=(5, 5, 1), sphere_radius=0.5, n_levels=3
         )
         assert geom.id == "BALL"
@@ -36,7 +36,7 @@ class TestGeom:
 
     def test_cylinder_geometry(self):
         """Test cylinder geometry."""
-        geom = Geom(
+        geom = Geometry(
             id="PIPE",
             surf_id="STEEL",
             cylinder_origin=(0, 0, 0),
@@ -52,7 +52,7 @@ class TestGeom:
 
     def test_terrain_geometry(self):
         """Test terrain geometry."""
-        geom = Geom(
+        geom = Geometry(
             id="LAND", surf_id="DIRT", zvals=[0, 1, 2, 1, 0], is_terrain=True, extend_terrain=True
         )
         assert geom.id == "LAND"
@@ -60,10 +60,62 @@ class TestGeom:
         assert geom.is_terrain is True
         assert geom.extend_terrain is True
 
+    def test_sphere_with_type(self):
+        """Test sphere geometry with sphere_type parameter."""
+        geom = Geometry(
+            id="BALL",
+            surf_id="STEEL",
+            sphere_origin=(5, 5, 1),
+            sphere_radius=0.5,
+            sphere_type=1,
+            n_levels=3,
+        )
+        assert geom.sphere_type == 1
+        assert geom.n_levels == 3
+
+    def test_sphere_with_lat_long(self):
+        """Test sphere geometry with n_lat and n_long parameters."""
+        geom = Geometry(
+            id="BALL",
+            surf_id="STEEL",
+            sphere_origin=(5, 5, 1),
+            sphere_radius=0.5,
+            n_lat=12,
+            n_long=24,
+        )
+        assert geom.n_lat == 12
+        assert geom.n_long == 24
+
+    def test_bndf_geom_parameter(self):
+        """Test BNDF_GEOM parameter."""
+        geom = Geometry(
+            id="TEST",
+            surf_id="STEEL",
+            verts=[0, 0, 0],
+            faces=[1, 1, 1, 1],
+            bndf_geom=True,
+        )
+        assert geom.bndf_geom is True
+        fds_output = geom.to_fds()
+        assert "BNDF_GEOM=.TRUE." in fds_output
+
+    def test_cell_block_orientation(self):
+        """Test CELL_BLOCK_ORIENTATION parameter for thin geometry."""
+        geom = Geometry(
+            id="THIN",
+            surf_id="STEEL",
+            verts=[0, 0, 0],
+            faces=[1, 1, 1, 1],
+            cell_block_ior=3,
+            cell_block_orientation=(0.0, 0.0, 1.0),
+        )
+        assert geom.cell_block_ior == 3
+        assert geom.cell_block_orientation == (0.0, 0.0, 1.0)
+
     def test_geom_validation_multiple_definitions(self):
         """Test validation prevents multiple geometry definitions."""
         with pytest.raises(ValueError, match="Cannot specify multiple geometry definitions"):
-            Geom(
+            Geometry(
                 id="INVALID",
                 verts=[0, 0, 0, 1, 0, 0, 0.5, 1, 0],
                 faces=[1, 2, 3, 1],
@@ -74,11 +126,11 @@ class TestGeom:
     def test_geom_validation_no_definition(self):
         """Test validation requires geometry definition."""
         with pytest.raises(ValueError, match="Must specify geometry via"):
-            Geom(id="INVALID", surf_id="STEEL")
+            Geometry(id="INVALID", surf_id="STEEL")
 
     def test_geom_to_fds_basic(self):
         """Test basic FDS output."""
-        geom = Geom(id="BASIC", surf_id="STEEL", verts=[0, 0, 0], faces=[1, 1, 1, 1])
+        geom = Geometry(id="BASIC", surf_id="STEEL", verts=[0, 0, 0], faces=[1, 1, 1, 1])
         fds_output = geom.to_fds()
         assert "&GEOM" in fds_output
         assert "ID='BASIC'" in fds_output
@@ -87,14 +139,14 @@ class TestGeom:
 
     def test_geom_to_fds_sphere(self):
         """Test sphere FDS output."""
-        geom = Geom(id="BALL", surf_id="STEEL", sphere_origin=(5, 5, 1), sphere_radius=0.5)
+        geom = Geometry(id="BALL", surf_id="STEEL", sphere_origin=(5, 5, 1), sphere_radius=0.5)
         fds_output = geom.to_fds()
         assert "SPHERE_ORIGIN=5.0,5.0,1.0" in fds_output
         assert "SPHERE_RADIUS=0.5" in fds_output
 
     def test_geom_to_fds_terrain(self):
         """Test terrain FDS output."""
-        geom = Geom(id="LAND", surf_id="DIRT", zvals=[0, 1, 2], is_terrain=True)
+        geom = Geometry(id="LAND", surf_id="DIRT", zvals=[0, 1, 2], is_terrain=True)
         fds_output = geom.to_fds()
         assert "ZVALS=0.0,1.0,2.0" in fds_output
         assert "IS_TERRAIN=.TRUE." in fds_output

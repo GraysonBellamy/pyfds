@@ -1,9 +1,34 @@
-# PropBuilder
+# Property Builder (Planned)
 
-::: pyfds.builders.prop.PropBuilder
-    options:
-      show_source: true
-      heading_level: 2
+!!! warning "Not Yet Implemented"
+    `PropBuilder` is planned for a future release. For now, use the `Property` namelist class directly.
+
+## Current Usage
+
+```python
+from pyfds import Simulation, Property, Device
+from pyfds.core.geometry import Point3D
+
+sim = Simulation(chid="sprinkler_example")
+
+# Define sprinkler properties directly
+sim.add(Property(
+    id="SPRINKLER",
+    part_id="WATER",
+    flow_rate=189.0,
+    operating_pressure=1.0,
+    activation_temperature=68.0,
+    rti=50.0
+))
+
+# Add sprinkler device
+sim.add(Device(
+    id="SPRINKLER_1",
+    prop_id="SPRINKLER",
+    xyz=Point3D.of(2.5, 2.5, 2.9),
+    quantity="SPRINKLER LINK TEMPERATURE"
+))
+```
 
 ## Overview
 
@@ -249,7 +274,7 @@ sim.add_prop(sprinkler_prop)
 
 # Add sprinkler devices
 for i in range(5):
-    sim.device(
+    sim.add(Device(
         id=f'SPRINKLER_{i}',
         prop_id='SPRINKLER_QR',
         xyz=Point3D.of(i*2, 5, 3),
@@ -267,7 +292,7 @@ sim.add_prop(smoke_prop)
 # Add detectors throughout building
 locations = [(2, 5, 2.5), (5, 5, 2.5), (8, 5, 2.5)]
 for i, xyz in enumerate(locations, 1):
-    sim.device(
+    sim.add(Device(
         id=f'SMOKE_DET_{i}',
         prop_id='SMOKE_DET',
         xyz=xyz
@@ -293,7 +318,7 @@ sim.add_prop(heat_prop)
 
 # Add heat detectors
 for i in range(1, 4):
-    sim.device(
+    sim.add(Device(
         id=f'HEAT_DET_{i}',
         prop_id='HEAT_DET',
         xyz=Point3D.of(i*3, 5, 2.5)
@@ -321,13 +346,13 @@ sim.add_prop(heat_prop)
 sim.add_prop(sprinkler_prop)
 
 # Smoke detector for early warning
-sim.device(id='SD_1', prop_id='SMOKE', xyz=Point3D.of(5, 5, 2.5))
+sim.add(Device(id='SD_1', prop_id='SMOKE', xyz=Point3D.of(5, 5, 2.5)))
 
 # Heat detector for sprinkler activation
-sim.device(id='HD_1', prop_id='HEAT', xyz=Point3D.of(5, 5, 2.5))
+sim.add(Device(id='HD_1', prop_id='HEAT', xyz=Point3D.of(5, 5, 2.5)))
 
 # Sprinkler activated by heat detector
-sim.device(id='SPK_1', prop_id='SPRINKLER', xyz=Point3D.of(5, 5, 3), ctrl_id='HD_1')
+sim.add(Device(id='SPK_1', prop_id='SPRINKLER', xyz=Point3D.of(5, 5, 3), ctrl_id='HD_1'))
 ```
 
 ## Predefined Properties

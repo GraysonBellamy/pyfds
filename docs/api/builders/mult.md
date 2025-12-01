@@ -1,6 +1,22 @@
-# MultBuilder API Reference
+# Multiplier Builder (Planned)
 
-The `MultBuilder` provides a fluent interface for creating MULT namelists that replicate objects in regular arrays.
+!!! warning "Not Yet Implemented"
+    `MultBuilder` is planned for a future release. For now, use the `Multiplier` namelist class directly.
+
+## Current Usage
+
+```python
+from pyfds import Simulation, Multiplier
+
+sim = Simulation(chid="mult_example")
+
+# Create a multiplier for geometry replication
+sim.add(Multiplier(
+    id="MULT_X",
+    dx=5.0,
+    n_copies=3
+))
+```
 
 ## Overview
 
@@ -11,14 +27,18 @@ MULT works with: MESH, OBST, VENT, HOLE, and INIT namelists.
 ## Basic Usage
 
 ```python
-from pyfds.builders import MultBuilder
+from pyfds import Multiplier
 
-# 3x3 array with 2m spacing
-mult = (
-    MultBuilder('ARRAY_3X3')
-    .spacing(dx=2.0, dy=2.0)
-    .count(i_lower=0, i_upper=2, j_lower=0, j_upper=2)
-    .build()
+# Create array multiplier
+mult = Multiplier(
+    id='ARRAY_3X3',
+    dx=2.0,
+    dy=2.0,
+    i_lower=0,
+    i_upper=2,
+    j_lower=0,
+    j_upper=2
+)
 )
 
 # Linear array of 10 objects

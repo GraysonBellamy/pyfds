@@ -1,10 +1,10 @@
 """Builder for creating PART namelists with particle properties."""
 
-from ..core.namelists import Part
-from .base import Builder
+from pyfds.builders.base import Builder
+from pyfds.core.namelists import Particle
 
 
-class PartBuilder(Builder[Part]):
+class PartBuilder(Builder[Particle]):
     """
     Builder for creating PART namelists.
 
@@ -13,8 +13,8 @@ class PartBuilder(Builder[Part]):
 
     Parameters
     ----------
-    id : str
-        Unique particle class identifier
+    id : str, optional
+        Unique particle class identifier. Can also be set via with_id().
 
     Examples
     --------
@@ -37,20 +37,43 @@ class PartBuilder(Builder[Part]):
     ...            .with_density(800.0)
     ...            .with_lifetime(60.0)
     ...            .build())
+
+    >>> # Using with_id() method
+    >>> particle = (PartBuilder()
+    ...            .with_id("TRACER")
+    ...            .as_tracer()
+    ...            .build())
     """
 
-    def __init__(self, part_id: str):
+    def __init__(self, part_id: str | None = None):
         """
         Initialize the PartBuilder.
 
         Parameters
         ----------
-        part_id : str
+        part_id : str, optional
             Unique particle class identifier
         """
         super().__init__()
         self._id = part_id
         self._params: dict = {}
+
+    def with_id(self, part_id: str) -> "PartBuilder":
+        """
+        Set the particle class identifier.
+
+        Parameters
+        ----------
+        part_id : str
+            Unique particle class identifier
+
+        Returns
+        -------
+        PartBuilder
+            Self for method chaining
+        """
+        self._id = part_id
+        return self
 
     def as_water_droplet(self, diameter: float, temp: float = 20.0) -> "PartBuilder":
         """
@@ -409,23 +432,14 @@ class PartBuilder(Builder[Part]):
         self._params["prop_id"] = prop_id
         return self
 
-    def build(self) -> Part:
-        """
-        Build the Part object.
+    def _validate(self) -> list[str]:
+        """Validate builder state before building."""
+        errors = []
+        if self._id is None:
+            errors.append("id is required (use constructor or with_id())")
+        return errors
 
-        Returns
-        -------
-        Part
-            The constructed Part namelist object
-
-        Raises
-        ------
-        RuntimeError
-            If the builder has already been used
-        """
-        self._check_built()
-
+    def _create(self) -> Particle:
+        """Create the Particle object."""
         params = {"id": self._id, **self._params}
-        part = Part(**params)
-        self._mark_built()
-        return part
+        return Particle(**params)

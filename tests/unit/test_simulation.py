@@ -5,7 +5,7 @@ Unit tests for Simulation class.
 import pytest
 
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
-from pyfds.core.namelists import Device, Mesh, Mult, Obstruction, Surface, Time
+from pyfds.core.namelists import Device, Mesh, Multiplier, Obstruction, Surface, Time
 from pyfds.core.simulation import Simulation
 
 
@@ -30,9 +30,9 @@ class TestSimulation:
         result = sim.add(Time(t_end=600.0, dt=0.1))
 
         assert result is sim  # Check method chaining
-        assert sim.time_params is not None
-        assert sim.time_params.t_end == 600.0
-        assert sim.time_params.dt == 0.1
+        assert sim.time_config is not None
+        assert sim.time_config.t_end == 600.0
+        assert sim.time_config.dt == 0.1
 
     def test_mesh_method(self):
         """Test mesh() method."""
@@ -94,7 +94,9 @@ class TestSimulation:
         sim = Simulation(chid="test")
 
         # Neither XYZ nor XB
-        with pytest.raises(ValueError, match="Either xyz or xb must be specified"):
+        with pytest.raises(
+            ValueError, match="Device requires XYZ, XB, XBP, DB, INIT_ID, DUCT_ID, or NODE_ID"
+        ):
             sim.add(Device(id="TEMP1", quantity="TEMPERATURE"))
 
         # Both XYZ and XB
@@ -227,7 +229,7 @@ class TestSimulation:
         """Test mult() method."""
         sim = Simulation(chid="test")
         result = sim.add(
-            Mult(
+            Multiplier(
                 id="ARRAY_3X3",
                 dx=2.0,
                 dy=2.0,

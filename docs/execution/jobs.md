@@ -33,12 +33,12 @@ print(f"Job status: {job.status}")
 from pyfds import Simulation
 
 sim = Simulation(chid='background_job')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # Fire
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 # Run without waiting
 job = sim.run(wait=False)
@@ -178,11 +178,11 @@ jobs = []
 
 for hrr in [500, 1000, 1500]:
     sim = Simulation(chid=f'fire_{hrr}')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
-    sim.surface(id='FIRE', hrrpua=hrr)
-    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Surface(id='FIRE', hrrpua=hrr))
+    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
     # Run in background
     job = sim.run(wait=False, n_threads=2)
@@ -292,16 +292,16 @@ cases = list(itertools.product(hrr_values, door_widths))
 # Create and queue all jobs
 for i, (hrr, width) in enumerate(cases):
     sim = Simulation(chid=f'case_{i+1:03d}')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(60, 50, 25), xb=Bounds3D.of(0, 6, 0, 5, 0, 2.5)))
 
-    sim.surface(id='FIRE', hrrpua=hrr)
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+    sim.add(Surface(id='FIRE', hrrpua=hrr))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
 
     y_center = 2.5
-    sim.add(Vent(xb=Bounds3D.of(6, 6, y_center-width/2, y_center+width/2, 0, 2.1), surf_id='OPEN')
+    sim.add(Vent(xb=Bounds3D.of(6, 6, y_center-width/2, y_center+width/2, 0, 2.1), surf_id='OPEN'))
 
-    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4))
+    sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4)))
 
     queue.add(sim, n_threads=2)
 
@@ -338,12 +338,12 @@ def progress_callback(job, progress):
     print(f"  ETA: {job.estimated_time_remaining:.0f}s")
 
 sim = Simulation(chid='long_simulation')
-sim.add(Time(t_end=3600.0)  # 1 hour simulation time
-sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5))
+sim.add(Time(t_end=3600.0))  # 1 hour simulation time
+sim.add(Mesh(ijk=Grid3D.of(100, 100, 50), xb=Bounds3D.of(0, 10, 0, 10, 0, 5)))
 
 # Large fire
-sim.surface(id='FIRE', hrrpua=2000.0)
-sim.add(Obstruction(xb=Bounds3D.of(4, 6, 4, 6, 0, 0.5), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=2000.0))
+sim.add(Obstruction(xb=Bounds3D.of(4, 6, 4, 6, 0, 0.5), surf_id='FIRE'))
 
 # Run with monitoring
 job = sim.run(

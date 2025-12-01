@@ -1,7 +1,7 @@
 """Common building and structural materials library."""
 
-from ...core.namelists import Material
-from ..material import MaterialBuilder
+from pyfds.builders.material import MaterialBuilder
+from pyfds.core.namelists import Material
 
 
 class CommonMaterials:

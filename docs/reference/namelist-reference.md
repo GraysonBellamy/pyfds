@@ -7,26 +7,26 @@ Complete reference for all FDS namelists supported by PyFDS.
 This reference provides comprehensive parameter listings for all FDS namelists. For usage examples and explanations, see the [User Guide](../guide/index.md).
 
 !!! info "PyFDS Method Names"
-    PyFDS uses lowercase method names (e.g., `sim.add(Mesh()`) to create namelists. The actual FDS namelist names (e.g., `&MESH`) are used in the generated `.fds` files.
+    PyFDS uses lowercase method names (e.g., `sim.add(Mesh())`) to create namelists. The actual FDS namelist names (e.g., `&MESH`) are used in the generated `.fds` files.
 
 ## Quick Index
 
 | Namelist | Purpose | PyFDS Method | Guide |
 |----------|---------|--------------|-------|
-| [HEAD](#head) | Simulation title | `head()` | [Metadata](../guide/building-simulations.md) |
-| [TIME](#time) | Time control | `time()` | [Metadata](../guide/building-simulations.md) |
-| [MISC](#misc) | Global settings | `set_misc()` | [Global Settings](../guide/global-settings.md) |
-| [MESH](#mesh) | Computational domain | `mesh()` | [Domain](../guide/domain.md) |
-| [OBST](#obst) | Obstructions | `obstruction()` | [Geometry](../guide/geometry.md) |
-| [VENT](#vent) | Vents/boundaries | `vent()` | [Boundaries](../guide/boundaries.md) |
-| [SURF](#surf) | Surface properties | `surface()` | [Materials](../guide/materials-surfaces.md) |
-| [MATL](#matl) | Material properties | `material()` | [Materials](../guide/materials-surfaces.md) |
-| [DEVC](#devc) | Devices | `device()` | [Devices](../guide/devices.md) |
-| [PROP](#prop) | Device properties | `prop()` | [Devices](../guide/devices.md) |
-| [RAMP](#ramp) | Time ramps | `ramp()` | [Ramps](../guide/ramps.md) |
-| [CTRL](#ctrl) | Control logic | `control()` | [Controls](../guide/controls.md) |
-| [INIT](#init) | Initial conditions | `init()` | [Initial Conditions](../guide/initial-conditions.md) |
-| [REAC](#reac) | Combustion | `reaction()` | [Combustion](../guide/combustion.md) |
+| [HEAD](#head) | Simulation title | `sim.add(Head())` | [Metadata](../guide/building-simulations.md) |
+| [TIME](#time) | Time control | `sim.add(Time())` | [Metadata](../guide/building-simulations.md) |
+| [MISC](#misc) | Global settings | `sim.add(Misc())` | [Global Settings](../guide/global-settings.md) |
+| [MESH](#mesh) | Computational domain | `sim.add(Mesh())` | [Domain](../guide/domain.md) |
+| [OBST](#obst) | Obstructions | `sim.add(Obstruction())` | [Geometry](../guide/geometry.md) |
+| [VENT](#vent) | Vents/boundaries | `sim.add(Vent())` | [Boundaries](../guide/boundaries.md) |
+| [SURF](#surf) | Surface properties | `sim.add(Surface())` | [Materials](../guide/materials-surfaces.md) |
+| [MATL](#matl) | Material properties | `sim.add(Material())` | [Materials](../guide/materials-surfaces.md) |
+| [DEVC](#devc) | Devices | `sim.add(Device())` | [Devices](../guide/devices.md) |
+| [PROP](#prop) | Device properties | `sim.add(Prop())` | [Devices](../guide/devices.md) |
+| [RAMP](#ramp) | Time ramps | `sim.add(Ramp())` | [Ramps](../guide/ramps.md) |
+| [CTRL](#ctrl) | Control logic | `sim.add(Control())` | [Controls](../guide/controls.md) |
+| [INIT](#init) | Initial conditions | `sim.add(Init())` | [Initial Conditions](../guide/initial-conditions.md) |
+| [REAC](#reac) | Combustion | `sim.add(Reaction())` | [Combustion](../guide/combustion.md) |
 
 ## Metadata Namelists
 
@@ -34,7 +34,7 @@ This reference provides comprehensive parameter listings for all FDS namelists. 
 
 Simulation title and description.
 
-**PyFDS Method**: `sim.head()`
+**PyFDS Method**: Set at Simulation creation
 
 **Parameters**
 
@@ -46,8 +46,7 @@ Simulation title and description.
 **Example**
 
 ```python
-sim = Simulation(chid='room_fire_01')
-sim.head(title='Single room fire with sprinkler')
+sim = Simulation(chid='room_fire_01', title='Single room fire with sprinkler')
 ```
 
 **FDS Output**
@@ -62,7 +61,7 @@ sim.head(title='Single room fire with sprinkler')
 
 Time control parameters.
 
-**PyFDS Method**: `sim.add(Time()`
+**PyFDS Method**: `sim.add(Time())`
 
 **Parameters**
 
@@ -76,7 +75,7 @@ Time control parameters.
 **Example**
 
 ```python
-sim.add(Time(t_end=600.0, dt=0.1)
+sim.add(Time(t_end=600.0, dt=0.1))
 ```
 
 **FDS Output**
@@ -91,7 +90,7 @@ sim.add(Time(t_end=600.0, dt=0.1)
 
 Global simulation settings.
 
-**PyFDS Method**: `sim.set_misc()`
+**PyFDS Method**: `sim.add(Misc())`
 
 **Common Parameters**
 
@@ -138,7 +137,7 @@ sim.set_misc(
 
 Computational mesh definition.
 
-**PyFDS Method**: `sim.add(Mesh()`
+**PyFDS Method**: `sim.add(Mesh())`
 
 **Parameters**
 
@@ -152,11 +151,14 @@ Computational mesh definition.
 **Example**
 
 ```python
+from pyfds import Mesh
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim.add(Mesh(
     id='MESH1',
     ijk=Grid3D.of(50, 50, 25),
     xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)
-)
+))
 ```
 
 **FDS Output**
@@ -173,7 +175,7 @@ sim.add(Mesh(
 
 Solid obstructions.
 
-**PyFDS Method**: `sim.add(Obstruction()`
+**PyFDS Method**: `sim.add(Obstruction())`
 
 **Parameters**
 
@@ -211,7 +213,7 @@ sim.add(Obstruction(
 
 Boundary conditions and openings.
 
-**PyFDS Method**: `sim.add(Vent()`
+**PyFDS Method**: `sim.add(Vent())`
 
 **Parameters**
 
@@ -259,7 +261,7 @@ sim.add(Vent(
 
 Surface boundary conditions.
 
-**PyFDS Method**: `sim.surface()`
+**PyFDS Method**: `sim.add(Surface())`
 
 **Common Parameters**
 
@@ -300,7 +302,7 @@ Surface boundary conditions.
 
 ```python
 # Fire source
-sim.surface(
+sim.add(Surface(
     id='FIRE',
     hrrpua=1000.0,
     ramp_q='FIRE_RAMP',
@@ -308,7 +310,7 @@ sim.surface(
 )
 
 # Thermally thick material
-sim.surface(
+sim.add(Surface(
     id='CONCRETE_WALL',
     matl_id='CONCRETE',
     thickness=0.2,
@@ -316,7 +318,7 @@ sim.surface(
 )
 
 # Supply vent
-sim.surface(
+sim.add(Surface(
     id='SUPPLY',
     vel=-1.5,  # Negative = into domain
     tmp_front=20.0
@@ -329,7 +331,7 @@ sim.surface(
 
 Material thermal properties.
 
-**PyFDS Method**: `sim.material()`
+**PyFDS Method**: `sim.add(Material())`
 
 **Parameters**
 
@@ -355,7 +357,7 @@ Material thermal properties.
 
 ```python
 # Concrete
-sim.material(
+sim.add(Material(
     id='CONCRETE',
     conductivity=1.0,
     specific_heat=0.88,
@@ -364,7 +366,7 @@ sim.material(
 )
 
 # Gypsum board
-sim.material(
+sim.add(Material(
     id='GYPSUM',
     conductivity=0.48,
     specific_heat=0.84,
@@ -381,7 +383,7 @@ sim.material(
 
 Measurement devices and outputs.
 
-**PyFDS Method**: `sim.device()`
+**PyFDS Method**: `sim.add(Device())`
 
 **Common Parameters**
 
@@ -432,14 +434,14 @@ Measurement devices and outputs.
 
 ```python
 # Point temperature
-sim.device(
+sim.add(Device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
     xyz=Point3D.of(2.5, 2.5, 2.4)
 )
 
 # Surface heat flux
-sim.device(
+sim.add(Device(
     id='HF_WALL',
     quantity='GAUGE HEAT FLUX',
     xyz=Point3D.of(0.1, 2.5, 1.5),
@@ -447,7 +449,7 @@ sim.device(
 )
 
 # Volume average
-sim.device(
+sim.add(Device(
     id='TEMP_AVG',
     quantity='TEMPERATURE',
     xb=Bounds3D.of(0, 5, 0, 5, 2, 2.5),
@@ -461,7 +463,7 @@ sim.device(
 
 Device property definitions.
 
-**PyFDS Method**: `sim.prop()`
+**PyFDS Method**: `sim.add(Prop())`
 
 **Common Parameters**
 
@@ -493,7 +495,7 @@ Device property definitions.
 
 ```python
 # Sprinkler
-sim.prop(
+sim.add(Prop(
     id='STANDARD_SPRINKLER',
     quantity='SPRINKLER LINK TEMPERATURE',
     rti=50.0,
@@ -504,7 +506,7 @@ sim.prop(
 )
 
 # Smoke detector
-sim.prop(
+sim.add(Prop(
     id='SMOKE_DETECTOR',
     quantity='CHAMBER OBSCURATION',
     alpha_e=1.8,
@@ -520,7 +522,7 @@ sim.prop(
 
 Time-varying functions.
 
-**PyFDS Method**: `sim.ramp()`
+**PyFDS Method**: `sim.add(Ramp())`
 
 **Parameters**
 
@@ -534,12 +536,12 @@ Time-varying functions.
 
 ```python
 # t² fire growth
-sim.ramp(id='FIRE_GROWTH', t=0, f=0.0)
-sim.ramp(id='FIRE_GROWTH', t=60, f=0.25)
-sim.ramp(id='FIRE_GROWTH', t=120, f=1.0)
-sim.ramp(id='FIRE_GROWTH', t=300, f=1.0)
-sim.ramp(id='FIRE_GROWTH', t=360, f=0.5)
-sim.ramp(id='FIRE_GROWTH', t=600, f=0.0)
+sim.add(Ramp(id='FIRE_GROWTH', t=0, f=0.0))
+sim.add(Ramp(id='FIRE_GROWTH', t=60, f=0.25))
+sim.add(Ramp(id='FIRE_GROWTH', t=120, f=1.0))
+sim.add(Ramp(id='FIRE_GROWTH', t=300, f=1.0))
+sim.add(Ramp(id='FIRE_GROWTH', t=360, f=0.5))
+sim.add(Ramp(id='FIRE_GROWTH', t=600, f=0.0))
 ```
 
 ---
@@ -548,7 +550,7 @@ sim.ramp(id='FIRE_GROWTH', t=600, f=0.0)
 
 Control functions.
 
-**PyFDS Method**: `sim.control()`
+**PyFDS Method**: `sim.add(Control())`
 
 **Parameters**
 
@@ -576,7 +578,7 @@ Control functions.
 
 ```python
 # Temperature threshold
-sim.control(
+sim.add(Control(
     id='SPRINKLER_CTRL',
     input_id='TEMP_LINK',
     setpoint=68.0,
@@ -584,7 +586,7 @@ sim.control(
 )
 
 # Logical AND
-sim.control(
+sim.add(Control(
     id='HVAC_SHUTDOWN',
     function_type='ALL',
     input_id=['SMOKE_1', 'SMOKE_2'],
@@ -598,7 +600,7 @@ sim.control(
 
 Initial conditions.
 
-**PyFDS Method**: `sim.init()`
+**PyFDS Method**: `sim.add(Init())`
 
 **Parameters**
 
@@ -627,13 +629,13 @@ Initial conditions.
 
 ```python
 # Hot upper layer
-sim.init(
+sim.add(Init(
     xb=Bounds3D.of(0, 10, 0, 10, 2.5, 3),
     temperature=400.0
 )
 
 # Velocity field
-sim.init(
+sim.add(Init(
     xb=Bounds3D.of(0, 10, 0, 10, 0, 3),
     uu=0.5,  # Wind in +X
     ww=0.0
@@ -646,7 +648,7 @@ sim.init(
 
 Combustion reaction.
 
-**PyFDS Method**: `sim.add(Reaction()`
+**PyFDS Method**: `sim.add(Reaction())`
 
 **Parameters**
 
@@ -684,7 +686,7 @@ PyFDS validates parameters before writing:
 
 ```python
 try:
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 except ValueError as e:
     print(f"Validation error: {e}")
 ```
@@ -695,8 +697,8 @@ Many parameters have sensible defaults:
 
 ```python
 # These are equivalent
-sim.add(Time(t_end=600.0, t_begin=0.0)
-sim.add(Time(t_end=600.0)  # t_begin defaults to 0.0
+sim.add(Time(t_end=600.0, t_begin=0.0))
+sim.add(Time(t_end=600.0))  # t_begin defaults to 0.0
 ```
 
 ### Method Chaining
@@ -705,9 +707,9 @@ Most methods return `self` for chaining:
 
 ```python
 sim = (Simulation(chid='test')
-    .time(t_end=600.0)
-    .mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
-    .surface(id='FIRE', hrrpua=1000.0))
+    .add(Time(t_end=600.0))
+    .add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+    .add(Surface(id='FIRE', hrrpua=1000.0)))
 ```
 
 ## See Also

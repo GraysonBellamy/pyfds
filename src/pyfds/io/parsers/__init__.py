@@ -2,7 +2,7 @@
 File parsers for FDS output files.
 """
 
-from .csv_parser import CSVParser
-from .fds_parser import FDSParser
+from pyfds.io.parsers.csv_parser import CSVParser
+from pyfds.io.parsers.fds_parser import FDSParser
 
 __all__ = ["CSVParser", "FDSParser"]

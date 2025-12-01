@@ -4,6 +4,7 @@ Tests complete pyrolysis workflows including material definitions,
 cross-references, and simulation setup.
 """
 
+from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
 from pyfds.core.namelists import Material
 from pyfds.core.simulation import Simulation
 
@@ -24,14 +25,17 @@ class TestPyrolysisScenarios:
             density=500.0,
             conductivity=0.13,
             specific_heat=2.5,
-            n_reactions=1,
-            a=[1e10],
-            e=[100000],
-            heat_of_reaction=[1800],
-            spec_id=["WOOD_GAS"],
-            nu_spec=[0.75],
-            matl_id=["CHAR"],
-            nu_matl=[0.25],
+            reactions=[
+                PyrolysisReaction(
+                    a=1e10,
+                    e=100000.0,
+                    heat_of_reaction=1800.0,
+                    products=[
+                        PyrolysisProduct(spec_id="WOOD_GAS", nu_spec=0.75),
+                        PyrolysisProduct(matl_id="CHAR", nu_matl=0.25),
+                    ],
+                )
+            ],
         )
 
         sim.add(char)
@@ -51,16 +55,20 @@ class TestPyrolysisScenarios:
             conductivity=0.2,
             specific_heat=2.51,
             boiling_temperature=64.7,
-            spec_id="METHANOL",
-            heat_of_reaction=837.0,
             absorption_coefficient=140.0,
+            reactions=[
+                PyrolysisReaction(
+                    heat_of_reaction=837.0,
+                    products=[PyrolysisProduct(spec_id="METHANOL", nu_spec=1.0)],
+                )
+            ],
         )
 
         sim.add(methanol)
 
         # Validate liquid fuel parameters
         assert methanol.boiling_temperature == 64.7
-        assert methanol.heat_of_reaction == 837.0
+        assert methanol.reactions[0].heat_of_reaction == 837.0
 
     def test_multi_reaction_composite(self):
         """Test composite material with multiple reactions."""
@@ -77,14 +85,26 @@ class TestPyrolysisScenarios:
             density=800.0,
             conductivity=0.2,
             specific_heat=2.0,
-            n_reactions=2,
-            a=[1e12, 5e8],
-            e=[120000, 140000],
-            heat_of_reaction=[2000, 500],
-            spec_id=[["VOLATILE_1"], ["VOLATILE_2"]],
-            nu_spec=[[0.4], [0.15]],
-            matl_id=[["CHAR"], ["ASH"]],
-            nu_matl=[[0.3], [0.05]],
+            reactions=[
+                PyrolysisReaction(
+                    a=1e12,
+                    e=120000.0,
+                    heat_of_reaction=2000.0,
+                    products=[
+                        PyrolysisProduct(spec_id="VOLATILE_1", nu_spec=0.4),
+                        PyrolysisProduct(matl_id="CHAR", nu_matl=0.3),
+                    ],
+                ),
+                PyrolysisReaction(
+                    a=5e8,
+                    e=140000.0,
+                    heat_of_reaction=500.0,
+                    products=[
+                        PyrolysisProduct(spec_id="VOLATILE_2", nu_spec=0.15),
+                        PyrolysisProduct(matl_id="ASH", nu_matl=0.05),
+                    ],
+                ),
+            ],
         )
 
         sim.add(char)
@@ -94,8 +114,14 @@ class TestPyrolysisScenarios:
         # Validate yields sum correctly for each reaction
         # Reaction 1: 0.4 + 0.3 = 0.7
         # Reaction 2: 0.15 + 0.05 = 0.2
-        reaction1_yield = 0.4 + 0.3
-        reaction2_yield = 0.15 + 0.05
+        rxn1_products = composite.reactions[0].products
+        rxn2_products = composite.reactions[1].products
+        reaction1_yield = sum(p.nu_spec or 0 for p in rxn1_products) + sum(
+            p.nu_matl or 0 for p in rxn1_products
+        )
+        reaction2_yield = sum(p.nu_spec or 0 for p in rxn2_products) + sum(
+            p.nu_matl or 0 for p in rxn2_products
+        )
         assert abs(reaction1_yield - 0.7) < 1e-6
         assert abs(reaction2_yield - 0.2) < 1e-6
 
@@ -113,19 +139,24 @@ class TestPyrolysisScenarios:
             density=600.0,
             conductivity=0.18,
             specific_heat=2.3,
-            n_reactions=1,
-            a=[2e9],
-            e=[90000],
-            heat_of_reaction=[1500],
-            spec_id=["FUEL_GAS"],
-            nu_spec=[0.8],
-            matl_id=["CHAR"],
-            nu_matl=[0.2],
+            reactions=[
+                PyrolysisReaction(
+                    a=2e9,
+                    e=90000.0,
+                    heat_of_reaction=1500.0,
+                    products=[
+                        PyrolysisProduct(spec_id="FUEL_GAS", nu_spec=0.8),
+                        PyrolysisProduct(matl_id="CHAR", nu_matl=0.2),
+                    ],
+                )
+            ],
         )
 
         sim.add(sample)
 
         # Validate material properties
         assert sample.density == 600.0
-        assert sample.nu_spec == [0.8]
-        assert sample.nu_matl == [0.2]
+        # Verify reaction structure
+        rxn = sample.reactions[0]
+        assert rxn.products[0].nu_spec == 0.8
+        assert rxn.products[1].nu_matl == 0.2

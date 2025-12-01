@@ -101,12 +101,12 @@ class Simulation:
         return self._ramps
 
     def write(self, path: str) -> None:
-        """Write to FDS file via OutputManager."""
+        \"\"\"Write to FDS file via OutputManager.\"\"\"
         self.validate()
         output = OutputManager(
             self._geometry, self._material_mgr, self._physics,
             self._instrumentation, self._controls, self._ramps,
-            self.head, self.time_params
+            self.head, self.time_config
         )
         output.write(path, output.to_fds())
 ```
@@ -234,7 +234,7 @@ class OutputManager(BaseManager):
 
 ```python
 # Convenience methods (delegated to managers)
-sim.add(Mesh(...)        # Delegates to geometry manager
+sim.add(Mesh(...))        # Delegates to geometry manager
 sim.add_ramp(...)    # Delegates to ramp manager
 
 # Direct manager access (advanced usage)
@@ -305,10 +305,10 @@ Used for `Simulation` class to construct complex FDS files incrementally:
 
 ```python
 sim = (Simulation(chid='fire')
-    .time(t_end=600.0)
-    .mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
-    .surface(id='FIRE', hrrpua=1000.0)
-    .obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+    .add(Time(t_end=600.0))
+    .add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+    .add(Surface(id='FIRE', hrrpua=1000.0))
+    .add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')))
 ```
 
 **Benefits**:
@@ -552,8 +552,8 @@ Test component interactions:
 def test_simulation_write():
     """Test writing complete simulation."""
     sim = Simulation(chid='test')
-    sim.add(Time(t_end=600.0)
-    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+    sim.add(Time(t_end=600.0))
+    sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
     sim.write('test.fds')
 
@@ -601,7 +601,7 @@ Namelists aren't converted to strings until writing:
 
 ```python
 # This is fast - just stores objects
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
 # This triggers conversion
 sim.write('test.fds')  # to_fds() called here
@@ -614,7 +614,7 @@ Validation is deferred until needed:
 ```python
 # No validation yet
 sim = Simulation(chid='test')
-sim.add(Mesh(...)
+sim.add(Mesh(...))
 
 # Validate only when requested
 sim.validate()  # or

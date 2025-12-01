@@ -198,10 +198,10 @@ def test_feature():
     sim = Simulation(chid='test')
 
     # Act
-    sim.add(Time(t_end=100.0)
+    sim.add(Time(t_end=100.0))
 
     # Assert
-    assert sim.time_params.t_end == 100.0
+    assert sim.time_config.t_end == 100.0
 ```
 
 ## Documentation

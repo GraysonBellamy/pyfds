@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from threading import Event, Lock, Thread
 
-from ..utils import get_logger, safe_read_text
+from pyfds.utils import get_logger, safe_read_text
 
 logger = get_logger(__name__)
 
@@ -166,6 +166,33 @@ class ProgressMonitor:
             logger.debug(f"Failed to parse progress: {e}")
             pass
 
+    def _extract_wall_clock_time(self, content: str) -> float | None:
+        """Extract wall clock time from FDS output.
+
+        FDS outputs lines like:
+            Time Step    1234, Simulation Time   10.00 s, Wall Clock Time     0:01:23
+
+        Parameters
+        ----------
+        content : str
+            Content of .out file
+
+        Returns
+        -------
+        float | None
+            Wall clock time in seconds, or None if not found
+        """
+        # Find all wall clock time entries
+        pattern = r"Wall Clock Time\s+(\d+):(\d+):(\d+)"
+        matches = re.findall(pattern, content)
+
+        if matches:
+            # Use the last (most recent) entry
+            hours, minutes, seconds = map(int, matches[-1])
+            return hours * 3600 + minutes * 60 + seconds
+
+        return None
+
     def _extract_progress(self, content: str) -> ProgressInfo | None:
         """
         Extract progress information from .out file content.
@@ -187,7 +214,6 @@ class ProgressMonitor:
         current_time = None
         end_time = None
         time_step = None
-        wall_clock_time = None
 
         # Find T_END from namelist
         time_match = re.search(r"T_END\s*=\s*([\d.]+)", content)
@@ -204,15 +230,17 @@ class ProgressMonitor:
         if t_matches:
             current_time = float(t_matches[-1])
 
-        # Try to extract wall clock time from timestamps
-        # This is approximate - would need more sophisticated parsing
+        # Extract wall clock time
+        wall_clock_time = self._extract_wall_clock_time(content)
+
         if current_time is not None and end_time is not None and time_step is not None:
             percent = min(100.0, (current_time / end_time) * 100.0)
 
-            # Simple ETA estimation (can be improved)
+            # Calculate ETA based on wall clock time
             eta = None
-            if percent > 0 and wall_clock_time is not None:
-                eta = (wall_clock_time / percent) * (100.0 - percent)
+            if wall_clock_time is not None and wall_clock_time > 0 and percent > 0:
+                total_estimated = wall_clock_time / (percent / 100.0)
+                eta = total_estimated - wall_clock_time
 
             return ProgressInfo(
                 current_time=current_time,

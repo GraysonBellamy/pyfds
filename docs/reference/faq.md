@@ -55,10 +55,10 @@ See the [Quick Start Tutorial](../getting-started/quickstart.md). Basic example:
 from pyfds import Simulation
 
 sim = Simulation(chid='test')
-sim.add(Time(t_end=100.0)
-sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1))
-sim.surface(id='FIRE', hrrpua=500.0)
-sim.add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE')
+sim.add(Time(t_end=100.0))
+sim.add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1)))
+sim.add(Surface(id='FIRE', hrrpua=500.0))
+sim.add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE'))
 sim.write('test.fds')
 ```
 
@@ -95,10 +95,10 @@ Common causes:
 
 ```python
 # Faster: 15,000 cells
-sim.add(Mesh(ijk=Grid3D.of(30, 25, 20), xb=Bounds3D.of(0, 3, 0, 2.5, 0, 2))
+sim.add(Mesh(ijk=Grid3D.of(30, 25, 20), xb=Bounds3D.of(0, 3, 0, 2.5, 0, 2)))
 
 # Slower: 240,000 cells
-sim.add(Mesh(ijk=Grid3D.of(120, 100, 80), xb=Bounds3D.of(0, 3, 0, 2.5, 0, 2))
+sim.add(Mesh(ijk=Grid3D.of(120, 100, 80), xb=Bounds3D.of(0, 3, 0, 2.5, 0, 2)))
 ```
 
 ### How many threads should I use?
@@ -126,11 +126,11 @@ Your geometry extends beyond the mesh:
 
 ```python
 # Bad: obstruction at x=6, but mesh ends at x=5
-sim.add(Mesh(xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5))
-sim.add(Obstruction(xb=Bounds3D.of(4, 6, 0, 5, 0, 2.5))
+sim.add(Mesh(xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
+sim.add(Obstruction(xb=Bounds3D.of(4, 6, 0, 5, 0, 2.5)))
 
 # Good: obstruction within mesh
-sim.add(Obstruction(xb=Bounds3D.of(4, 5, 0, 5, 0, 2.5))
+sim.add(Obstruction(xb=Bounds3D.of(4, 5, 0, 5, 0, 2.5)))
 ```
 
 ### "Surface ID not found"
@@ -139,7 +139,7 @@ Define surfaces before using them:
 
 ```python
 # Correct order
-sim.surface(id='FIRE', hrrpua=1000.0)  # Define first
+sim.add(Surface(id='FIRE', hrrpua=1000.0)  # Define first
 sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')  # Use second
 ```
 
@@ -192,8 +192,8 @@ sim.add(Vent(
 Use RAMP namelists:
 
 ```python
-sim.ramp(id='FIRE_GROWTH', t=[0, 60, 120], f=[0, 0.5, 1.0])
-sim.surface(id='FIRE', hrrpua=1000.0, ramp_q='FIRE_GROWTH')
+sim.add(Ramp(id='FIRE_GROWTH', t=[0, 60, 120], f=[0, 0.5, 1.0]))
+sim.add(Surface(id='FIRE', hrrpua=1000.0, ramp_q='FIRE_GROWTH'))
 ```
 
 See [RAMP Guide](../guide/ramps.md).
@@ -204,10 +204,10 @@ Yes, using VENT with volume flow:
 
 ```python
 # Supply vent
-sim.add(Vent(xb=Bounds3D.of(2, 2.5, 2, 2.5, 3, 3), surf_id='HVAC', volume_flow=0.5)
+sim.add(Vent(xb=Bounds3D.of(2, 2.5, 2, 2.5, 3, 3), surf_id='HVAC', volume_flow=0.5))
 
 # Exhaust vent
-sim.add(Vent(xb=Bounds3D.of(4, 4.5, 4, 4.5, 3, 3), surf_id='HVAC', volume_flow=-0.4)
+sim.add(Vent(xb=Bounds3D.of(4, 4.5, 4, 4.5, 3, 3), surf_id='HVAC', volume_flow=-0.4))
 ```
 
 ## Comparisons

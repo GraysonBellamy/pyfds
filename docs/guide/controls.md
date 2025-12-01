@@ -13,13 +13,15 @@ Implement automatic control systems and device-based automation in FDS simulatio
 - Complex automated responses
 
 ```python
+from pyfds import Control
+
 # Simple control: Activate when temperature > 68°C
-sim.control(
+sim.add(Control(
     id='SPRINKLER_CTRL',
     input_id='TEMP_SPRINKLER',
     setpoint=68.0,
     initial_state=False
-)
+))
 ```
 
 ## Control Basics
@@ -29,20 +31,23 @@ sim.control(
 Activate when a device exceeds a threshold:
 
 ```python
+from pyfds import Device, Control
+from pyfds.core.geometry import Point3D
+
 # Temperature device
-sim.device(
+sim.add(Device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
     xyz=Point3D.of(3, 2, 2.4)
-)
+))
 
 # Control activates when temp > 74°C
-sim.control(
+sim.add(Control(
     id='SPRINKLER_ACTIVATION',
     input_id='TEMP_CEILING',
     setpoint=74.0,
     initial_state=False
-)
+))
 ```
 
 ### Time-Based Controls
@@ -51,10 +56,10 @@ Activate at specific times:
 
 ```python
 # Timer control
-sim.control(
+sim.add(Control(
     id='TIMER_300',
     delay=300.0  # Activates at t=300s
-)
+))
 ```
 
 ### Control States
@@ -70,7 +75,7 @@ Controls have boolean states (True/False):
 
 ```python
 # Activate when device EXCEEDS setpoint
-sim.control(
+sim.add(Control(
     id='TEMP_HIGH',
     input_id='TEMP_DEVICE',
     setpoint=80.0,
@@ -78,7 +83,7 @@ sim.control(
 )
 
 # Activate when device BELOW setpoint
-sim.control(
+sim.add(Control(
     id='TEMP_LOW',
     input_id='TEMP_DEVICE',
     setpoint=20.0,
@@ -90,7 +95,7 @@ sim.control(
 
 ```python
 # Latching: Once activated, stays active
-sim.control(
+sim.add(Control(
     id='ALARM',
     input_id='SMOKE_DET',
     setpoint=0.1,
@@ -98,7 +103,7 @@ sim.control(
 )
 
 # Non-latching: Can activate/deactivate
-sim.control(
+sim.add(Control(
     id='FAN',
     input_id='TEMP',
     setpoint=30.0,
@@ -110,7 +115,7 @@ sim.control(
 
 ```python
 # Activation delay (must exceed setpoint for 60s)
-sim.control(
+sim.add(Control(
     id='DELAYED_ACTIVATION',
     input_id='TEMP',
     setpoint=70.0,
@@ -118,7 +123,7 @@ sim.control(
 )
 
 # Response time (realistic device lag)
-sim.control(
+sim.add(Control(
     id='SPRINKLER',
     input_id='TEMP_LINK',
     setpoint=68.0,
@@ -134,7 +139,7 @@ All inputs must be True:
 
 ```python
 # Activate only if BOTH conditions met
-sim.control(
+sim.add(Control(
     id='AND_CONTROL',
     input_id=['SMOKE_HIGH', 'TEMP_HIGH'],
     function_type='AND'
@@ -147,7 +152,7 @@ Any input True activates:
 
 ```python
 # Activate if ANY condition met
-sim.control(
+sim.add(Control(
     id='OR_CONTROL',
     input_id=['SMOKE_DET_1', 'SMOKE_DET_2', 'SMOKE_DET_3'],
     function_type='OR'
@@ -160,7 +165,7 @@ Invert control state:
 
 ```python
 # Active when input is False
-sim.control(
+sim.add(Control(
     id='NOT_CONTROL',
     input_id='NORMAL_OPERATION',
     function_type='NOT'
@@ -173,7 +178,7 @@ Exclusive or (exactly one True):
 
 ```python
 # Activate if exactly one input True
-sim.control(
+sim.add(Control(
     id='XOR_CONTROL',
     input_id=['ZONE_1_ALARM', 'ZONE_2_ALARM'],
     function_type='XOR'
@@ -188,22 +193,22 @@ sim.control(
 from pyfds import Simulation
 
 sim = Simulation(chid='sprinkler_system')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3)))
 
 # Fire
-sim.surface(id='FIRE', hrrpua=1200.0)
-sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1200.0))
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 # Sprinkler head temperature (at ceiling)
-sim.device(
+sim.add(Device(
     id='SPRINKLER_LINK',
     quantity='TEMPERATURE',
     xyz=Point3D.of(3, 2.5, 2.95)
 )
 
 # Control: Activate at 68°C (RTI included in device)
-sim.control(
+sim.add(Control(
     id='SPRINKLER_CTRL',
     input_id='SPRINKLER_LINK',
     setpoint=68.0,
@@ -211,7 +216,7 @@ sim.control(
 )
 
 # Sprinkler spray surface (controlled)
-sim.surface(
+sim.add(Surface(
     id='SPRINKLER_SPRAY',
     mass_flux=0.05,  # Water spray (kg/m²/s)
     ctrl_id='SPRINKLER_CTRL'
@@ -230,22 +235,22 @@ sim.write('sprinkler_system.fds')
 
 ```python
 sim = Simulation(chid='hvac_shutdown')
-sim.add(Time(t_end=900.0)
-sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3))
+sim.add(Time(t_end=900.0))
+sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3)))
 
 # Fire
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.add(Obstruction(xb=Bounds3D.of(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(3.5, 4.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE'))
 
 # Smoke detector at ceiling
-sim.device(
+sim.add(Device(
     id='SMOKE_DET',
     quantity='OPTICAL DENSITY',
     xyz=Point3D.of(4, 3, 2.9)
 )
 
 # Control: Shutdown HVAC when smoke detected (OD > 0.05)
-sim.control(
+sim.add(Control(
     id='HVAC_SHUTDOWN',
     input_id='SMOKE_DET',
     setpoint=0.05,
@@ -276,25 +281,25 @@ sim.write('hvac_shutdown.fds')
 
 ```python
 sim = Simulation(chid='suppression_system')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(100, 80, 40), xb=Bounds3D.of(0, 10, 0, 8, 0, 4))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(100, 80, 40), xb=Bounds3D.of(0, 10, 0, 8, 0, 4)))
 
 # Fire
-sim.surface(id='FIRE', hrrpua=1500.0)
-sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 3.5, 4.5, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1500.0))
+sim.add(Obstruction(xb=Bounds3D.of(4.5, 5.5, 3.5, 4.5, 0, 0.1), surf_id='FIRE'))
 
 # Multiple detectors (OR logic)
 detectors = []
 for i, (x, y) in enumerate([(3, 3), (5, 3), (7, 3), (5, 5)]):
     det_id = f'DET_{i+1}'
-    sim.device(
+    sim.add(Device(
         id=det_id,
         quantity='TEMPERATURE',
         xyz=Point3D.of(x, y, 3.9)
     )
 
     # Individual detector controls
-    sim.control(
+    sim.add(Control(
         id=f'CTRL_{i+1}',
         input_id=det_id,
         setpoint=74.0
@@ -302,7 +307,7 @@ for i, (x, y) in enumerate([(3, 3), (5, 3), (7, 3), (5, 5)]):
     detectors.append(f'CTRL_{i+1}')
 
 # Master control: ANY detector activates system
-sim.control(
+sim.add(Control(
     id='SUPPRESSION_ACTIVATE',
     input_id=detectors,
     function_type='OR',
@@ -312,7 +317,7 @@ sim.control(
 # Suppression nozzles
 nozzles = [(2, 4), (5, 2), (5, 6), (8, 4)]
 for i, (x, y) in enumerate(nozzles):
-    sim.surface(
+    sim.add(Surface(
         id=f'NOZZLE_{i+1}',
         mass_flux=0.08,
         ctrl_id='SUPPRESSION_ACTIVATE'
@@ -330,22 +335,22 @@ sim.write('suppression_system.fds')
 
 ```python
 sim = Simulation(chid='door_sequence')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(100, 60, 30), xb=Bounds3D.of(0, 10, 0, 6, 0, 3))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(100, 60, 30), xb=Bounds3D.of(0, 10, 0, 6, 0, 3)))
 
 # Fire in room 1
-sim.surface(id='FIRE', hrrpua=1000.0)
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2.5, 3.5, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1000.0))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2.5, 3.5, 0, 0.1), surf_id='FIRE'))
 
 # Timer controls for door opening sequence
 # Door 1 opens at t=120s
-sim.control(id='DOOR1_OPEN', delay=120.0)
+sim.add(Control(id='DOOR1_OPEN', delay=120.0))
 
 # Door 2 opens at t=240s
-sim.control(id='DOOR2_OPEN', delay=240.0)
+sim.add(Control(id='DOOR2_OPEN', delay=240.0))
 
 # Door 3 opens at t=360s
-sim.control(id='DOOR3_OPEN', delay=360.0)
+sim.add(Control(id='DOOR3_OPEN', delay=360.0))
 
 # Doors as removable obstructions
 # Door 1: Between rooms 1 and 2
@@ -379,22 +384,22 @@ sim.write('door_sequence.fds')
 
 ```python
 sim = Simulation(chid='temp_vent')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3)))
 
 # Fire
-sim.surface(id='FIRE', hrrpua=1200.0)
-sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1200.0))
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 # Temperature sensor at ceiling
-sim.device(
+sim.add(Device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
     xyz=Point3D.of(3, 2.5, 2.9)
 )
 
 # Control: Open vent when temp > 100°C
-sim.control(
+sim.add(Control(
     id='VENT_OPEN',
     input_id='TEMP_CEILING',
     setpoint=100.0,
@@ -418,13 +423,13 @@ sim.write('temp_vent.fds')
 
 ```python
 # Stage 1: Alert at 60°C
-sim.control(id='ALERT', input_id='TEMP', setpoint=60.0)
+sim.add(Control(id='ALERT', input_id='TEMP', setpoint=60.0))
 
 # Stage 2: Evacuate at 80°C
-sim.control(id='EVACUATE', input_id='TEMP', setpoint=80.0)
+sim.add(Control(id='EVACUATE', input_id='TEMP', setpoint=80.0))
 
 # Stage 3: Suppress at 100°C
-sim.control(id='SUPPRESS', input_id='TEMP', setpoint=100.0, latch=True)
+sim.add(Control(id='SUPPRESS', input_id='TEMP', setpoint=100.0, latch=True))
 ```
 
 ### Zone-Based System
@@ -435,10 +440,10 @@ zones = ['ZONE_A', 'ZONE_B', 'ZONE_C']
 
 for zone in zones:
     # Detector in each zone
-    sim.device(id=f'DET_{zone}', quantity='TEMPERATURE', xyz=(...))
+    sim.add(Device(id=f'DET_{zone}', quantity='TEMPERATURE', xyz=(...)))
 
     # Control for each zone
-    sim.control(
+    sim.add(Control(
         id=f'CTRL_{zone}',
         input_id=f'DET_{zone}',
         setpoint=74.0,
@@ -457,17 +462,17 @@ for zone in zones:
 
 ```python
 # Detector 1 triggers first stage
-sim.control(id='STAGE_1', input_id='DET_1', setpoint=70.0)
+sim.add(Control(id='STAGE_1', input_id='DET_1', setpoint=70.0))
 
 # Stage 1 + Detector 2 triggers stage 2
-sim.control(
+sim.add(Control(
     id='STAGE_2',
     input_id=['STAGE_1', 'DET_2_CTRL'],
     function_type='AND'
 )
 
 # Both stages trigger final response
-sim.control(
+sim.add(Control(
     id='FINAL',
     input_id=['STAGE_1', 'STAGE_2'],
     function_type='AND',
@@ -481,17 +486,17 @@ Combine controls with time-varying properties:
 
 ```python
 # Fire starts at t=0, grows normally
-sim.ramp(id='FIRE_GROWTH', t=[0, 180], f=[0, 1])
-sim.surface(id='FIRE', hrrpua=2000.0, ramp_q='FIRE_GROWTH')
+sim.add(Ramp(id='FIRE_GROWTH', t=[0, 180], f=[0, 1]))
+sim.add(Surface(id='FIRE', hrrpua=2000.0, ramp_q='FIRE_GROWTH'))
 
 # Control activates suppression at t=200s
-sim.control(id='SUPPRESS', delay=200.0)
+sim.add(Control(id='SUPPRESS', delay=200.0))
 
 # Suppression ramp (immediate full flow)
-sim.ramp(id='SUPPRESS_RAMP', t=[0, 1], f=[0, 1])
+sim.add(Ramp(id='SUPPRESS_RAMP', t=[0, 1], f=[0, 1]))
 
 # Suppression surface with control and ramp
-sim.surface(
+sim.add(Surface(
     id='SUPPRESSION',
     mass_flux=0.1,
     ctrl_id='SUPPRESS',
@@ -506,7 +511,7 @@ sim.surface(
 ```python
 # Good: Descriptive IDs and comments
 # Sprinkler activates when ceiling temperature > 68°C
-sim.control(
+sim.add(Control(
     id='SPRINKLER_ACTIVATION',
     input_id='LINK_TEMPERATURE',
     setpoint=68.0,
@@ -514,14 +519,14 @@ sim.control(
 )
 
 # Poor: Unclear purpose
-sim.control(id='C1', input_id='D1', setpoint=68.0)
+sim.add(Control(id='C1', input_id='D1', setpoint=68.0))
 ```
 
 ### 2. Realistic Response Times
 
 ```python
 # Include thermal lag for fusible links
-sim.control(
+sim.add(Control(
     id='SPRINKLER',
     input_id='LINK_TEMP',
     setpoint=68.0,
@@ -534,7 +539,7 @@ sim.control(
 
 ```python
 # Add device to monitor control state
-sim.device(
+sim.add(Device(
     id='CTRL_STATE',
     quantity='CONTROL VALUE',
     ctrl_id='SPRINKLER_ACTIVATION'
@@ -545,10 +550,10 @@ sim.device(
 
 ```python
 # Latch for one-time events (alarms, suppression)
-sim.control(id='ALARM', input_id='SMOKE', setpoint=0.1, latch=True)
+sim.add(Control(id='ALARM', input_id='SMOKE', setpoint=0.1, latch=True))
 
 # Don't latch for cyclical controls (thermostats, pressure relief)
-sim.control(id='THERMOSTAT', input_id='TEMP', setpoint=25.0, latch=False)
+sim.add(Control(id='THERMOSTAT', input_id='TEMP', setpoint=25.0, latch=False))
 ```
 
 ## Common Issues
@@ -559,8 +564,8 @@ sim.control(id='THERMOSTAT', input_id='TEMP', setpoint=25.0, latch=False)
     **Solution**: Check device values and initial state
     ```python
     # Monitor both device and control
-    sim.device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2))
-    sim.device(id='CTRL_STATE', quantity='CONTROL VALUE', ctrl_id='MY_CTRL')
+    sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(3, 2, 2)))
+    sim.add(Device(id='CTRL_STATE', quantity='CONTROL VALUE', ctrl_id='MY_CTRL'))
     ```
 
 ??? question "Control activates too early/late"
@@ -568,7 +573,7 @@ sim.control(id='THERMOSTAT', input_id='TEMP', setpoint=25.0, latch=False)
 
     **Solution**: Adjust setpoint or add delay
     ```python
-    sim.control(
+    sim.add(Control(
         id='CTRL',
         input_id='TEMP',
         setpoint=74.0,  # Check this value
@@ -581,7 +586,7 @@ sim.control(id='THERMOSTAT', input_id='TEMP', setpoint=25.0, latch=False)
 
     **Solution**: Link control to surface via ctrl_id
     ```python
-    sim.surface(id='SPRAY', mass_flux=0.05, ctrl_id='SPRINKLER_CTRL')
+    sim.add(Surface(id='SPRAY', mass_flux=0.05, ctrl_id='SPRINKLER_CTRL'))
     ```
 
 ## Control Function Summary

@@ -10,6 +10,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+__all__ = ["FdsField", "NamelistBase"]
+
 
 def FdsField(
     default: Any = None,
@@ -114,17 +116,6 @@ class NamelistBase(BaseModel, ABC):
 
         return params
 
-    def _extra_fds_params(self) -> list[str]:
-        """
-        Override to add custom parameters not from fields.
-
-        Returns
-        -------
-        list[str]
-            List of additional parameter strings in "KEY=VALUE" format
-        """
-        return []
-
     def _format_namelist(self, params: dict[str, Any]) -> str:
         """
         Format parameters into FDS namelist string.
@@ -139,14 +130,9 @@ class NamelistBase(BaseModel, ABC):
         str
             Formatted FDS namelist string
         """
-        # Get extra parameters from subclasses
-        extra_params = self._extra_fds_params()
-
         # Always output the namelist, even with no parameters
         # Build parameter strings from dict
         param_strings = [f"{key}={value}" for key, value in params.items()]
-        # Add extra parameters (already in KEY=VALUE format)
-        param_strings.extend(extra_params)
 
         if param_strings:
             params_line = ", ".join(param_strings)
@@ -156,7 +142,7 @@ class NamelistBase(BaseModel, ABC):
 
     def _build_namelist(self, name: str, params: dict[str, Any]) -> str:
         """
-        Build namelist string with explicit name (for backward compatibility).
+        Build namelist string with explicit name.
 
         Parameters
         ----------
@@ -170,16 +156,11 @@ class NamelistBase(BaseModel, ABC):
         str
             Formatted FDS namelist string
         """
-        # Get extra parameters from subclasses
-        extra_params = self._extra_fds_params()
-
-        if not params and not extra_params:
+        if not params:
             return ""
 
         # Build parameter strings from dict
         param_strings = [f"{key}={value}" for key, value in params.items()]
-        # Add extra parameters (already in KEY=VALUE format)
-        param_strings.extend(extra_params)
 
         params_line = ", ".join(param_strings)
         return f"&{name} {params_line} /\n"
@@ -274,3 +255,62 @@ class NamelistBase(BaseModel, ABC):
             normalized_data["xb"] = Bounds3D.of(*normalized_data["xb"])
 
         return cls(**normalized_data)
+
+    def __repr__(self) -> str:
+        """Return a concise string representation for debugging.
+
+        Shows the namelist type and key identifying fields (id, chid, or first required field).
+
+        Returns
+        -------
+        str
+            Concise representation like "<Head(HEAD) id='room_fire'>"
+        """
+        class_name = self.__class__.__name__
+        namelist_name = self._get_namelist_name()
+
+        # Find the identifying field
+        id_value = None
+        for field_name in ["id", "chid", "ID", "CHID"]:
+            if hasattr(self, field_name):
+                id_value = getattr(self, field_name)
+                if id_value is not None:
+                    break
+
+        if id_value:
+            return f"<{class_name}({namelist_name}) id={id_value!r}>"
+
+        # For namelists without id (like Time, Misc), show key fields
+        key_fields = []
+        for field_name, field_info in self.__class__.model_fields.items():
+            if field_info.is_required():
+                value = getattr(self, field_name)
+                if value is not None:
+                    # Truncate long values
+                    value_repr = repr(value)
+                    if len(value_repr) > 30:
+                        value_repr = value_repr[:27] + "..."
+                    key_fields.append(f"{field_name}={value_repr}")
+                    if len(key_fields) >= 2:  # Limit to 2 fields
+                        break
+
+        if key_fields:
+            fields_str = ", ".join(key_fields)
+            return f"<{class_name}({namelist_name}) {fields_str}>"
+
+        return f"<{class_name}({namelist_name})>"
+
+    def __str__(self) -> str:
+        """Return the FDS namelist output.
+
+        This is equivalent to calling to_fds() but truncated for display.
+
+        Returns
+        -------
+        str
+            FDS output, truncated to 100 characters if needed
+        """
+        fds_output = self.to_fds()
+        if len(fds_output) > 100:
+            return fds_output[:97] + "..."
+        return fds_output.strip()

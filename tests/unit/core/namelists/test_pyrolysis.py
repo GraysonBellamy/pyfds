@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from pyfds.core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
 
 
 class TestPyrolysisProduct:

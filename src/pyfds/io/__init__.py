@@ -5,10 +5,10 @@ I/O module for reading and writing FDS files.
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .parsers import CSVParser, FDSParser
+from pyfds.io.parsers import CSVParser, FDSParser
 
 if TYPE_CHECKING:
-    from ..core.simulation import Simulation
+    from pyfds.core.simulation import Simulation
 
 
 def parse_fds(filepath: str | Path) -> "Simulation":

@@ -144,10 +144,10 @@ wood = MaterialBuilder('WOOD').density(500).thermal_conductivity(0.13).build()
 sim.add_material(wood)
 
 # Use in surface
-sim.surface(id='WOOD_WALL', matl_id='WOOD', thickness=0.012)
+sim.add(Surface(id='WOOD_WALL', matl_id='WOOD', thickness=0.012))
 
 # Apply to geometry
-sim.add(Obstruction(xb=Bounds3D.of(0, 0, 0, 5, 0, 3), surf_id='WOOD_WALL')
+sim.add(Obstruction(xb=Bounds3D.of(0, 0, 0, 5, 0, 3), surf_id='WOOD_WALL'))
 ```
 
 ### Layered Materials
@@ -161,7 +161,7 @@ sim.add_material(gypsum)
 sim.add_material(insulation)
 
 # Layered surface
-sim.surface(
+sim.add(Surface(
     id='WALL',
     matl_id=['GYPSUM', 'INSULATION', 'GYPSUM'],
     thickness=[0.012, 0.10, 0.012]  # Gypsum-insulation-gypsum sandwich
@@ -192,7 +192,7 @@ reac = ReactionBuilder().fuel('PROPANE').build()
 sim.add_reaction(reac)
 
 # Surface with pyrolysis
-sim.surface(id='FOAM', matl_id='POLYMER', thickness=0.05)
+sim.add(Surface(id='FOAM', matl_id='POLYMER', thickness=0.05))
 ```
 
 ### Structured Pyrolysis API
@@ -202,7 +202,7 @@ The `MaterialBuilder` provides a cleaner, more maintainable API for defining pyr
 #### Single-Step Pyrolysis
 
 ```python
-from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+from pyfds.core.models import PyrolysisReaction, PyrolysisProduct
 
 # Method 1: Arrhenius kinetics (explicit A and E)
 wood = (
@@ -478,10 +478,10 @@ concrete = MaterialBuilder('CONCRETE').density(2400).thermal_conductivity(1.6)..
 
 ```python
 # Good: Thin surface materials
-sim.surface(id='WALL', matl_id='GYPSUM', thickness=0.012)
+sim.add(Surface(id='WALL', matl_id='GYPSUM', thickness=0.012))
 
 # Avoid: Very thick single layer (use multiple cells instead)
-sim.surface(id='WALL', matl_id='GYPSUM', thickness=1.0)  # Too thick
+sim.add(Surface(id='WALL', matl_id='GYPSUM', thickness=1.0)  # Too thick
 ```
 
 ### Validate Pyrolysis Parameters

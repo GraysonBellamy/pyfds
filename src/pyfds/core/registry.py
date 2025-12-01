@@ -8,24 +8,28 @@ from pyfds.exceptions import DuplicateIdError, UnknownIdError
 if TYPE_CHECKING:
     from pyfds.core.namelists import (
         Combustion,
-        Ctrl,
+        Control,
         Device,
+        Geometry,
         Head,
         Hole,
+        Hvac,
+        Initialization,
         Material,
         Mesh,
         Misc,
-        Mult,
-        Prop,
+        Move,
+        Multiplier,
+        Obstruction,
+        Particle,
+        Property,
         Ramp,
         Reaction,
         Species,
         Surface,
         Time,
+        Vent,
     )
-    from pyfds.core.namelists.init import Init
-    from pyfds.core.namelists.obst import Obstruction
-    from pyfds.core.namelists.vent import Vent
 
 T = TypeVar("T")
 
@@ -114,17 +118,19 @@ class SimulationRegistry:
         self.species: Registry[Species] = Registry("SPEC")
         self.reactions: Registry[Reaction] = Registry("REAC")
         self.devices: Registry[Device] = Registry("DEVC")
-        self.props: Registry[Prop] = Registry("PROP")
-        self.ctrls: Registry[Ctrl] = Registry("CTRL")
-        self.mults: Registry[Mult] = Registry("MULT")
+        self.props: Registry[Property] = Registry("PROP")
+        self.ctrls: Registry[Control] = Registry("CTRL")
+        self.mults: Registry[Multiplier] = Registry("MULT")
         self.obstructions: Registry[Obstruction] = Registry("OBST")
         self.vents: Registry[Vent] = Registry("VENT")
-        self.inits: Registry[Init] = Registry("INIT")
+        self.inits: Registry[Initialization] = Registry("INIT")
+        self.geoms: Registry[Geometry] = Registry("GEOM")
+        self.parts: Registry[Particle] = Registry("PART")
+        self.moves: Registry[Move] = Registry("MOVE")
+        self.hvacs: Registry[Hvac] = Registry("HVAC")
 
         # Singleton namelists (only one allowed per simulation)
         # These mirror FDS behavior where only one HEAD, TIME, MISC, COMB is allowed.
-        # REAC is intentionally stored in the `reactions` registry (allows multiple entries),
-        # but we keep a legacy slot for backward compatibility.
         self.time: Time | None = None
         self.combustion: Combustion | None = None
         self.misc: Misc | None = None
@@ -143,17 +149,21 @@ class SimulationRegistry:
         # Import here to avoid circular imports
         from pyfds.core.namelists import (
             Combustion,
-            Ctrl,
+            Control,
             Device,
+            Geometry,
             Head,
             Hole,
-            Init,
+            Hvac,
+            Initialization,
             Material,
             Mesh,
             Misc,
-            Mult,
+            Move,
+            Multiplier,
             Obstruction,
-            Prop,
+            Particle,
+            Property,
             Ramp,
             Reaction,
             Species,
@@ -187,18 +197,26 @@ class SimulationRegistry:
                 self.reactions.add(item)
             case Device():
                 self.devices.add(item)
-            case Prop():
+            case Property():
                 self.props.add(item)
-            case Ctrl():
+            case Control():
                 self.ctrls.add(item)
-            case Mult():
+            case Multiplier():
                 self.mults.add(item)
             case Obstruction():
                 self.obstructions.add(item)
             case Vent():
                 self.vents.add(item)
-            case Init():
+            case Initialization():
                 self.inits.add(item)
+            case Geometry():
+                self.geoms.add(item)
+            case Particle():
+                self.parts.add(item)
+            case Move():
+                self.moves.add(item)
+            case Hvac():
+                self.hvacs.add(item)
             case Time():
                 if self.time is not None:
                     raise ValueError("TIME already set")
@@ -235,6 +253,10 @@ class SimulationRegistry:
             self.obstructions,
             self.vents,
             self.inits,
+            self.geoms,
+            self.parts,
+            self.moves,
+            self.hvacs,
         ]
 
         for registry in registries:
@@ -259,6 +281,9 @@ class SimulationRegistry:
         self.obstructions.clear()
         self.vents.clear()
         self.inits.clear()
+        self.geoms.clear()
+        self.parts.clear()
+        self.moves.clear()
 
         self.time = None
         self.combustion = None
@@ -299,5 +324,8 @@ class SimulationRegistry:
         namelists.extend(self.devices.list_items())  # DEVC
         namelists.extend(self.ctrls.list_items())  # CTRL
         namelists.extend(self.inits.list_items())  # INIT
+        namelists.extend(self.geoms.list_items())  # GEOM
+        namelists.extend(self.parts.list_items())  # PART
+        namelists.extend(self.moves.list_items())  # MOVE
 
         return namelists

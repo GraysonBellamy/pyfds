@@ -13,15 +13,3 @@ The species module provides classes for defining gas species in FDS simulations,
 ::: pyfds.core.namelists.Combustion
     options:
       show_source: true
-
-## SpeciesManager Class
-
-::: pyfds.core.managers.SpeciesManager
-    options:
-      show_source: true
-
-## Species Library Functions
-
-::: pyfds.builders.libraries.species
-    options:
-      show_source: true

@@ -2,11 +2,11 @@
 
 from typing import TYPE_CHECKING
 
-from ..core.namelists import Material
-from .base import Builder
+from pyfds.builders.base import Builder
+from pyfds.core.namelists import Material
 
 if TYPE_CHECKING:
-    from ..core.namelists.pyrolysis import PyrolysisReaction
+    from pyfds.core.models import PyrolysisReaction
 
 
 class MaterialBuilder(Builder[Material]):
@@ -73,16 +73,10 @@ class MaterialBuilder(Builder[Material]):
         self._specific_heat_ramp: str | None = None
         self._emissivity: float = 0.9
         self._absorption_coefficient: float = 50000.0
-        self._reference_temperature: float | None = None
         self._structured_reactions: list[PyrolysisReaction] = []
-        self._spec_id: str | None = None
-        self._yield_fraction: float | None = None
-        self._heat_of_combustion: float | None = None
-        self._reference_rate: float | None = None
         # Liquid fuel parameters
         self._boiling_temperature: float | None = None
         self._mw: float | None = None
-        self._heat_of_vaporization: float | None = None
 
     def id(self, material_id: str) -> "MaterialBuilder":
         """
@@ -240,98 +234,6 @@ class MaterialBuilder(Builder[Material]):
         self._absorption_coefficient = value
         return self
 
-    def reference_temperature(self, temp: float) -> "MaterialBuilder":
-        """
-        Set reference temperature for properties.
-
-        Parameters
-        ----------
-        temp : float
-            Reference temperature in °C
-
-        Returns
-        -------
-        MaterialBuilder
-            Self for method chaining
-        """
-        self._reference_temperature = temp
-        return self
-
-    def with_pyrolysis_product(
-        self, spec_id: str, yield_fraction: float | None = None
-    ) -> "MaterialBuilder":
-        """
-        Set pyrolysis product for single-reaction materials.
-
-        Parameters
-        ----------
-        spec_id : str
-            Gas species ID produced by pyrolysis
-        yield_fraction : float, optional
-            Fraction of material yielded (0-1)
-
-        Returns
-        -------
-        MaterialBuilder
-            Self for method chaining
-
-        Examples
-        --------
-        >>> mat = MaterialBuilder('PMMA') \\
-        ...     .density(1200) \\
-        ...     .thermal_conductivity(0.19) \\
-        ...     .specific_heat(1.4) \\
-        ...     .with_pyrolysis_product('MMA_VAPOR', yield_fraction=1.0) \\
-        ...     .build()
-        """
-        self._spec_id = spec_id
-        if yield_fraction is not None:
-            self._yield_fraction = yield_fraction
-        return self
-
-    def with_heat_of_combustion(self, value: float) -> "MaterialBuilder":
-        """
-        Set heat of combustion.
-
-        Parameters
-        ----------
-        value : float
-            Heat of combustion in kJ/kg
-
-        Returns
-        -------
-        MaterialBuilder
-            Self for method chaining
-
-        Examples
-        --------
-        >>> mat = MaterialBuilder('FUEL') \\
-        ...     .density(800) \\
-        ...     .thermal_conductivity(0.1) \\
-        ...     .specific_heat(2.0) \\
-        ...     .with_heat_of_combustion(25000) \\
-        ...     .build()
-        """
-        self._heat_of_combustion = value
-        return self
-
-    def with_reference_rate(self, rate: float) -> "MaterialBuilder":
-        """
-        Set reference reaction rate.
-
-        Parameters
-        ----------
-        rate : float
-            Reference reaction rate in 1/s
-
-        Returns
-        -------
-        MaterialBuilder
-            Self for method chaining
-        """
-        self._reference_rate = rate
-        return self
-
     def add_reaction(self, reaction: "PyrolysisReaction") -> "MaterialBuilder":
         """
         Add a structured pyrolysis reaction to the material.
@@ -348,10 +250,10 @@ class MaterialBuilder(Builder[Material]):
 
         Examples
         --------
-        >>> from pyfds.core.namelists.pyrolysis import PyrolysisReaction, PyrolysisProduct
+        >>> from pyfds.core.models import PyrolysisReaction, PyrolysisProduct
         >>> reaction = PyrolysisReaction(
         ...     a=1e10, e=1.5e5, heat_of_reaction=500,
-        ...     products=[PyrolysisProduct(species="GAS", mass_fraction=0.8)]
+        ...     products=[PyrolysisProduct(spec_id="GAS", nu_spec=0.8)]
         ... )
         >>> mat = MaterialBuilder('WOOD').add_reaction(reaction).build()
         """
@@ -368,10 +270,11 @@ class MaterialBuilder(Builder[Material]):
         yield_fraction: float = 1.0,
     ) -> "MaterialBuilder":
         """
-        Add a pyrolysis reaction using legacy array-based API.
+        Add a pyrolysis reaction using simplified parameters.
 
-        This method is provided for backward compatibility. For new code,
-        prefer using add_reaction() with PyrolysisReaction objects.
+        Creates a PyrolysisReaction from basic kinetic parameters.
+        For more complex reactions, prefer using add_reaction() with
+        PyrolysisReaction objects directly.
 
         Parameters
         ----------
@@ -393,7 +296,7 @@ class MaterialBuilder(Builder[Material]):
         MaterialBuilder
             Self for method chaining
         """
-        from ..core.namelists.pyrolysis import PyrolysisProduct, PyrolysisReaction
+        from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
 
         products = []
         if product_species:
@@ -471,41 +374,33 @@ class MaterialBuilder(Builder[Material]):
         ...     ) \\
         ...     .build()
         """
-        self._boiling_temperature = boiling_temperature
-        self._spec_id = spec_id
-        self._yield_fraction = nu_spec
+        from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
 
+        self._boiling_temperature = boiling_temperature
         if mw is not None:
             self._mw = mw
-        if heat_of_vaporization is not None:
-            self._heat_of_vaporization = heat_of_vaporization
         if absorption_coefficient is not None:
             self._absorption_coefficient = absorption_coefficient
 
+        # Create a structured reaction for the liquid evaporation
+        # In FDS, heat_of_vaporization is specified as heat_of_reaction on the reaction
+        evap_reaction = PyrolysisReaction(
+            heat_of_reaction=heat_of_vaporization if heat_of_vaporization is not None else 0.0,
+            products=[PyrolysisProduct(spec_id=spec_id, nu_spec=nu_spec)],
+        )
+        self._structured_reactions.append(evap_reaction)
+
         return self
 
-    def build(self) -> Material:
-        """
-        Build the Material object.
-
-        Returns
-        -------
-        Material
-            The constructed Material namelist object
-
-        Raises
-        ------
-        ValueError
-            If required parameters are missing
-        RuntimeError
-            If the builder has already been used
-        """
-        self._check_built()
-
-        # Validate required parameters
+    def _validate(self) -> list[str]:
+        """Validate builder state before building."""
+        errors = []
         if self._density is None:
-            raise ValueError(f"MaterialBuilder '{self._id}': density is required")
+            errors.append("density is required")
+        return errors
 
+    def _create(self) -> Material:
+        """Create the Material object."""
         # Build parameter dict
         params: dict = {
             "id": self._id,
@@ -524,171 +419,14 @@ class MaterialBuilder(Builder[Material]):
         if self._specific_heat_ramp is not None:
             params["specific_heat_ramp"] = self._specific_heat_ramp
 
-        # Reference temperature
-        if self._reference_temperature is not None:
-            params["reference_temperature"] = self._reference_temperature
-
-        if self._spec_id is not None:
-            params["spec_id"] = self._spec_id
-        if self._yield_fraction is not None:
-            params["nu_spec"] = self._yield_fraction
-        if self._heat_of_combustion is not None:
-            params["heat_of_combustion"] = self._heat_of_combustion
-        if self._reference_rate is not None:
-            params["reference_rate"] = self._reference_rate
-
         # Liquid fuel parameters
         if self._boiling_temperature is not None:
             params["boiling_temperature"] = self._boiling_temperature
         if self._mw is not None:
             params["mw"] = self._mw
-        if self._heat_of_vaporization is not None:
-            params["heat_of_vaporization"] = self._heat_of_vaporization
 
         # Pyrolysis reactions
         if self._structured_reactions:
-            # Use structured PyrolysisReaction objects
             params["reactions"] = self._structured_reactions
 
-        material = Material(**params)
-        self._mark_built()
-        return material
-
-    # Predefined common materials
-    @classmethod
-    def concrete(cls) -> Material:
-        """
-        Create standard concrete material.
-
-        Returns
-        -------
-        Material
-            Concrete with typical thermal properties
-
-        Examples
-        --------
-        >>> concrete = MaterialBuilder.concrete()
-        """
-        return (
-            cls("CONCRETE")
-            .density(2400)
-            .thermal_conductivity(1.6)
-            .specific_heat(0.88)
-            .emissivity(0.9)
-            .build()
-        )
-
-    @classmethod
-    def gypsum(cls) -> Material:
-        """
-        Create standard gypsum board (drywall) material.
-
-        Returns
-        -------
-        Material
-            Gypsum board with typical thermal properties
-
-        Examples
-        --------
-        >>> gypsum = MaterialBuilder.gypsum()
-        """
-        return (
-            cls("GYPSUM")
-            .density(930)
-            .thermal_conductivity(0.48)
-            .specific_heat(0.84)
-            .emissivity(0.9)
-            .build()
-        )
-
-    @classmethod
-    def steel(cls) -> Material:
-        """
-        Create standard structural steel material.
-
-        Returns
-        -------
-        Material
-            Steel with typical thermal properties
-
-        Examples
-        --------
-        >>> steel = MaterialBuilder.steel()
-        """
-        return (
-            cls("STEEL")
-            .density(7850)
-            .thermal_conductivity(45.8)
-            .specific_heat(0.46)
-            .emissivity(0.7)
-            .build()
-        )
-
-    @classmethod
-    def aluminum(cls) -> Material:
-        """
-        Create standard aluminum material.
-
-        Returns
-        -------
-        Material
-            Aluminum with typical thermal properties
-
-        Examples
-        --------
-        >>> aluminum = MaterialBuilder.aluminum()
-        """
-        return (
-            cls("ALUMINUM")
-            .density(2700)
-            .thermal_conductivity(237)
-            .specific_heat(0.90)
-            .emissivity(0.2)
-            .build()
-        )
-
-    @classmethod
-    def brick(cls) -> Material:
-        """
-        Create standard brick material.
-
-        Returns
-        -------
-        Material
-            Brick with typical thermal properties
-
-        Examples
-        --------
-        >>> brick = MaterialBuilder.brick()
-        """
-        return (
-            cls("BRICK")
-            .density(1920)
-            .thermal_conductivity(0.69)
-            .specific_heat(0.84)
-            .emissivity(0.9)
-            .build()
-        )
-
-    @classmethod
-    def wood(cls) -> Material:
-        """
-        Create standard wood material (pine).
-
-        Returns
-        -------
-        Material
-            Wood with typical thermal properties
-
-        Examples
-        --------
-        >>> wood = MaterialBuilder.wood()
-        """
-        return (
-            cls("WOOD")
-            .density(500)
-            .thermal_conductivity(0.13)
-            .specific_heat(2.5)
-            .emissivity(0.9)
-            .build()
-        )
+        return Material(**params)

@@ -1,5 +1,4 @@
-"""
-FDS SURF namelist.
+"""FDS SURF namelist for surface properties.
 
 Surface properties for boundaries and materials.
 
@@ -16,17 +15,21 @@ Fields are organized by logical groups (use group= metadata for categorization):
 - spyro: SPyro model parameters
 - testing: TGA/MCC/DSC analysis parameters
 - numerical: Numerical solver parameters
+- wall_model: Wall boundary layer parameters
+- vegetation: Vegetation/boundary fuel model parameters
+- level_set: Level set wildland fire spread parameters
+- ember: Ember generation and ignition parameters
+- leakage: Pressure zone leakage parameters
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import field_validator, model_validator
 
 from pyfds.core.enums import BackingCondition, HeatTransferModel, SolidGeometry
 from pyfds.core.namelists.base import FdsField, NamelistBase
 
-if TYPE_CHECKING:
-    from pyfds.builders import SurfaceBuilder
+__all__ = ["Surface"]
 
 
 class Surface(NamelistBase):
@@ -65,28 +68,14 @@ class Surface(NamelistBase):
     >>> fire_surf = Surface(id='FIRE', hrrpua=1000.0, color='RED')
     >>> print(fire_surf.to_fds())
     &SURF ID='FIRE', HRRPUA=1000.0, COLOR='RED' /
+
+    See Also
+    --------
+    Material : Material properties for layered surfaces.
+    Obstruction : Objects that use surface properties.
+    Vent : Boundary conditions that use surface properties.
+    Ramp : Time-varying surface properties.
     """
-
-    @classmethod
-    def builder(cls) -> "SurfaceBuilder":
-        """Return a fluent builder for Surface.
-
-        Returns
-        -------
-        SurfaceBuilder
-            A builder instance for fluent construction
-
-        Examples
-        --------
-        >>> surf = Surface.builder() \\
-        ...     .id("FIRE") \\
-        ...     .burning(hrrpua=1000.0) \\
-        ...     .color("RED") \\
-        ...     .build()
-        """
-        from pyfds.builders import SurfaceBuilder
-
-        return SurfaceBuilder()
 
     # =========================================================================
     # CORE PARAMETERS
@@ -146,14 +135,14 @@ class Surface(NamelistBase):
         None, ge=0, description="Heat of combustion [kJ/kg]", group="burning"
     )
     ramp_q: str | None = FdsField(None, description="RAMP ID for HRR time history", group="burning")
-    ramp_mf: str | None = FdsField(
-        None, description="RAMP ID for mass flux time history", group="burning"
+    ramp_mf: list[str] | str | None = FdsField(
+        None, description="RAMP ID(s) for mass flux time history", group="burning"
     )
     tau_q: float | None = FdsField(
         None, ge=0, description="Time constant for t² fire [s]", group="burning"
     )
-    tau_mf: float | None = FdsField(
-        None, ge=0, description="Time constant for mass flux ramp [s]", group="burning"
+    tau_mf: list[float] | float | None = FdsField(
+        None, description="Time constant(s) for mass flux ramp [s]", group="burning"
     )
 
     # Fire Spread Parameters
@@ -182,10 +171,21 @@ class Surface(NamelistBase):
     vel: float | None = FdsField(
         None, description="Velocity boundary condition [m/s]", group="flow"
     )
+    vel_bulk: float | None = FdsField(
+        None, description="Bulk velocity for profiles [m/s]", group="flow"
+    )
+    vel_grad: float | None = FdsField(None, description="Velocity gradient [1/s]", group="flow")
+    vel_t: tuple[float, float] | None = FdsField(
+        None, description="Tangential velocity components (v_t1, v_t2) [m/s]", group="flow"
+    )
     mass_flow: float | None = FdsField(None, description="Mass flow rate [kg/s]", group="flow")
     mass_transfer_coefficient: float | None = FdsField(
         None, description="Mass transfer coefficient [m/s]", group="flow"
     )
+    convert_volume_to_mass: bool = FdsField(
+        False, description="Convert volume flux to mass flux", group="flow"
+    )
+    profile: str | None = FdsField(None, description="Velocity profile type", group="flow")
 
     # Species Control
     spec_id: list[str] | str | None = FdsField(
@@ -194,6 +194,27 @@ class Surface(NamelistBase):
     mass_fraction: list[float] | None = FdsField(
         None, description="Mass fractions for multiple species", group="flow"
     )
+    mass_flux: list[float] | None = FdsField(
+        None, description="Mass flux per species [kg/(m²·s)]", group="flow"
+    )
+    mass_flux_var: float | None = FdsField(
+        None, description="Mass flux variance parameter", group="flow"
+    )
+
+    # Velocity ramps
+    ramp_v: str | None = FdsField(
+        None, description="RAMP ID for velocity time history", group="flow"
+    )
+    ramp_v_x: str | None = FdsField(
+        None, description="RAMP ID for velocity X-profile", group="flow"
+    )
+    ramp_v_y: str | None = FdsField(
+        None, description="RAMP ID for velocity Y-profile", group="flow"
+    )
+    ramp_v_z: str | None = FdsField(
+        None, description="RAMP ID for velocity Z-profile", group="flow"
+    )
+    tau_v: float = FdsField(1.0, description="Time constant for velocity ramp [s]", group="flow")
 
     # =========================================================================
     # HEAT TRANSFER (from HeatTransferMixin)
@@ -252,6 +273,9 @@ class Surface(NamelistBase):
     ramp_tmp_gas_front: str | None = FdsField(
         None, description="Front gas temp ramp", group="heat_transfer"
     )
+    ramp_tmp_gas_back: str | None = FdsField(
+        None, description="Back gas temp ramp", group="heat_transfer"
+    )
 
     # =========================================================================
     # LAYERS (from LayersMixin)
@@ -281,31 +305,38 @@ class Surface(NamelistBase):
     # =========================================================================
     # PARTICLES (from ParticlesMixin)
     # =========================================================================
+    allow_surface_particles: bool = FdsField(
+        True, description="Allow particles to deposit on surface", group="particles"
+    )
+    allow_underside_particles: bool = FdsField(
+        False, description="Allow particles to deposit on underside", group="particles"
+    )
     part_id: str | None = FdsField(
         None, description="Particle class ID to generate", group="particles"
     )
     particle_mass_flux: float | None = FdsField(
         None, description="Particle mass flux [kg/s/m²]", group="particles"
     )
+    particle_surface_density: float | None = FdsField(
+        None, description="Particle surface density [kg/m²]", group="particles"
+    )
+    particle_extraction_velocity: float | None = FdsField(
+        None, description="Velocity for particle extraction [m/s]", group="particles"
+    )
     nppc: int = FdsField(1, description="Number of particles per cell", group="particles")
-
-    # Droplet Distribution
-    median_diameter: float | None = FdsField(
-        None, description="Median droplet diameter [m]", group="particles"
+    dt_insert: float = FdsField(
+        0.01, description="Particle insertion time interval [s]", group="particles"
     )
-    gamma_d: float | None = FdsField(
-        None, description="Distribution shape parameter", group="particles"
+    ramp_part: str | None = FdsField(
+        None, description="RAMP ID for particle flux time history", group="particles"
     )
-    spray_pattern: str | None = FdsField(
-        None, description="Spray pattern: UNIFORM, GAUSSIAN", group="particles"
+    tau_part: float = FdsField(
+        1.0, description="Time constant for particle flux ramp [s]", group="particles"
     )
 
     # Particle Velocity
     vel_part: float | None = FdsField(
         None, description="Particle velocity magnitude [m/s]", group="particles"
-    )
-    particle_velocity: tuple[float, float, float] | None = FdsField(
-        None, description="Particle velocity vector (vx, vy, vz)", group="particles"
     )
 
     # =========================================================================
@@ -342,6 +373,9 @@ class Surface(NamelistBase):
     )
     ramp_t_i: str | None = FdsField(
         None, description="Initial temperature profile ramp", group="temperature"
+    )
+    tau_t: float = FdsField(
+        1.0, description="Time constant for temperature ramp [s]", group="temperature"
     )
 
     # =========================================================================
@@ -458,6 +492,178 @@ class Surface(NamelistBase):
     )
 
     # =========================================================================
+    # WALL MODEL PARAMETERS
+    # =========================================================================
+    free_slip: bool = FdsField(
+        False, description="Free-slip wall boundary condition", group="wall_model"
+    )
+    no_slip: bool = FdsField(
+        False, description="No-slip wall boundary condition", group="wall_model"
+    )
+    roughness: float = FdsField(0.0, description="Surface roughness height [m]", group="wall_model")
+    near_wall_eddy_viscosity: float | None = FdsField(
+        None, description="Near-wall eddy viscosity [m²/s]", group="wall_model"
+    )
+    near_wall_turbulence_model: str | None = FdsField(
+        None, description="Near-wall turbulence model", group="wall_model"
+    )
+
+    # =========================================================================
+    # SUPPRESSION PARAMETERS
+    # =========================================================================
+    e_coefficient: float | None = FdsField(
+        None, description="Suppression effectiveness coefficient [m²/(kg·s)]", group="suppression"
+    )
+
+    # =========================================================================
+    # STRATIFICATION/WIND PARAMETERS
+    # =========================================================================
+    ple: float = FdsField(
+        0.3, description="Power law exponent for stratification", group="stratification"
+    )
+    z0: float = FdsField(
+        10.0, description="Reference height for stratification [m]", group="stratification"
+    )
+    z_0: float = FdsField(
+        0.0, description="Aerodynamic roughness length [m]", group="stratification"
+    )
+
+    # =========================================================================
+    # VEGETATION / BOUNDARY FUEL MODEL PARAMETERS
+    # =========================================================================
+    drag_coefficient: float = FdsField(
+        2.8, description="Drag coefficient for vegetation", group="vegetation"
+    )
+    shape_factor: float = FdsField(
+        0.25, description="Shape factor for cylindrical fuel elements", group="vegetation"
+    )
+    mass_per_volume: list[float] | None = FdsField(
+        None, description="Fuel mass per volume [kg/m³]", group="vegetation"
+    )
+    surface_volume_ratio: list[float] | None = FdsField(
+        None, description="Surface to volume ratio [1/m]", group="vegetation"
+    )
+    moisture_content: list[float] | None = FdsField(
+        None, description="Fuel moisture content (dry mass fraction)", group="vegetation"
+    )
+    minimum_burnout_time: float = FdsField(
+        1000000.0, description="Minimum burnout time for vegetation [s]", group="vegetation"
+    )
+    init_ids: list[str] | None = FdsField(
+        None, description="INIT IDs for vegetation particles", group="vegetation"
+    )
+    init_per_area: float | None = FdsField(
+        None, description="INIT particles per unit area [1/m²]", group="vegetation"
+    )
+
+    # =========================================================================
+    # EMBER GENERATION PARAMETERS
+    # =========================================================================
+    ember_generation_height: tuple[float, float] | None = FdsField(
+        None, description="Height range for ember generation [m]", group="ember"
+    )
+    ember_ignition_power_mean: float | None = FdsField(
+        None, description="Mean ignition power for embers [kW]", group="ember"
+    )
+    ember_ignition_power_sigma: float = FdsField(
+        0.001, description="Standard deviation of ignition power [kW]", group="ember"
+    )
+    ember_tracking_ratio: float = FdsField(
+        100.0, description="Ratio of embers tracked to generated", group="ember"
+    )
+    ember_yield: float | None = FdsField(
+        None, description="Mass of embers per fuel mass [kg/kg]", group="ember"
+    )
+
+    # =========================================================================
+    # LEAKAGE PARAMETERS
+    # =========================================================================
+    leak_path: tuple[int, int] | None = FdsField(
+        None, description="Pressure zone IDs for leakage path", group="leakage"
+    )
+    leak_path_id: tuple[str, str] | None = FdsField(
+        None, description="Pressure zone names for leakage path", group="leakage"
+    )
+
+    # =========================================================================
+    # HVAC PARAMETERS
+    # =========================================================================
+    node_id: str | None = FdsField(
+        None, description="HVAC node ID connected to surface", group="hvac"
+    )
+
+    # =========================================================================
+    # LEVEL SET WILDLAND FIRE PARAMETERS
+    # =========================================================================
+    veg_lset_beta: float = FdsField(
+        0.01, description="Packing ratio for level set fire", group="level_set"
+    )
+    veg_lset_char_fraction: float = FdsField(
+        0.2, description="Char fraction for level set fire", group="level_set"
+    )
+    veg_lset_firebase_time: float | None = FdsField(
+        None, description="Firebase duration time [s]", group="level_set"
+    )
+    veg_lset_fuel_index: int | None = FdsField(
+        None, description="Fuel model index for level set fire", group="level_set"
+    )
+    veg_lset_ht: float = FdsField(
+        0.2, description="Fuel height for level set fire [m]", group="level_set"
+    )
+    veg_lset_ignite_time: float | None = FdsField(
+        None, description="Ignition time for level set fire [s]", group="level_set"
+    )
+    veg_lset_m1: float = FdsField(
+        0.03, description="1-hour fuel moisture content", group="level_set"
+    )
+    veg_lset_m10: float = FdsField(
+        0.04, description="10-hour fuel moisture content", group="level_set"
+    )
+    veg_lset_m100: float = FdsField(
+        0.05, description="100-hour fuel moisture content", group="level_set"
+    )
+    veg_lset_mlw: float = FdsField(
+        0.70, description="Live woody fuel moisture content", group="level_set"
+    )
+    veg_lset_mlh: float = FdsField(
+        0.70, description="Live herbaceous fuel moisture content", group="level_set"
+    )
+    veg_lset_qcon: float = FdsField(
+        0.0, description="Convective heat flux for level set [kW/m²]", group="level_set"
+    )
+    veg_lset_ros_00: float = FdsField(
+        0.0, description="Zero-wind rate of spread [m/s]", group="level_set"
+    )
+    veg_lset_ros_back: float = FdsField(
+        0.0, description="Backing rate of spread [m/s]", group="level_set"
+    )
+    veg_lset_ros_flank: float = FdsField(
+        0.0, description="Flanking rate of spread [m/s]", group="level_set"
+    )
+    veg_lset_ros_head: float = FdsField(
+        0.0, description="Heading rate of spread [m/s]", group="level_set"
+    )
+    veg_lset_ros_fixed: bool = FdsField(
+        False, description="Use fixed rate of spread", group="level_set"
+    )
+    veg_lset_sigma: float = FdsField(
+        5000.0, description="Surface-to-volume ratio [1/m]", group="level_set"
+    )
+    veg_lset_surf_load: float = FdsField(
+        1.0, description="Surface fuel load [kg/m²]", group="level_set"
+    )
+    veg_lset_tan2: float | None = FdsField(
+        None, description="Slope factor (tan² of slope angle)", group="level_set"
+    )
+    veg_lset_wind_exp: float = FdsField(1.0, description="Wind speed exponent", group="level_set")
+    veg_lset_wind_height: float = FdsField(
+        6.1, description="Wind measurement height [m]", group="level_set"
+    )
+    veg_lset_wind_ramp: str | None = FdsField(
+        None, description="RAMP ID for wind time history", group="level_set"
+    )
+
+    # =========================================================================
     # VALIDATORS
     # =========================================================================
     @field_validator("rgb")
@@ -499,15 +705,38 @@ class Surface(NamelistBase):
             return v.upper()
         return v
 
-    @field_validator("spray_pattern")
+    @field_validator("profile")
     @classmethod
-    def validate_spray_pattern(cls, v: str | None) -> str | None:
-        """Validate spray pattern."""
+    def validate_profile(cls, v: str | None) -> str | None:
+        """Validate velocity profile type."""
         if v is not None:
-            valid_patterns = ["UNIFORM", "GAUSSIAN"]
-            if v.upper() not in valid_patterns:
-                raise ValueError(f"SPRAY_PATTERN must be one of {valid_patterns}, got '{v}'")
+            valid = ["PARABOLIC", "ATMOSPHERIC", "RAMP"]
+            if v.upper() not in valid:
+                raise ValueError(f"PROFILE must be one of {valid}, got '{v}'")
             return v.upper()
+        return v
+
+    @field_validator("near_wall_turbulence_model")
+    @classmethod
+    def validate_near_wall_turbulence_model(cls, v: str | None) -> str | None:
+        """Validate near-wall turbulence model."""
+        if v is not None:
+            valid = ["WALE", "DEARDORFF", "VREMAN", "CONSTANT SMAGORINSKY", "DYNAMIC SMAGORINSKY"]
+            if v.upper() not in valid:
+                raise ValueError(f"NEAR_WALL_TURBULENCE_MODEL must be one of {valid}, got '{v}'")
+            return v.upper()
+        return v
+
+    @field_validator("tau_mf")
+    @classmethod
+    def validate_tau_mf(cls, v: list[float] | float | None) -> list[float] | float | None:
+        """Validate tau_mf values are non-negative."""
+        if v is not None:
+            if isinstance(v, list):
+                if any(val < 0 for val in v):
+                    raise ValueError("All TAU_MF values must be >= 0")
+            elif v < 0:
+                raise ValueError("TAU_MF must be >= 0")
         return v
 
     @field_validator("reference_thickness")

@@ -9,16 +9,16 @@ import pytest
 from pyfds import Simulation
 from pyfds.core.geometry import Bounds3D, Grid3D
 from pyfds.core.namelists import Mesh
-from pyfds.validation import ParallelValidator
+from pyfds.validation import ExecutionValidator
 
 
-class TestParallelValidator:
+class TestExecutionValidator:
     """Test parallel configuration validation."""
 
     @pytest.fixture
-    def validator(self) -> ParallelValidator:
+    def validator(self) -> ExecutionValidator:
         """Create validator instance."""
-        return ParallelValidator()
+        return ExecutionValidator()
 
     @pytest.fixture
     def single_mesh_sim(self) -> Simulation:
@@ -36,77 +36,86 @@ class TestParallelValidator:
         return sim
 
 
-class TestMPIMeshValidation(TestParallelValidator):
+class TestMPIMeshValidation(TestExecutionValidator):
     """Test MPI process count vs mesh count validation."""
 
     def test_mpi_matches_mesh_count(
-        self, validator: ParallelValidator, multi_mesh_sim: Simulation
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
     ) -> None:
         """Test no warnings when MPI count matches mesh count."""
-        warnings = validator.validate_mpi_mesh_count(multi_mesh_sim, n_mpi=4)
-        assert len(warnings) == 0
+        result = validator.validate(multi_mesh_sim, n_mpi=4)
+        assert len(result.issues) == 0
 
     def test_mpi_exceeds_mesh_count(
-        self, validator: ParallelValidator, single_mesh_sim: Simulation
+        self, validator: ExecutionValidator, single_mesh_sim: Simulation
     ) -> None:
         """Test warning when MPI processes exceed mesh count."""
-        warnings = validator.validate_mpi_mesh_count(single_mesh_sim, n_mpi=4)
+        result = validator.validate(single_mesh_sim, n_mpi=4)
 
-        assert len(warnings) == 1
-        assert "(4)" in warnings[0]  # 4 MPI processes
-        assert "(1)" in warnings[0]  # 1 mesh
-        assert "idle" in warnings[0].lower()
+        assert len(result.issues) == 1
+        issue_str = str(result.issues[0])
+        assert "(4)" in issue_str  # 4 MPI processes
+        assert "(1)" in issue_str  # 1 mesh
+        assert "idle" in issue_str.lower()
 
     def test_mpi_less_than_mesh_count_uneven(
-        self, validator: ParallelValidator, multi_mesh_sim: Simulation
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
     ) -> None:
         """Test info when MPI processes unevenly divide mesh count."""
         # 4 meshes with 3 MPI processes = uneven division
-        warnings = validator.validate_mpi_mesh_count(multi_mesh_sim, n_mpi=3)
+        result = validator.validate(multi_mesh_sim, n_mpi=3)
 
-        assert len(warnings) == 1
-        assert "4" in warnings[0]  # 4 meshes
-        assert "3" in warnings[0]  # 3 MPI processes
-        assert "unbalanced" in warnings[0].lower()
+        assert len(result.issues) == 1
+        issue_str = str(result.issues[0])
+        assert "4" in issue_str  # 4 meshes
+        assert "3" in issue_str  # 3 MPI processes
+        assert "unbalanced" in issue_str.lower()
 
     def test_mpi_less_than_mesh_count_even(
-        self, validator: ParallelValidator, multi_mesh_sim: Simulation
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
     ) -> None:
         """Test no warning when MPI processes evenly divide mesh count."""
         # 4 meshes with 2 MPI processes = even division
-        warnings = validator.validate_mpi_mesh_count(multi_mesh_sim, n_mpi=2)
-        assert len(warnings) == 0
+        result = validator.validate(multi_mesh_sim, n_mpi=2)
+        assert len(result.issues) == 0
 
     def test_single_mesh_single_mpi_ok(
-        self, validator: ParallelValidator, single_mesh_sim: Simulation
+        self, validator: ExecutionValidator, single_mesh_sim: Simulation
     ) -> None:
         """Test single mesh with single MPI is fine."""
-        warnings = validator.validate_mpi_mesh_count(single_mesh_sim, n_mpi=1)
-        assert len(warnings) == 0
+        result = validator.validate(single_mesh_sim, n_mpi=1)
+        assert len(result.issues) == 0
 
 
-class TestThreadCountValidation(TestParallelValidator):
+class TestThreadCountValidation(TestExecutionValidator):
     """Test OpenMP thread count validation."""
 
-    def test_thread_count_within_limits(self, validator: ParallelValidator) -> None:
+    def test_thread_count_within_limits(
+        self, validator: ExecutionValidator, single_mesh_sim: Simulation
+    ) -> None:
         """Test no warnings for reasonable thread count."""
         cpu_count = os.cpu_count() or 4
 
         # Use 25% of cores - should be fine
-        warnings = validator.validate_thread_count(n_threads=max(1, cpu_count // 4))
-        assert len(warnings) == 0
+        result = validator.validate(single_mesh_sim, n_threads=max(1, cpu_count // 4))
+        assert len(result.issues) == 0
 
-    def test_thread_count_exceeds_cores(self, validator: ParallelValidator) -> None:
+    def test_thread_count_exceeds_cores(
+        self, validator: ExecutionValidator, single_mesh_sim: Simulation
+    ) -> None:
         """Test warning when threads exceed available cores."""
         cpu_count = os.cpu_count() or 4
 
-        warnings = validator.validate_thread_count(n_threads=cpu_count + 4)
+        result = validator.validate(single_mesh_sim, n_threads=cpu_count + 4)
 
-        assert len(warnings) == 1
-        assert "oversubscription" in warnings[0].lower()
-        assert str(cpu_count + 4) in warnings[0]
+        assert len(result.issues) >= 1
+        issue_str = str(result.issues[0])
+        assert "oversubscription" in issue_str.lower()
+        assert str(cpu_count + 4) in issue_str
 
-    def test_thread_count_over_50_percent(self, validator: ParallelValidator) -> None:
+    def test_thread_count_over_50_percent(
+        self, validator: ExecutionValidator, single_mesh_sim: Simulation
+    ) -> None:
         """Test info message when using >50% of cores."""
         cpu_count = os.cpu_count() or 4
 
@@ -115,17 +124,20 @@ class TestThreadCountValidation(TestParallelValidator):
         if n_threads <= cpu_count // 2:
             pytest.skip("System doesn't have enough cores for this test")
 
-        warnings = validator.validate_thread_count(n_threads=n_threads)
+        result = validator.validate(single_mesh_sim, n_threads=n_threads)
 
-        assert len(warnings) == 1
-        assert "50%" in warnings[0]
-        assert "responsiveness" in warnings[0].lower()
+        assert len(result.issues) >= 1
+        issue_str = str(result.issues[0])
+        assert "50%" in issue_str
+        assert "responsiveness" in issue_str.lower()
 
 
-class TestCombinedParallelismValidation(TestParallelValidator):
+class TestCombinedParallelismValidation(TestExecutionValidator):
     """Test combined MPI + OpenMP validation."""
 
-    def test_combined_within_limits(self, validator: ParallelValidator) -> None:
+    def test_combined_within_limits(
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
+    ) -> None:
         """Test no warnings for reasonable combined parallelism."""
         cpu_count = os.cpu_count() or 8
 
@@ -133,40 +145,46 @@ class TestCombinedParallelismValidation(TestParallelValidator):
         n_mpi = 2
         n_threads = max(1, cpu_count // 4)
 
-        warnings = validator.validate_combined_parallelism(n_mpi, n_threads)
+        result = validator.validate(multi_mesh_sim, n_mpi=n_mpi, n_threads=n_threads)
 
         # May get info message about high OpenMP threads, but not error
-        for warning in warnings:
-            assert "oversubscription" not in warning.lower()
+        for issue in result.issues:
+            assert "oversubscription" not in str(issue).lower()
 
-    def test_combined_exceeds_cores(self, validator: ParallelValidator) -> None:
+    def test_combined_exceeds_cores(
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
+    ) -> None:
         """Test warning when combined parallelism exceeds cores."""
         cpu_count = os.cpu_count() or 8
 
-        warnings = validator.validate_combined_parallelism(n_mpi=cpu_count, n_threads=2)
+        result = validator.validate(multi_mesh_sim, n_mpi=cpu_count, n_threads=2)
 
-        assert len(warnings) >= 1
+        assert len(result.issues) >= 1
         # Should warn about exceeding CPU count
-        exceeds_warning = any("exceeds" in w.lower() for w in warnings)
+        exceeds_warning = any("exceeds" in str(issue).lower() for issue in result.issues)
         assert exceeds_warning
 
-    def test_high_openmp_with_mpi(self, validator: ParallelValidator) -> None:
+    def test_high_openmp_with_mpi(
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
+    ) -> None:
         """Test info message about inefficient high OpenMP with MPI."""
-        warnings = validator.validate_combined_parallelism(n_mpi=4, n_threads=8)
+        result = validator.validate(multi_mesh_sim, n_mpi=4, n_threads=8)
 
         # Should get info about OpenMP inefficiency beyond ~4 threads
-        openmp_info = any("OpenMP" in w and "diminishing" in w for w in warnings)
+        openmp_info = any(
+            "OpenMP" in str(issue) and "diminishing" in str(issue) for issue in result.issues
+        )
         assert openmp_info
 
 
-class TestConfigurationRecommendations(TestParallelValidator):
+class TestConfigurationRecommendations(TestExecutionValidator):
     """Test optimal configuration recommendations."""
 
     def test_recommend_for_single_mesh(
-        self, validator: ParallelValidator, single_mesh_sim: Simulation
+        self, validator: ExecutionValidator, single_mesh_sim: Simulation
     ) -> None:
         """Test recommendation for single mesh simulation."""
-        config = validator.recommend_configuration(single_mesh_sim)
+        config = validator.suggest_config(single_mesh_sim)
 
         assert config["n_mpi"] == 1
         assert config["n_threads"] >= 1  # Should use at least 1 thread
@@ -174,16 +192,16 @@ class TestConfigurationRecommendations(TestParallelValidator):
         assert "Single mesh" in config["rationale"]
 
     def test_recommend_for_multi_mesh(
-        self, validator: ParallelValidator, multi_mesh_sim: Simulation
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
     ) -> None:
         """Test recommendation for multi-mesh simulation."""
-        config = validator.recommend_configuration(multi_mesh_sim)
+        config = validator.suggest_config(multi_mesh_sim)
 
         assert config["n_mpi"] >= 2  # Should use MPI
         assert "MPI" in config["rationale"]
         assert "Multi-mesh" in config["rationale"]
 
-    def test_recommend_with_limited_cores(self, validator: ParallelValidator) -> None:
+    def test_recommend_with_limited_cores(self, validator: ExecutionValidator) -> None:
         """Test recommendation adapts to available cores."""
         sim = Simulation(chid="test")
 
@@ -191,58 +209,59 @@ class TestConfigurationRecommendations(TestParallelValidator):
         for i in range(100):
             sim.add(Mesh(ijk=Grid3D.of(5, 5, 5), xb=Bounds3D.of(i, i + 1, 0, 1, 0, 1)))
 
-        config = validator.recommend_configuration(sim)
+        config = validator.suggest_config(sim)
 
         cpu_count = os.cpu_count() or 1
         # Should not recommend more MPI processes than available cores
         assert config["n_mpi"] <= cpu_count
 
-    def test_recommend_with_no_meshes(self, validator: ParallelValidator) -> None:
+    def test_recommend_with_no_meshes(self, validator: ExecutionValidator) -> None:
         """Test recommendation when no meshes defined."""
         sim = Simulation(chid="test")
 
-        config = validator.recommend_configuration(sim)
+        config = validator.suggest_config(sim)
 
         assert config["n_mpi"] == 1
         assert config["n_threads"] == 1
         assert "No meshes" in config["rationale"]
 
 
-class TestValidateAll(TestParallelValidator):
+class TestValidateAll(TestExecutionValidator):
     """Test comprehensive validation."""
 
-    def test_validate_all_combines_checks(
-        self, validator: ParallelValidator, multi_mesh_sim: Simulation
+    def test_validate_combines_checks(
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
     ) -> None:
-        """Test validate_all runs all validation checks."""
+        """Test validate runs all validation checks."""
         cpu_count = os.cpu_count() or 8
 
         # Configuration that should trigger multiple warnings
         # Use 3 MPI for 4 meshes (uneven) and exceed CPU count for threads
-        all_warnings = validator.validate_all(
+        result = validator.validate(
             multi_mesh_sim,
             n_mpi=3,  # Uneven division of 4 meshes
             n_threads=cpu_count + 2,  # Exceeds cores
         )
 
         # Should get warnings from multiple validators
-        assert len(all_warnings) >= 2
+        assert len(result.issues) >= 2
 
-        # Check we got warnings from different validators
-        has_mpi_warning = any("mesh" in w.lower() for w in all_warnings)
-        has_thread_warning = any("thread" in w.lower() for w in all_warnings)
+        # Check we got issues from different validators
+        issue_strs = [str(issue) for issue in result.issues]
+        has_mpi_warning = any("mesh" in w.lower() for w in issue_strs)
+        has_thread_warning = any("thread" in w.lower() for w in issue_strs)
 
         assert has_mpi_warning
         assert has_thread_warning
 
-    def test_validate_all_optimal_config(
-        self, validator: ParallelValidator, multi_mesh_sim: Simulation
+    def test_validate_optimal_config(
+        self, validator: ExecutionValidator, multi_mesh_sim: Simulation
     ) -> None:
-        """Test validate_all with optimal configuration."""
+        """Test validate with optimal configuration."""
         # Use recommended configuration
-        config = validator.recommend_configuration(multi_mesh_sim)
+        config = validator.suggest_config(multi_mesh_sim)
 
-        all_warnings = validator.validate_all(
+        result = validator.validate(
             multi_mesh_sim,
             n_mpi=config["n_mpi"],
             n_threads=config["n_threads"],
@@ -250,5 +269,7 @@ class TestValidateAll(TestParallelValidator):
 
         # Optimal config may still have info messages, but at most one warning
         # (on systems with limited cores relative to mesh count)
-        critical_warnings = [w for w in all_warnings if "WARNING" in w]
+        from pyfds.core.enums import Severity
+
+        critical_warnings = [i for i in result.issues if i.severity == Severity.WARNING]
         assert len(critical_warnings) <= 1

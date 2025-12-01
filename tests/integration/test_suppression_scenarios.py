@@ -4,8 +4,9 @@ Tests real-world fire simulation scenarios using PART, SURF particle generation,
 PROP device properties, and MATL pyrolysis enhancements.
 """
 
-from pyfds.builders import MaterialBuilder, PartBuilder, PropBuilder
-from pyfds.core.namelists import Material, Part, Prop, Surface
+from pyfds.builders import MaterialBuilder, PartBuilder
+from pyfds.builders.libraries import CommonMaterials, CommonProps
+from pyfds.core.namelists import Material, Particle, Property, Surface
 
 
 class TestWaterSpraySuppressionSystem:
@@ -35,7 +36,7 @@ class TestWaterSpraySuppressionSystem:
 
     def test_sprinkler_prop(self):
         """Test sprinkler device property."""
-        sprinkler_prop = PropBuilder.sprinkler(
+        sprinkler_prop = CommonProps.sprinkler(
             id="QUICK_SPRINKLER",
             activation_temp=68,
             rti=50,
@@ -59,14 +60,12 @@ class TestWaterSpraySuppressionSystem:
             id="SPRINKLER_HEAD",
             part_id="WATER_DROP",
             particle_mass_flux=0.015,
-            median_diameter=0.001,
             vel_part=5.0,
             color="CYAN",
         )
 
         assert sprinkler_surf.part_id == "WATER_DROP"
         assert sprinkler_surf.particle_mass_flux == 0.015
-        assert sprinkler_surf.median_diameter == 0.001
         assert sprinkler_surf.vel_part == 5.0
         assert sprinkler_surf.color == "CYAN"
 
@@ -81,20 +80,19 @@ class TestWaterSpraySuppressionSystem:
         water = PartBuilder("WATER_DROP").as_water_droplet(diameter=0.001).build()
 
         # Sprinkler property
-        sprinkler_prop = PropBuilder.quick_response_sprinkler(id="QR_SPRINKLER")
+        sprinkler_prop = CommonProps.quick_response_sprinkler(id="QR_SPRINKLER")
 
         # Sprinkler surface
         sprinkler_surf = Surface(
             id="SPRINKLER",
             part_id="WATER_DROP",
             particle_mass_flux=0.02,
-            median_diameter=0.001,
             vel_part=6.0,
         )
 
         # Verify all components created successfully
-        assert isinstance(water, Part)
-        assert isinstance(sprinkler_prop, Prop)
+        assert isinstance(water, Particle)
+        assert isinstance(sprinkler_prop, Property)
         assert isinstance(sprinkler_surf, Surface)
 
         # Verify linkage
@@ -121,7 +119,7 @@ class TestSmokeDetectionSystem:
 
     def test_smoke_detector_prop(self):
         """Test smoke detector property."""
-        smoke_det = PropBuilder.smoke_detector(
+        smoke_det = CommonProps.smoke_detector(
             id="PHOTOELECTRIC_DET", activation_obscuration=3.28, alpha_e=0.5, beta_e=0.3
         )
 
@@ -152,21 +150,28 @@ class TestPyrolysisMaterialSystems:
 
     def test_simple_pyrolysis_material(self):
         """Test material with single pyrolysis reaction."""
+        from pyfds.core.models import PyrolysisProduct, PyrolysisReaction
+
         pmma = (
             MaterialBuilder("PMMA")
             .density(1200)
             .thermal_conductivity(0.19)
             .specific_heat(1.4)
-            .with_pyrolysis_product("MMA_VAPOR", yield_fraction=1.0)
-            .with_heat_of_combustion(25000)
+            .add_reaction(
+                PyrolysisReaction(
+                    products=[
+                        PyrolysisProduct(spec_id="MMA_VAPOR", nu_spec=1.0, heat_of_combustion=25000)
+                    ],
+                )
+            )
             .build()
         )
 
         assert pmma.id == "PMMA"
         assert pmma.density == 1200
-        assert pmma.spec_id == "MMA_VAPOR"
-        assert pmma.nu_spec == 1.0
-        assert pmma.heat_of_combustion_array == 25000
+        assert pmma.reactions[0].products[0].spec_id == "MMA_VAPOR"
+        assert pmma.reactions[0].products[0].nu_spec == 1.0
+        assert pmma.reactions[0].products[0].heat_of_combustion == 25000
 
         fds_output = pmma.to_fds()
         assert "PMMA" in fds_output
@@ -203,14 +208,14 @@ class TestPyrolysisMaterialSystems:
 
         fds_output = wood.to_fds()
         assert "WOOD" in fds_output
-        assert "REACTIONS=" in fds_output
+        assert "N_REACTIONS=2" in fds_output
 
     def test_predefined_materials(self):
         """Test predefined common materials."""
-        concrete = MaterialBuilder.concrete()
-        steel = MaterialBuilder.steel()
-        wood = MaterialBuilder.wood()
-        gypsum = MaterialBuilder.gypsum()
+        concrete = CommonMaterials.concrete()
+        steel = CommonMaterials.steel()
+        wood = CommonMaterials.wood()
+        gypsum = CommonMaterials.gypsum()
 
         assert concrete.id == "CONCRETE"
         assert steel.id == "STEEL"
@@ -260,7 +265,7 @@ class TestHeatDetectorSystem:
 
     def test_heat_detector_prop(self):
         """Test heat detector property."""
-        heat_det = PropBuilder.heat_detector(
+        heat_det = CommonProps.heat_detector(
             id="HEAT_DET",
             activation_temp=74,
             rti=10.0,
@@ -283,8 +288,8 @@ class TestHeatDetectorSystem:
 
     def test_predefined_sprinklers(self):
         """Test predefined sprinkler types."""
-        qr_sprinkler = PropBuilder.quick_response_sprinkler()
-        sr_sprinkler = PropBuilder.standard_response_sprinkler()
+        qr_sprinkler = CommonProps.quick_response_sprinkler()
+        sr_sprinkler = CommonProps.standard_response_sprinkler()
 
         assert qr_sprinkler.id == "SPRINKLER_QR"
         assert qr_sprinkler.activation_temperature == 68
@@ -300,29 +305,26 @@ class TestNozzleSpraySystem:
 
     def test_nozzle_prop(self):
         """Test nozzle property."""
-        nozzle = PropBuilder.nozzle(id="SPRAY_NOZZLE", flow_rate=50, pressure=300000)
+        nozzle = CommonProps.nozzle(id="SPRAY_NOZZLE", flow_rate=50, pressure=300000)
 
         assert nozzle.id == "SPRAY_NOZZLE"
         assert nozzle.flow_rate == 50
         assert nozzle.pressure == 300000
 
     def test_spray_surface_with_distribution(self):
-        """Test spray surface with droplet distribution."""
+        """Test spray surface with droplet properties."""
         spray_surf = Surface(
             id="SPRAY",
             part_id="WATER_DROP",
             particle_mass_flux=0.01,
             nppc=5,
-            median_diameter=0.0008,
-            gamma_d=2.4,
-            spray_pattern="GAUSSIAN",
-            particle_velocity=(0.0, 0.0, -3.0),
+            vel_part=3.0,
         )
 
-        assert spray_surf.median_diameter == 0.0008
-        assert spray_surf.gamma_d == 2.4
-        assert spray_surf.spray_pattern == "GAUSSIAN"
-        assert spray_surf.particle_velocity == (0.0, 0.0, -3.0)
+        assert spray_surf.part_id == "WATER_DROP"
+        assert spray_surf.particle_mass_flux == 0.01
+        assert spray_surf.nppc == 5
+        assert spray_surf.vel_part == 3.0
 
 
 class TestAdvancedParticleProperties:
@@ -411,28 +413,27 @@ class TestComplexFireSuppressionScenario:
         )
 
         # Sprinkler property
-        sprinkler_prop = PropBuilder.quick_response_sprinkler(id="QR_SPRINKLER")
+        sprinkler_prop = CommonProps.quick_response_sprinkler(id="QR_SPRINKLER")
 
         # Sprinkler surface
         sprinkler_surf = Surface(
             id="SPRINKLER_HEAD",
             part_id="WATER_DROP",
             particle_mass_flux=0.02,
-            median_diameter=0.001,
             vel_part=6.0,
         )
 
         # Smoke detector
-        smoke_detector = PropBuilder.smoke_detector(id="SMOKE_DET", activation_obscuration=3.28)
+        smoke_detector = CommonProps.smoke_detector(id="SMOKE_DET", activation_obscuration=3.28)
 
         # Verify all components created successfully
         assert isinstance(wood_material, Material)
-        assert isinstance(smoke, Part)
-        assert isinstance(water, Part)
+        assert isinstance(smoke, Particle)
+        assert isinstance(water, Particle)
         assert isinstance(fire_surf, Surface)
-        assert isinstance(sprinkler_prop, Prop)
+        assert isinstance(sprinkler_prop, Property)
         assert isinstance(sprinkler_surf, Surface)
-        assert isinstance(smoke_detector, Prop)
+        assert isinstance(smoke_detector, Property)
 
         # Verify linkage between components
         assert fire_surf.part_id == smoke.id
@@ -456,61 +457,57 @@ class TestComplexFireSuppressionScenario:
 
 
 class TestParticleVelocityControls:
-    """Test particle velocity and orientation controls."""
+    """Test particle velocity controls."""
 
     def test_particle_with_velocity_magnitude(self):
         """Test surface with particle velocity magnitude."""
-        surf = Surface(id="VENT", vel_part=5.0)
+        surf = Surface(id="VENT", part_id="DROPS", vel_part=5.0)
 
         assert surf.vel_part == 5.0
-        assert surf.particle_velocity is None
 
-    def test_particle_with_velocity_vector(self):
-        """Test surface with particle velocity vector."""
-        surf = Surface(id="SPRAY", particle_velocity=(1.0, 0.0, -2.0))
+    def test_particle_surface_density(self):
+        """Test surface with particle surface density."""
+        surf = Surface(id="SPRAY", part_id="DROPS", particle_surface_density=0.01)
 
-        assert surf.particle_velocity == (1.0, 0.0, -2.0)
-        assert surf.vel_part is None
+        assert surf.particle_surface_density == 0.01
 
-    def test_spray_with_angle_control(self):
-        """Test spray with angle control."""
+    def test_spray_with_dt_insert(self):
+        """Test spray with dt_insert parameter."""
         sprinkler = Surface(
             id="SPRINKLER",
             part_id="WATER_DROP",
             particle_mass_flux=0.015,
-            median_diameter=0.001,
             vel_part=5.0,
-            gamma_d=2.4,
-            spray_pattern="GAUSSIAN",
+            dt_insert=0.02,
         )
 
-        assert sprinkler.spray_pattern == "GAUSSIAN"
-        assert sprinkler.gamma_d == 2.4
+        assert sprinkler.dt_insert == 0.02
+        assert sprinkler.vel_part == 5.0
 
 
-class TestBackwardCompatibility:
-    """Test that Stage 2 enhancements don't break existing functionality."""
+class TestCoreNamelistCreation:
+    """Test that core namelist classes work correctly."""
 
-    def test_simple_part_still_works(self):
-        """Test that simple PART creation still works."""
-        part = Part(id="SIMPLE", diameter=0.001, density=1000)
+    def test_simple_part_creation(self):
+        """Test that simple PART creation works."""
+        part = Particle(id="SIMPLE", diameter=0.001, density=1000)
         assert part.id == "SIMPLE"
         assert part.diameter == 0.001
 
-    def test_simple_prop_still_works(self):
-        """Test that simple PROP creation still works."""
-        prop = Prop(id="SIMPLE_PROP", activation_temperature=74, rti=50)
+    def test_simple_prop_creation(self):
+        """Test that simple PROP creation works."""
+        prop = Property(id="SIMPLE_PROP", activation_temperature=74, rti=50)
         assert prop.id == "SIMPLE_PROP"
         assert prop.activation_temperature == 74
 
-    def test_simple_material_still_works(self):
-        """Test that simple MATL creation still works."""
+    def test_simple_material_creation(self):
+        """Test that simple MATL creation works."""
         matl = Material(id="SIMPLE_MATL", density=1000, conductivity=1.0, specific_heat=1.0)
         assert matl.id == "SIMPLE_MATL"
         assert matl.density == 1000
 
-    def test_surf_without_particles_still_works(self):
-        """Test that SURF without particles still works."""
+    def test_surf_without_particles(self):
+        """Test that SURF without particles works."""
         surf = Surface(id="SIMPLE_SURF", hrrpua=500.0, color="RED")
         assert surf.id == "SIMPLE_SURF"
         assert surf.hrrpua == 500.0

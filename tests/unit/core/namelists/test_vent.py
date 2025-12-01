@@ -38,20 +38,6 @@ class TestVent:
         area = vent.get_area()
         assert area == pytest.approx(np.pi * 0.25)
 
-    def test_annular_vent(self):
-        """Test annular (ring-shaped) vent."""
-        vent = Vent(
-            xb=Bounds3D.of(-2, 2, -2, 2, 0, 0),
-            surf_id="BURNER",
-            xyz=Point3D.of(0, 0, 0),
-            radius=1.0,
-            radius_inner=0.5,
-        )
-        assert vent.get_shape() == VentShape.ANNULAR
-        area = vent.get_area()
-        expected = np.pi * (1.0**2 - 0.5**2)
-        assert area == pytest.approx(expected)
-
     def test_mesh_boundary_vent(self):
         """Test vent on mesh boundary."""
         vent = Vent(mb="XMIN", surf_id="OPEN")
@@ -87,17 +73,6 @@ class TestVent:
         """Test circular vent requires XYZ."""
         with pytest.raises(ValidationError, match="requires both XYZ and RADIUS"):
             Vent(xb=Bounds3D.of(-1, 1, -1, 1, 0, 0), surf_id="FIRE", radius=0.5)
-
-    def test_annular_inner_less_than_outer(self):
-        """Test that inner radius must be less than outer radius."""
-        with pytest.raises(ValidationError, match="must be less than RADIUS"):
-            Vent(
-                xb=Bounds3D.of(-2, 2, -2, 2, 0, 0),
-                surf_id="BURNER",
-                xyz=Point3D.of(0, 0, 0),
-                radius=0.5,
-                radius_inner=1.0,
-            )
 
     def test_mb_valid_values(self):
         """Test MB must be valid boundary name."""
@@ -151,8 +126,132 @@ class TestVent:
 
     def test_vent_with_control(self):
         """Test vent with control activation."""
-        vent = Vent(
-            xb=Bounds3D.of(5, 5, 2, 4, 0, 3), surf_id="OPEN", devc_id="TEMP_SENSOR", delay=30.0
-        )
+        vent = Vent(xb=Bounds3D.of(5, 5, 2, 4, 0, 3), surf_id="OPEN", devc_id="TEMP_SENSOR")
         assert vent.devc_id == "TEMP_SENSOR"
-        assert vent.delay == 30.0
+
+    def test_dynamic_pressure(self):
+        """Test dynamic pressure is a float with default 0.0."""
+        # Default value
+        vent = Vent(xb=Bounds3D.of(5, 5, 2, 4, 0, 3), surf_id="OPEN")
+        assert vent.dynamic_pressure == 0.0
+
+        # Custom value
+        vent2 = Vent(xb=Bounds3D.of(5, 5, 2, 4, 0, 3), surf_id="OPEN", dynamic_pressure=100.0)
+        assert vent2.dynamic_pressure == 100.0
+        fds_str = vent2.to_fds()
+        assert "DYNAMIC_PRESSURE=100.0" in fds_str
+
+    def test_area_adjust(self):
+        """Test area adjust parameter for spreading fire."""
+        # Default is False
+        vent = Vent(xb=Bounds3D.of(0, 1, 0, 1, 0, 0), surf_id="FIRE")
+        assert vent.area_adjust is False
+
+        # Set to True
+        vent2 = Vent(xb=Bounds3D.of(0, 1, 0, 1, 0, 0), surf_id="FIRE", area_adjust=True)
+        assert vent2.area_adjust is True
+        fds_str = vent2.to_fds()
+        assert "AREA_ADJUST=.TRUE." in fds_str
+
+    def test_geom_level_set(self):
+        """Test geom flag for level set fire spread."""
+        # Default is False
+        vent = Vent(xb=Bounds3D.of(0, 1, 0, 1, 0, 0), surf_id="FIRE")
+        assert vent.geom is False
+
+        # Set to True
+        vent2 = Vent(xb=Bounds3D.of(0, 1, 0, 1, 0, 0), surf_id="FIRE", geom=True)
+        assert vent2.geom is True
+        fds_str = vent2.to_fds()
+        assert "GEOM=.TRUE." in fds_str
+
+    def test_spread_rate(self):
+        """Test spread rate parameter."""
+        # Default value
+        vent = Vent(xb=Bounds3D.of(0, 1, 0, 1, 0, 0), surf_id="FIRE")
+        assert vent.spread_rate == 0.05
+
+        # Custom value
+        vent2 = Vent(xb=Bounds3D.of(0, 1, 0, 1, 0, 0), surf_id="FIRE", spread_rate=0.1)
+        assert vent2.spread_rate == 0.1
+        fds_str = vent2.to_fds()
+        assert "SPREAD_RATE=0.1" in fds_str
+
+    def test_turbulence_parameters(self):
+        """Test synthetic turbulence parameters."""
+        vent = Vent(
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 0),
+            surf_id="INERT",
+            n_eddy=100,
+            l_eddy=0.1,
+            vel_rms=0.5,
+            uvw=(1.0, 0.0, 0.0),
+        )
+        assert vent.n_eddy == 100
+        assert vent.l_eddy == 0.1
+        assert vent.vel_rms == 0.5
+        assert vent.uvw == (1.0, 0.0, 0.0)
+
+        fds_str = vent.to_fds()
+        assert "N_EDDY=100" in fds_str
+        assert "L_EDDY=0.1" in fds_str
+        assert "VEL_RMS=0.5" in fds_str
+        assert "UVW=" in fds_str
+
+    def test_reynolds_stress_3x3(self):
+        """Test reynolds stress must be 3x3 matrix."""
+        vent = Vent(
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 0),
+            surf_id="INERT",
+            reynolds_stress=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        )
+        assert vent.reynolds_stress == [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
+        with pytest.raises(ValidationError, match="REYNOLDS_STRESS must be a 3x3 matrix"):
+            Vent(
+                xb=Bounds3D.of(0, 1, 0, 1, 0, 0),
+                surf_id="INERT",
+                reynolds_stress=[[1, 0], [0, 1]],
+            )
+
+    def test_l_eddy_ij_3x3(self):
+        """Test l_eddy_ij must be 3x3 matrix."""
+        vent = Vent(
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 0),
+            surf_id="INERT",
+            l_eddy_ij=[[0.1, 0, 0], [0, 0.1, 0], [0, 0, 0.1]],
+        )
+        assert vent.l_eddy_ij == [[0.1, 0, 0], [0, 0.1, 0], [0, 0, 0.1]]
+
+        with pytest.raises(ValidationError, match="L_EDDY_IJ must be a 3x3 matrix"):
+            Vent(
+                xb=Bounds3D.of(0, 1, 0, 1, 0, 0),
+                surf_id="INERT",
+                l_eddy_ij=[[0.1, 0], [0, 0.1]],
+            )
+
+    def test_pressure_ramp(self):
+        """Test pressure ramp for dynamic pressure."""
+        vent = Vent(
+            xb=Bounds3D.of(5, 5, 2, 4, 0, 3),
+            surf_id="OPEN",
+            dynamic_pressure=50.0,
+            pressure_ramp="WIND_RAMP",
+        )
+        assert vent.pressure_ramp == "WIND_RAMP"
+        fds_str = vent.to_fds()
+        assert "PRESSURE_RAMP='WIND_RAMP'" in fds_str
+
+    def test_tmp_exterior(self):
+        """Test exterior temperature for OPEN boundary."""
+        vent = Vent(
+            xb=Bounds3D.of(5, 5, 2, 4, 0, 3),
+            surf_id="OPEN",
+            tmp_exterior=35.0,
+            tmp_exterior_ramp="TEMP_RAMP",
+        )
+        assert vent.tmp_exterior == 35.0
+        assert vent.tmp_exterior_ramp == "TEMP_RAMP"
+        fds_str = vent.to_fds()
+        assert "TMP_EXTERIOR=35.0" in fds_str
+        assert "TMP_EXTERIOR_RAMP='TEMP_RAMP'" in fds_str

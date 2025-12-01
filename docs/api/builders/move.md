@@ -1,6 +1,23 @@
-# MoveBuilder API Reference
+# Move Builder (Planned)
 
-The `MoveBuilder` provides a fluent interface for creating geometry transformations that can be applied to GEOM objects.
+!!! warning "Not Yet Implemented"
+    `MoveBuilder` is planned for a future release. For now, use the `Move` namelist class directly.
+
+## Current Usage
+
+```python
+from pyfds import Simulation, Move
+
+sim = Simulation(chid="move_example")
+
+# Define movement for geometry
+sim.add(Move(
+    id="SHIFT",
+    x0=5.0,
+    y0=0.0,
+    z0=2.0
+))
+```
 
 ## Overview
 
@@ -9,13 +26,14 @@ The MOVE namelist defines transformations (translation, rotation, scaling) that 
 ## Basic Usage
 
 ```python
-from pyfds.builders import MoveBuilder
+from pyfds import Move
 
 # Simple translation
-move = (
-    MoveBuilder('SHIFT')
-    .translate(dx=5.0, dy=0.0, dz=2.0)
-    .build()
+move = Move(
+    id='SHIFT',
+    x0=5.0,
+    y0=0.0,
+    z0=2.0
 )
 
 # Rotation around Z-axis

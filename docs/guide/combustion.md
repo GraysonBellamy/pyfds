@@ -8,7 +8,7 @@ The **REAC** (reaction) namelist specifies fuel properties and combustion chemis
 
 ```python
 # Use default propane
-sim.add(Reaction(fuel='PROPANE')
+sim.add(Reaction(fuel='PROPANE'))
 
 # Custom fuel with specific properties
 sim.add(Reaction(
@@ -149,8 +149,8 @@ sim.add(Reaction(
 from pyfds import Simulation
 
 sim = Simulation(chid='pool_fire')
-sim.add(Time(t_end=300.0)
-sim.add(Mesh(ijk=Grid3D.of(60, 60, 40), xb=Bounds3D.of(0, 6, 0, 6, 0, 4))
+sim.add(Time(t_end=300.0))
+sim.add(Mesh(ijk=Grid3D.of(60, 60, 40), xb=Bounds3D.of(0, 6, 0, 6, 0, 4)))
 
 # Custom gasoline surrogate (n-heptane)
 sim.add(Reaction(
@@ -163,7 +163,7 @@ sim.add(Reaction(
 )
 
 # Pool fire surface
-sim.surface(
+sim.add(Surface(
     id='POOL',
     hrrpua=1500.0,  # kW/m²
     color='ORANGE'
@@ -178,13 +178,13 @@ sim.add(Vent(
 )
 
 # Soot and CO monitoring
-sim.device(
+sim.add(Device(
     id='SOOT',
     quantity='SOOT DENSITY',
     xyz=Point3D.of(3, 3, 2)
 )
 
-sim.device(
+sim.add(Device(
     id='CO',
     quantity='VOLUME FRACTION',
     spec_id='CARBON MONOXIDE',
@@ -198,8 +198,8 @@ sim.write('pool_fire.fds')
 
 ```python
 sim = Simulation(chid='wood_fire')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(50, 50, 30), xb=Bounds3D.of(0, 5, 0, 5, 0, 3))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(50, 50, 30), xb=Bounds3D.of(0, 5, 0, 5, 0, 3)))
 
 # Wood fuel properties
 sim.add(Reaction(
@@ -212,7 +212,7 @@ sim.add(Reaction(
 )
 
 # Wood crib surface
-sim.surface(
+sim.add(Surface(
     id='WOOD_CRIB',
     hrrpua=600.0,
     color='BROWN'
@@ -224,7 +224,7 @@ sim.add(Obstruction(
 )
 
 # Visibility (affected by soot)
-sim.device(
+sim.add(Device(
     id='VISIBILITY',
     quantity='VISIBILITY',
     xyz=Point3D.of(2.5, 2.5, 1.5)
@@ -237,8 +237,8 @@ sim.write('wood_fire.fds')
 
 ```python
 sim = Simulation(chid='plastic_fire')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(60, 50, 30), xb=Bounds3D.of(0, 6, 0, 5, 0, 3)))
 
 # Polystyrene (very sooty)
 sim.add(Reaction(
@@ -251,7 +251,7 @@ sim.add(Reaction(
 )
 
 # Burning plastic items
-sim.surface(
+sim.add(Surface(
     id='PLASTIC',
     hrrpua=800.0,
     color='BLACK'
@@ -263,19 +263,19 @@ sim.add(Obstruction(
 )
 
 # Dense smoke monitoring
-sim.device(
+sim.add(Device(
     id='SOOT_CEILING',
     quantity='SOOT DENSITY',
     xyz=Point3D.of(3, 2.5, 2.9)
 )
 
-sim.device(
+sim.add(Device(
     id='OPTICAL_DENSITY',
     quantity='OPTICAL DENSITY',
     xyz=Point3D.of(3, 2.5, 2.9)
 )
 
-sim.device(
+sim.add(Device(
     id='VISIBILITY',
     quantity='VISIBILITY',
     xyz=Point3D.of(3, 2.5, 1.5)
@@ -288,8 +288,8 @@ sim.write('plastic_fire.fds')
 
 ```python
 sim = Simulation(chid='multi_fuel')
-sim.add(Time(t_end=600.0)
-sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3))
+sim.add(Time(t_end=600.0))
+sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3)))
 
 # Define multiple fuels
 sim.add(Reaction(
@@ -307,15 +307,15 @@ sim.add(Reaction(
 )
 
 # Gasoline pool fire
-sim.surface(id='GAS_POOL', hrrpua=2000.0, reac_id='GASOLINE')
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='GAS_POOL')
+sim.add(Surface(id='GAS_POOL', hrrpua=2000.0, reac_id='GASOLINE'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='GAS_POOL'))
 
 # Wood pallet fire
-sim.surface(id='WOOD_PALLET', hrrpua=600.0, reac_id='WOOD')
-sim.add(Obstruction(xb=Bounds3D.of(5, 6, 3, 4, 0, 1), surf_id='WOOD_PALLET')
+sim.add(Surface(id='WOOD_PALLET', hrrpua=600.0, reac_id='WOOD'))
+sim.add(Obstruction(xb=Bounds3D.of(5, 6, 3, 4, 0, 1), surf_id='WOOD_PALLET'))
 
 # Monitor species from both fires
-sim.device(
+sim.add(Device(
     id='SOOT',
     quantity='SOOT DENSITY',
     xyz=Point3D.of(4, 3, 2)
@@ -360,18 +360,18 @@ sim.add(Reaction(
 )
 
 # Fire
-sim.surface(id='FIRE', hrrpua=1500.0, reac_id='FUEL')
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE')
+sim.add(Surface(id='FIRE', hrrpua=1500.0, reac_id='FUEL'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
 
 # Radiative heat flux at distance
-sim.device(
+sim.add(Device(
     id='RAD_HF_1M',
     quantity='RADIATIVE HEAT FLUX',
     xyz=Point3D.of(4, 2.5, 1),
     ior=1  # Facing fire
 )
 
-sim.device(
+sim.add(Device(
     id='GAUGE_HF_1M',
     quantity='GAUGE HEAT FLUX',
     xyz=Point3D.of(4, 2.5, 1),
@@ -384,17 +384,17 @@ sim.device(
 ### Oxygen Depletion
 
 ```python
-sim.add(Reaction(fuel='PROPANE')
+sim.add(Reaction(fuel='PROPANE'))
 
 # Monitor oxygen concentration
-sim.device(
+sim.add(Device(
     id='O2_UPPER',
     quantity='VOLUME FRACTION',
     spec_id='OXYGEN',
     xyz=Point3D.of(3, 2.5, 2.5)
 )
 
-sim.device(
+sim.add(Device(
     id='O2_LOWER',
     quantity='VOLUME FRACTION',
     spec_id='OXYGEN',
@@ -413,7 +413,7 @@ sim.add(Reaction(
 )
 
 # Track CO (toxic)
-sim.device(
+sim.add(Device(
     id='CO_CONC',
     quantity='VOLUME FRACTION',
     spec_id='CARBON MONOXIDE',
@@ -421,7 +421,7 @@ sim.device(
 )
 
 # Track CO2 (asphyxiant)
-sim.device(
+sim.add(Device(
     id='CO2_CONC',
     quantity='VOLUME FRACTION',
     spec_id='CARBON DIOXIDE',
@@ -497,8 +497,8 @@ sim.add(Reaction(
 )
 
 # Monitor soot effects
-sim.device(id='VISIBILITY', quantity='VISIBILITY', xyz=Point3D.of(3, 2.5, 1.5))
-sim.device(id='SOOT', quantity='SOOT DENSITY', xyz=Point3D.of(3, 2.5, 2))
+sim.add(Device(id='VISIBILITY', quantity='VISIBILITY', xyz=Point3D.of(3, 2.5, 1.5)))
+sim.add(Device(id='SOOT', quantity='SOOT DENSITY', xyz=Point3D.of(3, 2.5, 2)))
 ```
 
 ### 4. Document Fuel Sources
@@ -540,10 +540,10 @@ sim.add(Reaction(
     **Solution**: Higher soot → higher radiation
     ```python
     # Clean fuel
-    sim.add(Reaction(fuel='METHANE', soot_yield=0.001, radiative_fraction=0.15)
+    sim.add(Reaction(fuel='METHANE', soot_yield=0.001, radiative_fraction=0.15))
 
     # Sooty fuel
-    sim.add(Reaction(fuel='N-HEPTANE', soot_yield=0.037, radiative_fraction=0.33)
+    sim.add(Reaction(fuel='N-HEPTANE', soot_yield=0.037, radiative_fraction=0.33))
     ```
 
 ??? question "Unrealistic CO levels"
@@ -552,10 +552,10 @@ sim.add(Reaction(
     **Solution**: Use measured yields (typically 0.001-0.060)
     ```python
     # Well-ventilated
-    sim.add(Reaction(co_yield=0.004)
+    sim.add(Reaction(co_yield=0.004))
 
     # Under-ventilated
-    sim.add(Reaction(co_yield=0.020)
+    sim.add(Reaction(co_yield=0.020))
     ```
 
 ## Advanced Topics
@@ -579,10 +579,10 @@ sim.add(Reaction(fuel='PROPANE')  # One-step chemistry
 
 ```python
 # HRR specified directly (most common)
-sim.surface(id='FIRE', hrrpua=1000.0)  # kW/m²
+sim.add(Surface(id='FIRE', hrrpua=1000.0)  # kW/m²
 
 # Mass flux (advanced)
-sim.surface(
+sim.add(Surface(
     id='FIRE',
     mass_flux=0.020,  # kg/m²/s
     reac_id='PROPANE'  # Uses fuel heat of combustion

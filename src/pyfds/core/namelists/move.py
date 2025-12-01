@@ -1,17 +1,24 @@
-"""
-FDS MOVE namelist.
+"""FDS MOVE namelist for geometry transformations.
 
-Transformations for geometry objects.
+Defines translation, rotation, and scaling operations that can be
+applied to GEOM objects.
+
+Field Groups:
+    identification: Transformation ID
+    translation: X, Y, Z offsets
+    rotation: Axis and angle
+    scaling: Scale factors
 """
 
 from pydantic import field_validator
 
 from pyfds.core.namelists.base import FdsField, NamelistBase
 
+__all__ = ["Move"]
+
 
 class Move(NamelistBase):
-    """
-    FDS MOVE namelist - geometry transformations.
+    """FDS MOVE namelist - geometry transformations.
 
     Defines translation, rotation, and scaling operations that can be
     applied to GEOM objects.
@@ -19,52 +26,48 @@ class Move(NamelistBase):
     Parameters
     ----------
     id : str
-        Transformation identifier (referenced by MOVE_ID)
+        Transformation identifier (referenced by MOVE_ID).
     dx, dy, dz : float, optional
-        Translation offsets [m]
+        Translation offsets [m].
     axis : tuple[float, float, float], optional
-        Rotation axis vector
+        Rotation axis vector.
     rotation_angle : float, optional
-        Rotation angle [degrees]
+        Rotation angle [degrees].
     scale : tuple[float, float, float], optional
-        Scaling factors (sx, sy, sz)
+        Scaling factors (sx, sy, sz).
 
     Examples
     --------
-    >>> # Translation
     >>> move = Move(id='SHIFT', dx=5.0, dy=0.0, dz=2.0)
 
-    >>> # Rotation
-    >>> move = Move(
-    ...     id='ROTATE_90',
-    ...     axis=(0, 0, 1),
-    ...     rotation_angle=90.0
-    ... )
-
-    >>> # Combined
-    >>> move = Move(
-    ...     id='TRANSFORM',
-    ...     dx=1.0, dy=1.0, dz=0.0,
-    ...     axis=(0, 0, 1),
-    ...     rotation_angle=45.0,
-    ...     scale=(2.0, 2.0, 1.0)
-    ... )
+    See Also
+    --------
+    Geometry : Geometry objects that use MOVE transformations.
     """
 
-    id: str = FdsField(..., description="Transformation identifier")
+    def _get_namelist_name(self) -> str:
+        """Get the FDS namelist name."""
+        return "MOVE"
 
-    # Translation
-    dx: float = FdsField(0.0, exclude_if=0.0, description="X translation [m]")
-    dy: float = FdsField(0.0, exclude_if=0.0, description="Y translation [m]")
-    dz: float = FdsField(0.0, exclude_if=0.0, description="Z translation [m]")
+    # --- Identification ---
+    id: str = FdsField(..., description="Transformation identifier", group="identification")
 
-    # Rotation
-    axis: tuple[float, float, float] | None = FdsField(None, description="Rotation axis vector")
-    rotation_angle: float | None = FdsField(None, description="Rotation angle [degrees]")
+    # --- Translation ---
+    dx: float = FdsField(0.0, exclude_if=0.0, description="X translation [m]", group="translation")
+    dy: float = FdsField(0.0, exclude_if=0.0, description="Y translation [m]", group="translation")
+    dz: float = FdsField(0.0, exclude_if=0.0, description="Z translation [m]", group="translation")
 
-    # Scaling
+    # --- Rotation ---
+    axis: tuple[float, float, float] | None = FdsField(
+        None, description="Rotation axis vector", group="rotation"
+    )
+    rotation_angle: float | None = FdsField(
+        None, description="Rotation angle [degrees]", group="rotation"
+    )
+
+    # --- Scaling ---
     scale: tuple[float, float, float] | None = FdsField(
-        None, description="Scale factors (sx, sy, sz)"
+        None, description="Scale factors (sx, sy, sz)", group="scaling"
     )
 
     @field_validator("axis")
@@ -94,7 +97,3 @@ class Move(NamelistBase):
             if any(s <= 0 for s in v):
                 raise ValueError("scale factors must be positive")
         return v
-
-    def _get_namelist_name(self) -> str:
-        """Get the FDS namelist name."""
-        return "MOVE"

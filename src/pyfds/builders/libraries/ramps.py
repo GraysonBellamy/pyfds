@@ -1,7 +1,7 @@
 """Common ramp function patterns library."""
 
-from ...core.namelists import Ramp
-from ..ramp import RampBuilder
+from pyfds.builders.ramp import RampBuilder
+from pyfds.core.namelists import Ramp
 
 
 class CommonRamps:

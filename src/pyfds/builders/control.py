@@ -1,11 +1,11 @@
 """Builder for creating CTRL namelists with control logic."""
 
-from ..core.enums import ControlFunction
-from ..core.namelists import Ctrl
-from .base import Builder
+from pyfds.builders.base import Builder
+from pyfds.core.enums import ControlFunction
+from pyfds.core.namelists import Control
 
 
-class ControlBuilder(Builder[Ctrl]):
+class ControlBuilder(Builder[Control]):
     """
     Builder for creating CTRL namelists.
 
@@ -14,8 +14,8 @@ class ControlBuilder(Builder[Ctrl]):
 
     Parameters
     ----------
-    id : str
-        Unique identifier for the control
+    id : str, optional
+        Unique identifier for the control. Can also be set via with_id().
 
     Examples
     --------
@@ -40,15 +40,21 @@ class ControlBuilder(Builder[Ctrl]):
     ...     .with_latch(True) \\
     ...     .with_initial_state(False) \\
     ...     .build()
+
+    >>> # Using with_id() method
+    >>> ctrl = ControlBuilder() \\
+    ...     .with_id('ALARM') \\
+    ...     .any(['SD_1', 'SD_2']) \\
+    ...     .build()
     """
 
-    def __init__(self, id: str):
+    def __init__(self, id: str | None = None):
         """
         Initialize the ControlBuilder.
 
         Parameters
         ----------
-        id : str
+        id : str, optional
             Unique identifier for the control
         """
         super().__init__()
@@ -58,6 +64,23 @@ class ControlBuilder(Builder[Ctrl]):
         self._delay: float = 0.0
         self._initial_state: bool = False
         self._latch: bool = True
+
+    def with_id(self, id: str) -> "ControlBuilder":
+        """
+        Set the control identifier.
+
+        Parameters
+        ----------
+        id : str
+            Unique identifier for the control
+
+        Returns
+        -------
+        ControlBuilder
+            Self for method chaining
+        """
+        self._id = id
+        return self
 
     def any(self, input_ids: list[str]) -> "ControlBuilder":
         """
@@ -276,28 +299,18 @@ class ControlBuilder(Builder[Ctrl]):
         self._latch = latch
         return self
 
-    def build(self) -> Ctrl:
-        """
-        Build the Ctrl object.
-
-        Returns
-        -------
-        Ctrl
-            The constructed Ctrl namelist object
-
-        Raises
-        ------
-        ValueError
-            If function type is not specified
-        RuntimeError
-            If the builder has already been used
-        """
-        self._check_built()
-
+    def _validate(self) -> list[str]:
+        """Validate builder state before building."""
+        errors = []
+        if self._id is None:
+            errors.append("id is required (use constructor or with_id())")
         if self._function_type is None:
-            raise ValueError(f"ControlBuilder '{self._id}': No function type specified")
+            errors.append("No function type specified (use any(), all(), time_delay(), etc.)")
+        return errors
 
-        ctrl = Ctrl(
+    def _create(self) -> Control:
+        """Create the Control object."""
+        return Control(
             id=self._id,
             function_type=self._function_type,
             input_id=self._input_id,
@@ -305,6 +318,3 @@ class ControlBuilder(Builder[Ctrl]):
             initial_state=self._initial_state,
             latch=self._latch,
         )
-
-        self._mark_built()
-        return ctrl

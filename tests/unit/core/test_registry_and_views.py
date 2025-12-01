@@ -10,7 +10,7 @@ These tests verify the Phase 1-5 refactoring goals:
 
 import pytest
 
-from pyfds.builders import MeshBuilder, ObstructionBuilder, SurfaceBuilder, VentBuilder
+from pyfds.builders import SurfaceBuilder
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 from pyfds.core.namelists import (
     Device,
@@ -68,7 +68,7 @@ class TestUnifiedAdd:
             )
         )
 
-        assert sim.time_params.t_end == 600.0
+        assert sim.time_config.t_end == 600.0
         assert len(sim.meshes) == 1
         assert len(sim.surfaces) == 1
         assert len(sim.obstructions) == 1
@@ -169,14 +169,12 @@ class TestRegistryView:
 class TestBuilderBehavior:
     """Tests verifying builders don't auto-register."""
 
-    def test_mesh_builder_does_not_autoregister(self):
-        """Test MeshBuilder creates mesh without registering."""
-        mesh = (
-            MeshBuilder()
-            .with_id("m1")
-            .with_bounds(Bounds3D.of(0, 1, 0, 1, 0, 1))
-            .with_grid(Grid3D.of(10, 10, 10))
-            .build()
+    def test_mesh_does_not_autoregister(self):
+        """Test Mesh creation doesn't auto-register."""
+        mesh = Mesh(
+            id="m1",
+            xb=Bounds3D.of(0, 1, 0, 1, 0, 1),
+            ijk=Grid3D.of(10, 10, 10),
         )
 
         # Mesh exists but is not registered anywhere
@@ -200,39 +198,6 @@ class TestBuilderBehavior:
 
         sim.add(surf)
         assert "FIRE" in sim.surfaces
-
-    def test_obstruction_builder_does_not_autoregister(self):
-        """Test ObstructionBuilder creates obstruction without registering."""
-        obst = ObstructionBuilder().id("wall").bounds(Bounds3D.of(0, 0.1, 0, 1, 0, 1)).build()
-
-        sim = Simulation(chid="test")
-        assert "wall" not in sim.obstructions
-
-        sim.add(obst)
-        assert "wall" in sim.obstructions
-
-    def test_vent_builder_does_not_autoregister(self):
-        """Test VentBuilder creates vent without registering."""
-        vent = (
-            VentBuilder().id("inlet").bounds(Bounds3D.of(0, 0, 0, 1, 0, 1)).surface("OPEN").build()
-        )
-
-        sim = Simulation(chid="test")
-        assert "inlet" not in sim.vents
-
-        sim.add(vent)
-        assert "inlet" in sim.vents
-
-    def test_builder_class_method_pattern(self):
-        """Test using .builder() class method pattern."""
-        # Some namelists provide .builder() class method
-        surf = Surface.builder().id("TEST").burning(hrrpua=500.0).build()
-
-        assert surf.id == "TEST"
-        assert surf.hrrpua == 500.0
-
-        sim = Simulation(chid="test")
-        assert "TEST" not in sim.surfaces
 
 
 class TestEagerValidation:
