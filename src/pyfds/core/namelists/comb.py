@@ -26,7 +26,7 @@ class Combustion(NamelistBase):
     Controls global combustion behavior including extinction models,
     turbulent combustion, mixing parameters, and ODE solver configuration.
 
-    Parameters
+    Attributes
     ----------
     extinction_model : ExtinctionModel, optional
         Extinction model ('EXTINCTION 1' or 'EXTINCTION 2').

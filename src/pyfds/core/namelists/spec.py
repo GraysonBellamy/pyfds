@@ -38,7 +38,7 @@ class Species(NamelistBase):
     predefined (from FDS database), user-defined with chemical composition,
     or lumped components for simplified modeling.
 
-    Parameters
+    Attributes
     ----------
     id : str
         Unique species identifier

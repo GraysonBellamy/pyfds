@@ -228,34 +228,6 @@ wall = (
 )
 ```
 
-## Complete Example
-
-```python
-from pyfds.builders import GeomBuilder, MoveBuilder
-
-# Create a transformed sphere
-sphere = (
-    GeomBuilder('BALL')
-    .sphere(center=(0, 0, 0), radius=0.5)
-    .move_id('BALL_POSITION')
-    .color('BLUE')
-    .build()
-)
-
-# Define the transformation
-move = (
-    MoveBuilder('BALL_POSITION')
-    .translate(dx=5.0, dy=5.0, dz=1.0)
-    .rotate(axis=(0, 0, 1), angle=45.0)
-    .build()
-)
-
-# Add to simulation
-sim = Simulation('geometry_demo')
-sim.add_geometry(sphere)
-sim.add_geometry(move)
-```
-
 ## Method Reference
 
 ### Geometry Definition
@@ -291,6 +263,3 @@ sim.add_geometry(move)
 ## See Also
 
 - [Geometry Documentation](../../guide/geometry.md) - Usage guide
-- [MoveBuilder](move.md) - Geometry transformations
-- [HoleBuilder](hole.md) - Carving holes in geometry
-- [MultBuilder](mult.md) - Array replication

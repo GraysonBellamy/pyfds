@@ -437,5 +437,4 @@ The builder validates:
 
 - [User Guide - Control Logic](../../guide/controls.md)
 - [User Guide - Builders](../../guide/builders.md)
-- [PropBuilder](prop.md) - For device properties
 - [User Guide - Devices & Measurement](../../guide/devices.md)

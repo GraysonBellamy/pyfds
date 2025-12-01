@@ -18,12 +18,7 @@ PyFDS builders offer an alternative to direct namelist construction with improve
 | [MaterialBuilder](material.md) | Thermal and pyrolysis properties | Simple materials, temperature-dependent, pyrolysis |
 | [ReactionBuilder](reaction.md) | Combustion reactions | Predefined fuels, custom composition |
 | [ControlBuilder](control.md) | Control logic | Logic gates, time delays, special functions |
-| [PropBuilder](prop.md) | Device properties | Sprinklers, detectors (factory methods) |
-| [VentBuilder](vent.md) | Boundary conditions | Openings, HVAC, circular vents (factory methods) |
 | [GeomBuilder](geom.md) | Unstructured geometry | Triangulated surfaces, predefined shapes, terrain |
-| [MoveBuilder](move.md) | Geometry transformations | Translation, rotation, scaling |
-| [HoleBuilder](hole.md) | Hole carving | Openings in obstructions |
-| [MultBuilder](mult.md) | Array replication | Regular arrays of objects |
 
 ## Builder Pattern
 
@@ -169,45 +164,6 @@ ctrl = ControlBuilder('CTRL').any(['DET_1', 'DET_2']).with_latch(True).build()
 
 [Full ControlBuilder Documentation →](control.md)
 
-### PropBuilder
-
-```python
-from pyfds.builders import PropBuilder
-
-# Predefined sprinklers
-qr = PropBuilder.quick_response_sprinkler(id='QR')
-sr = PropBuilder.standard_response_sprinkler(id='SR')
-
-# Custom sprinkler
-custom = PropBuilder.sprinkler(id='CUSTOM', activation_temp=68, rti=50)
-
-# Smoke detector
-smoke = PropBuilder.smoke_detector(id='SMOKE', activation_obscuration=3.28)
-```
-
-[Full PropBuilder Documentation →](prop.md)
-
-### VentBuilder
-
-```python
-from pyfds.builders import VentBuilder
-
-# Opening
-opening = VentBuilder.opening(xb=Bounds3D.of(5, 5, 2, 4, 0, 2.1), id='DOOR')
-
-# Convenience methods
-door = VentBuilder.door(x=5.0, y_min=2.0, y_max=3.0, id='DOOR')
-window = VentBuilder.window(x=0.0, y_min=1.0, y_max=2.0, z_min=1.0, z_max=1.5)
-
-# HVAC
-supply = VentBuilder.hvac_supply(xb=Bounds3D.of(5, 6, 5, 6, 3, 3), volume_flow=0.5)
-
-# Circular
-burner = VentBuilder.circular_burner(center=(0, 0, 0), radius=0.5, surf_id='FIRE')
-```
-
-[Full VentBuilder Documentation →](vent.md)
-
 ### GeomBuilder
 
 ```python
@@ -237,73 +193,6 @@ terrain = (
 ```
 
 [Full GeomBuilder Documentation →](geom.md)
-
-### MoveBuilder
-
-```python
-from pyfds.builders import MoveBuilder
-
-# Translation
-move = MoveBuilder('SHIFT').translate(dx=5.0, dy=0.0, dz=2.0).build()
-
-# Rotation
-move = MoveBuilder('ROTATE').rotate(axis=(0,0,1), angle=90.0).build()
-
-# Combined
-move = (
-    MoveBuilder('TRANSFORM')
-    .translate(dx=1.0, dy=1.0, dz=0.0)
-    .rotate(axis=(0,0,1), angle=45.0)
-    .scale(sx=2.0, sy=2.0, sz=1.0)
-    .build()
-)
-```
-
-[Full MoveBuilder Documentation →](move.md)
-
-### HoleBuilder
-
-```python
-from pyfds.builders import HoleBuilder
-
-# Simple hole
-hole = HoleBuilder('DOOR').bounds(xb=Bounds3D.of(5, 5.1, 2, 4, 0, 2.1)).build()
-
-# Controlled hole
-hole = (
-    HoleBuilder('WINDOW')
-    .bounds(xb=Bounds3D.of(0, 0.1, 1, 2, 1.5, 2.5))
-    .controlled_by('WINDOW_CTRL')
-    .color_when_closed('GRAY')
-    .build()
-)
-```
-
-[Full HoleBuilder Documentation →](hole.md)
-
-### MultBuilder
-
-```python
-from pyfds.builders import MultBuilder
-
-# 3x3 array
-mult = (
-    MultBuilder('ARRAY_3X3')
-    .spacing(dx=2.0, dy=2.0)
-    .count(i_lower=0, i_upper=2, j_lower=0, j_upper=2)
-    .build()
-)
-
-# Linear array
-mult = (
-    MultBuilder('ROW_10')
-    .spacing(dx=1.0)
-    .count(n_lower=0, n_upper=9)
-    .build()
-)
-```
-
-[Full MultBuilder Documentation →](mult.md)
 
 ### 1. Fluent Interface
 

@@ -172,6 +172,29 @@ sim.add(Vent(
 ))
 ```
 
+### Geometry
+
+Complex geometry.
+
+```python
+sim.add(Geometry(
+    id='SPHERE',
+    surfaces=[(1, 2, 3, 1)],
+    vertices=[(0,0,0), (1,0,0), (0,1,0)]
+))
+```
+
+### Move
+
+Moving geometry.
+
+```python
+sim.add(Move(
+    id='SHIFT',
+    dx=5.0
+))
+```
+
 ### Device
 
 Measurement devices.

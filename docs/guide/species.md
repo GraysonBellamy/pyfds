@@ -374,7 +374,7 @@ sim.combustion(
 
 ## See Also
 
-- [API Reference: Species](../api/species.md) - Complete API documentation
+- [API Reference: Species](../api/namelists/species.md) - Complete API documentation
 - [Examples: Chemical Species](../examples/species.md) - Working examples
 - [Combustion Chemistry](combustion_chemistry.md) - Advanced combustion modeling
 - [FDS User Guide Chapter 12](https://pages.nist.gov/fds-smv/manuals/fds-user-guide/) - Official FDS documentation

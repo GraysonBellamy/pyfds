@@ -13,7 +13,7 @@ class PartBuilder(Builder[Particle]):
 
     Parameters
     ----------
-    id : str, optional
+    part_id : str, optional
         Unique particle class identifier. Can also be set via with_id().
 
     Examples
