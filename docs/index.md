@@ -62,8 +62,9 @@ Create a complete room fire simulation in just a few lines:
 === "Python Code"
 
     ```python
-    from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Device
+    from pyfds import Simulation
     from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+    from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device
 
     # Create simulation
     sim = Simulation(chid='room_fire', title='Simple Room Fire')
@@ -78,7 +79,7 @@ Create a complete room fire simulation in just a few lines:
     sim.add(Surface(id='BURNER', hrrpua=1000.0, color='RED'))
 
     # Add fire source (1m x 1m burner at floor)
-    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER'))
+    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('BURNER', 'INERT', 'INERT')))
 
     # Add temperature measurement at ceiling
     sim.add(Device(id='TEMP_CEILING', quantity='TEMPERATURE',
@@ -95,7 +96,7 @@ Create a complete room fire simulation in just a few lines:
     &TIME T_END=600.0 /
     &MESH IJK=50,50,25, XB=0,5,0,5,0,2.5 /
     &SURF ID='BURNER', HRRPUA=1000.0, RGB=255,0,0 /
-    &OBST XB=2,3,2,3,0,0.1, SURF_ID='BURNER' /
+    &OBST XB=2,3,2,3,0,0.1, SURF_IDS='BURNER','INERT','INERT' /
     &DEVC ID='TEMP_CEILING', QUANTITY='TEMPERATURE', XYZ=2.5,2.5,2.4 /
     &TAIL /
     ```

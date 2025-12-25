@@ -19,6 +19,9 @@ PyFDS builders offer an alternative to direct namelist construction with improve
 | [ReactionBuilder](reaction.md) | Combustion reactions | Predefined fuels, custom composition |
 | [ControlBuilder](control.md) | Control logic | Logic gates, time delays, special functions |
 | [GeomBuilder](geom.md) | Unstructured geometry | Triangulated surfaces, predefined shapes, terrain |
+| [PartBuilder](part.md) | Particle definitions | Water droplets, aerosols, custom particles |
+| [SurfaceBuilder](surface.md) | Complex surfaces | Fire sources, layered materials, advanced properties |
+| [Builder Libraries](libraries.md) | Pre-configured objects | Standard materials, props, ramps, fuels |
 
 ## Builder Pattern
 

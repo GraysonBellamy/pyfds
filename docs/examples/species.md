@@ -16,7 +16,8 @@ FDS supports several approaches to modeling combustion and species:
 Use FDS predefined fuels for simple simulations:
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Reaction, Combustion, Ramp
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Reaction, Combustion, Ramp
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid="predefined_fuel", title="Methane Flame with Simple Chemistry")
@@ -41,7 +42,7 @@ sim.add(Surface(id="BURNER", hrrpua=625.0, ramp_q="HRR"))
 # Burner obstruction
 sim.add(Obstruction(
     xb=Bounds3D.of(0.3, 0.7, 0.3, 0.7, 0.0, 0.1),
-    surf_ids=("BURNER", "INERT", "INERT")
+    surf_ids=('BURNER', 'INERT', 'INERT')
 ))
 
 sim.write("predefined_fuel.fds")
@@ -61,7 +62,8 @@ sim.write("predefined_fuel.fds")
 Reduce computational cost by grouping species:
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Vent, Reaction, Species, Combustion, Ramp
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Vent, Reaction, Species, Combustion, Ramp
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid="lumped_species", title="Methane Flame with Lumped Species")
@@ -130,7 +132,8 @@ sim.write("lumped_species.fds")
 Define custom fuels with specific properties:
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Reaction, Species
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Reaction, Species
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid="custom_fuel", title="Custom Fuel Reaction")
@@ -155,7 +158,7 @@ sim.add(Reaction(
 
 # Fire surface
 sim.add(Surface(id="FIRE", hrrpua=500.0, color="RED"))
-sim.add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id="FIRE"))
+sim.add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 sim.write("custom_fuel.fds")
 ```
@@ -165,7 +168,8 @@ sim.write("custom_fuel.fds")
 Control soot production for visibility calculations:
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Reaction, Device
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Reaction, Device
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 sim = Simulation(chid="soot_visibility", title="Soot Yield and Visibility")
@@ -182,7 +186,7 @@ sim.add(Reaction(
 
 # Fire source
 sim.add(Surface(id="FIRE", hrrpua=300.0))
-sim.add(Obstruction(xb=Bounds3D.of(1.5, 2.5, 1.5, 2.5, 0, 0.1), surf_id="FIRE"))
+sim.add(Obstruction(xb=Bounds3D.of(1.5, 2.5, 1.5, 2.5, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 # Visibility measurement devices
 for z in [0.5, 1.0, 1.5]:
@@ -208,7 +212,8 @@ sim.write("soot_visibility.fds")
 Model flame extinction under low-oxygen conditions:
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Vent, Reaction, Combustion, Device
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Vent, Reaction, Combustion, Device
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 sim = Simulation(chid="extinction", title="Flame Extinction Example")

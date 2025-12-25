@@ -87,15 +87,16 @@ PyFDS provides Python classes for each namelist:
 
 ```python
 from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device
 
 sim = Simulation(chid='test')
 
 # Each method corresponds to an FDS namelist
 sim.add(Time(t_end=100))  # &TIME ... /
 sim.add(Mesh(...))                  # &MESH ... /
-sim.add(Surface(id='FIRE', ...)   # &SURF ... /
+sim.add(Surface(id='FIRE', ...))   # &SURF ... /
 sim.add(Obstruction(...))           # &OBST ... /
-sim.add(Device(...)                # &DEVC ... /
+sim.add(Device(...))                # &DEVC ... /
 ```
 
 Common namelists:
@@ -269,7 +270,7 @@ sim = Simulation(
 Add components using methods:
 
 ```python
-from pyfds import Time, Mesh, Surface, Obstruction, Device
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 # Time parameters
@@ -282,7 +283,7 @@ sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 sim.add(Surface(id='FIRE', hrrpua=1000.0))
 
 # Geometry
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 # Measurements
 sim.add(Device(id='TEMP', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4)))
@@ -345,14 +346,15 @@ results.plot_hrr('hrr.png')
 PyFDS supports **method chaining** for concise code:
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Obstruction
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = (Simulation(chid='test')
        .add(Time(t_end=100))
        .add(Mesh(ijk=Grid3D.of(20, 20, 10), xb=Bounds3D.of(0, 2, 0, 2, 0, 1)))
        .add(Surface(id='FIRE', hrrpua=500))
-       .add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_id='FIRE')))
+       .add(Obstruction(xb=Bounds3D.of(0.5, 1.5, 0.5, 1.5, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT'))))
 ```
 
 Each method returns `self`, allowing chaining.
@@ -364,14 +366,15 @@ Each method returns `self`, allowing chaining.
 PyFDS provides **immediate feedback** on configuration errors:
 
 ```python
-from pyfds import Simulation, Mesh, Obstruction
+from pyfds import Simulation
+from pyfds.core.namelists import Mesh, Obstruction
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='test')
 sim.add(Mesh(ijk=Grid3D.of(10, 10, 10), xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
 # This will raise a validation error
-sim.add(Obstruction(xb=Bounds3D.of(5, 6, 0, 1, 0, 1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(5, 6, 0, 1, 0, 1), surf_ids=('FIRE', 'INERT', 'INERT')))
 # Error: Obstruction outside mesh bounds!
 ```
 
@@ -392,7 +395,7 @@ See [Validation Rules](../reference/validation.md) for details.
 PyFDS uses **Pydantic** for automatic type validation:
 
 ```python
-from pyfds import Mesh
+from pyfds.core.namelists import Mesh
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 # This works
@@ -503,7 +506,7 @@ for x in range(5):
 
 # Fires
 sim.add(Surface(id='FIRE', ...))
-sim.add(Obstruction(..., surf_id='FIRE'))
+sim.add(Obstruction(..., surf_ids=('FIRE', 'INERT', 'INERT')))
 
 # Measurements
 for i in range(10):
@@ -522,7 +525,7 @@ for hrr in [500, 1000, 1500, 2000]:
     sim.add(Time(t_end=300))
     sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5)))
     sim.add(Surface(id='FIRE', hrrpua=hrr))
-    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
+    sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
     sim.write(f'fire_{hrr}.fds')
 ```
 
@@ -544,7 +547,7 @@ def create_standard_room(sim, origin=(0,0,0)):
     """Add a standard 4m x 3m x 2.5m room."""
     x0, y0, z0 = origin
     # Walls
-    sim.add(Obstruction(xb=Bounds3D.of(x0, x0+0.2, y0, y0+3, z0, z0+2.5), surf_id='WALL'))
+    sim.add(Obstruction(xb=Bounds3D.of(x0, x0+0.2, y0, y0+3, z0, z0+2.5), surf_ids=('WALL', 'INERT', 'INERT')))
     # ... more walls ...
     return sim
 

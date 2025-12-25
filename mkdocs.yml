@@ -236,7 +236,9 @@ nav:
     - api/index.md
     - Core:
       - Simulation: api/core/simulation.md
-      - Validator: api/core/validator.md
+      - Registry: api/core/registry.md
+      - Models: api/core/models.md
+      - Enumerations: api/core/enums.md
     - Builders:
       - api/builders/index.md
       - RampBuilder: api/builders/ramp.md
@@ -246,6 +248,7 @@ nav:
       - GeomBuilder: api/builders/geom.md
       - PartBuilder: api/builders/part.md
       - SurfaceBuilder: api/builders/surface.md
+      - Libraries: api/builders/libraries.md
     - Namelists:
       - api/namelists/index.md
       - Base Classes: api/namelists/base.md
@@ -256,18 +259,20 @@ nav:
       - Materials: api/namelists/materials.md
       - Devices: api/namelists/devices.md
       - Complex: api/namelists/complex.md
+    - Validation:
+      - api/utils/validation.md
+    - Exceptions:
+      - api/exceptions.md
     - Execution:
       - Runner: api/execution/runner.md
       - Job: api/execution/job.md
       - Monitor: api/execution/monitor.md
-      - Exceptions: api/execution/exceptions.md
     - Analysis:
       - Results: api/analysis/results.md
     - I/O:
       - Parsers: api/io/parsers.md
     - Utilities:
       - Logging: api/utils/logging.md
-      - Validation: api/utils/validation.md
 
   - Developer Guide:
     - development/index.md

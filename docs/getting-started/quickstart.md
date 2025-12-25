@@ -13,11 +13,12 @@ A basic room fire simulation with:
 
 ## Step 1: Import PyFDS
 
-First, import the main `Simulation` class:
+First, import the main `Simulation` class and geometry types:
 
 ```python
 from pyfds import Simulation
-from pyfds.core.geometry import Bounds3D, Grid3D
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device
 ```
 
 ## Step 2: Create a Simulation
@@ -39,8 +40,6 @@ sim = Simulation(
 Define how long the simulation will run:
 
 ```python
-from pyfds import Time
-
 sim.add(Time(t_end=600.0))  # 10 minutes
 ```
 
@@ -59,11 +58,9 @@ sim.add(Time(
 Create a mesh that defines the simulation space:
 
 ```python
-from pyfds import Mesh
-
 sim.add(Mesh(
     ijk=Grid3D.of(50, 50, 25),              # Grid cells in each direction
-    xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)        # Domain bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
+    xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)      # Domain bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
 ))
 ```
 
@@ -81,12 +78,10 @@ sim.add(Mesh(
 Define the properties of the fire source:
 
 ```python
-from pyfds import Surface
-
 sim.add(Surface(
     id='FIRE',
-    hrrpua=1000.0,    # Heat release rate per unit area (kW/m²))
-    color='RED'        # Color for visualization
+    hrrpua=1000.0,    # Heat release rate per unit area (kW/m²)
+    color='RED'       # Color for visualization
 ))
 ```
 
@@ -102,11 +97,9 @@ sim.add(Surface(
 Create a 1m × 1m burner in the center of the room:
 
 ```python
-from pyfds import Obstruction
-
 sim.add(Obstruction(
     xb=Bounds3D.of(2.0, 3.0, 2.0, 3.0, 0.0, 0.1),  # Bounds: (xmin, xmax, ymin, ymax, zmin, zmax)
-    surf_id='FIRE'                        # Apply fire surface to top
+    surf_ids=('FIRE', 'INERT', 'INERT')   # Apply fire surface to top, inert to sides/bottom
 ))
 ```
 
@@ -121,9 +114,6 @@ The burner is:
 Add a temperature sensor at the ceiling:
 
 ```python
-from pyfds import Device
-from pyfds.core.geometry import Point3D
-
 sim.add(Device(
     id='TEMP_CEILING',
     quantity='TEMPERATURE',
@@ -145,8 +135,9 @@ print("FDS input file created successfully!")
 Here's the complete simulation in one script:
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Device
+from pyfds import Simulation
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device
 
 # Create simulation
 sim = Simulation(chid='my_first_fire', title='My First Room Fire Simulation')
@@ -161,7 +152,7 @@ sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 sim.add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
 
 # Place 1m × 1m fire in center
-sim.add(Obstruction(xb=Bounds3D.of(2.0, 3.0, 2.0, 3.0, 0.0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2.0, 3.0, 2.0, 3.0, 0.0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 # Add ceiling temperature sensor
 sim.add(Device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4)))
@@ -192,7 +183,7 @@ And a new file `my_first_fire.fds` will be created with content like:
 &TIME T_END=600.0 /
 &MESH IJK=50,50,25, XB=0,5,0,5,0,2.5 /
 &SURF ID='FIRE', HRRPUA=1000.0, RGB=255,0,0 /
-&OBST XB=2.0,3.0,2.0,3.0,0.0,0.1, SURF_ID='FIRE' /
+&OBST XB=2.0,3.0,2.0,3.0,0.0,0.1, SURF_IDS='FIRE','INERT','INERT' /
 &DEVC ID='TEMP_CEILING', QUANTITY='TEMPERATURE', XYZ=2.5,2.5,2.4 /
 &TAIL /
 ```
@@ -231,14 +222,15 @@ If you have FDS installed, you can execute the simulation:
 PyFDS supports method chaining for more concise code:
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Device
+from pyfds import Simulation
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device
 
 sim = (Simulation(chid='my_first_fire', title='My First Room Fire')
        .add(Time(t_end=600.0))
        .add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
        .add(Surface(id='FIRE', hrrpua=1000.0, color='RED'))
-       .add(Obstruction(xb=Bounds3D.of(2.0, 3.0, 2.0, 3.0, 0.0, 0.1), surf_id='FIRE'))
+       .add(Obstruction(xb=Bounds3D.of(2.0, 3.0, 2.0, 3.0, 0.0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
        .add(Device(id='TEMP_CEILING', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4))))
 
 sim.write('my_first_fire.fds')
@@ -269,7 +261,7 @@ sim.write('my_first_fire.fds')
 
 ```python
 # Larger fire (2m × 2m)
-sim.add(Obstruction(xb=Bounds3D.of(1.5, 3.5, 1.5, 3.5, 0.0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(1.5, 3.5, 1.5, 3.5, 0.0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 ```
 
 ### Change Fire Intensity

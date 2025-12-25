@@ -214,6 +214,6 @@ sim.write('test.fds')
 
 ## See Also
 
-- [Validator](validator.md) - Validation functionality
+- [Validation](../utils/validation.md) - Validation functionality
 - [Namelist Classes](../namelists/index.md) - Individual namelist documentation
 - [User Guide](../../guide/building-simulations.md) - Comprehensive usage guide

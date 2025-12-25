@@ -7,7 +7,7 @@ Learn how to define meshes and set up the computational domain for your FDS simu
 The **computational domain** is the 3D space where FDS performs calculations. It's divided into a grid of cells called a **mesh**.
 
 ```python
-from pyfds import Mesh
+from pyfds.core.namelists import Mesh
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim.add(Mesh(
@@ -23,7 +23,8 @@ sim.add(Mesh(
 Every simulation requires at least one mesh:
 
 ```python
-from pyfds import Simulation, Time, Mesh
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='test')

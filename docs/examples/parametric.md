@@ -13,7 +13,8 @@ Parametric studies help you:
 - Validate simulation approaches
 
 ```python
-from pyfds import Simulation, Surface
+from pyfds import Simulation
+from pyfds.core.namelists import Surface
 
 # Simple parameter sweep
 for hrr in [500, 1000, 1500, 2000]:
@@ -28,7 +29,8 @@ for hrr in [500, 1000, 1500, 2000]:
 Verify numerical accuracy by refining mesh resolution.
 
 ```python
-from pyfds import Simulation, Time, Mesh, Surface, Obstruction, Device
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 import numpy as np
 
@@ -46,7 +48,7 @@ def create_grid_study(chid_base, mesh_multiplier):
 
     # Fire (same in all cases)
     sim.add(Surface(id='FIRE', hrrpua=1000.0))
-    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+    sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
     # Measurement devices
     sim.add(Device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(2.5, 2.5, 2.4)))
@@ -98,6 +100,8 @@ Vary fire heat release rate.
 
 ```python
 from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device, Vent
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 def create_fire_sensitivity(hrr):
     """Create simulation with specified HRR."""
@@ -107,7 +111,7 @@ def create_fire_sensitivity(hrr):
 
     # Variable fire intensity
     sim.add(Surface(id='FIRE', hrrpua=hrr, color='ORANGE'))
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
     # Fixed measurements
     sim.add(Device(id='TEMP_CEIL', quantity='TEMPERATURE', xyz=Point3D.of(3, 2.5, 2.4)))
@@ -164,6 +168,8 @@ Vary door/window opening sizes.
 
 ```python
 from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Surface, Obstruction, Device, Vent
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 def create_ventilation_study(door_width):
     """Create simulation with variable door width."""
@@ -173,7 +179,7 @@ def create_ventilation_study(door_width):
 
     # Fixed fire
     sim.add(Surface(id='FIRE', hrrpua=1000.0))
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
     # Variable door width (centered at y=2.5, height 2.1m)
     y_center = 2.5
@@ -204,6 +210,8 @@ Vary wall material properties.
 
 ```python
 from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Material, Surface, Obstruction, Device
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 def create_material_study(conductivity, label):
     """Create simulation with variable wall conductivity."""
@@ -226,11 +234,11 @@ def create_material_study(conductivity, label):
     )
 
     # Wall
-    sim.add(Obstruction(xb=Bounds3D.of(0, 0.15, 0, 5, 0, 2.5), surf_id='WALL_SURF'))
+    sim.add(Obstruction(xb=Bounds3D.of(0, 0.15, 0, 5, 0, 2.5), surf_ids=('WALL_SURF', 'INERT', 'INERT')))
 
     # Fire
     sim.add(Surface(id='FIRE', hrrpua=1000.0))
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
     # Wall temperature measurements
     sim.add(Device(id='WALL_TEMP_FRONT', quantity='WALL TEMPERATURE', xyz=Point3D.of(0.1, 2.5, 1.5), ior=1))
@@ -259,6 +267,8 @@ Combine multiple parameters (design of experiments).
 
 ```python
 from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Material, Surface, Obstruction, Device, Vent
+from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 import itertools
 
 def create_multi_param_study(hrr, door_width, wall_k):
@@ -271,11 +281,11 @@ def create_multi_param_study(hrr, door_width, wall_k):
     # Wall material
     sim.add(Material(id='WALL', conductivity=wall_k, specific_heat=0.84, density=1440.0))
     sim.add(Surface(id='WALL_SURF', matl_id='WALL', thickness=0.0127))
-    sim.add(Obstruction(xb=Bounds3D.of(0, 0.15, 0, 5, 0, 2.5), surf_id='WALL_SURF'))
+    sim.add(Obstruction(xb=Bounds3D.of(0, 0.15, 0, 5, 0, 2.5), surf_ids=('WALL_SURF', 'INERT', 'INERT')))
 
     # Fire
     sim.add(Surface(id='FIRE', hrrpua=hrr))
-    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
+    sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
     # Door
     y_center = 2.5
@@ -346,7 +356,7 @@ print(df.group_by('door_width').agg(pl.col('min_layer_height').mean()))
 Run multiple simulations automatically.
 
 ```python
-from pyfds import Simulation, FDSRunner
+from pyfds import Simulation
 import subprocess
 from pathlib import Path
 

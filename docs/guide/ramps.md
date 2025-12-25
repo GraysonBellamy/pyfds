@@ -12,7 +12,7 @@ The **RAMP** namelist defines functions that vary properties over time or with t
 - Controlled device activation
 
 ```python
-from pyfds import Surface, Ramp
+from pyfds.core.namelists import Surface, Ramp
 
 # Time-varying fire
 sim.add(Ramp(id='FIRE_GROWTH', t=[0, 60, 300], f=[0, 0.5, 1.0]))
@@ -93,7 +93,7 @@ Apply to fire surface:
 
 ```python
 sim.add(Surface(id='FIRE', hrrpua=1000.0, ramp_q='MEDIUM'))
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 ```
 
 ### Custom Fire Growth
@@ -131,6 +131,9 @@ sim.add(Surface(
 ### HVAC Schedule
 
 ```python
+from pyfds.core.namelists import Ramp, Vent
+from pyfds.core.geometry import Bounds3D
+
 # HVAC turns on at t=60s, off at t=300s
 sim.add(Ramp(
     id='HVAC_SCHEDULE',
@@ -218,6 +221,8 @@ sim.add(Ramp(
 
 ```python
 from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Ramp, Surface, Obstruction, Vent
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='growing_fire')
 sim.add(Time(t_end=600.0))
@@ -231,7 +236,7 @@ sim.add(Ramp(
 )
 
 sim.add(Surface(id='FIRE', hrrpua=1500.0, ramp_q='GROWTH', color='ORANGE'))
-sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 # Door
 sim.add(Vent(xb=Bounds3D.of(6, 6, 2, 3, 0, 2.1), surf_id='OPEN'))
@@ -242,6 +247,10 @@ sim.write('growing_fire.fds')
 ### Fire with Decay
 
 ```python
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Ramp, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = Simulation(chid='fire_decay')
 sim.add(Time(t_end=900.0))
 sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
@@ -254,7 +263,7 @@ sim.add(Ramp(
 )
 
 sim.add(Surface(id='FIRE', hrrpua=2000.0, ramp_q='FIRE_CURVE'))
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 sim.write('fire_decay.fds')
 ```
@@ -262,6 +271,10 @@ sim.write('fire_decay.fds')
 ### Temperature-Dependent Wall
 
 ```python
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Ramp, Material, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = Simulation(chid='temp_wall')
 sim.add(Time(t_end=600.0))
 sim.add(Mesh(ijk=Grid3D.of(60, 40, 25), xb=Bounds3D.of(0, 6, 0, 4, 0, 2.5)))
@@ -290,10 +303,10 @@ sim.add(Surface(
 
 # Fire
 sim.add(Surface(id='FIRE', hrrpua=1000.0))
-sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 1.5, 2.5, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 1.5, 2.5, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 # Wall
-sim.add(Obstruction(xb=Bounds3D.of(0, 0.1, 0, 4, 0, 2.5), surf_id='GYPSUM_WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.1, 0, 4, 0, 2.5), surf_ids=('GYPSUM_WALL', 'INERT', 'INERT')))
 
 sim.write('temp_wall.fds')
 ```
@@ -301,6 +314,10 @@ sim.write('temp_wall.fds')
 ### Scheduled HVAC
 
 ```python
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Ramp, Surface, Obstruction, Vent
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = Simulation(chid='hvac_schedule')
 sim.add(Time(t_end=900.0))
 sim.add(Mesh(ijk=Grid3D.of(60, 60, 30), xb=Bounds3D.of(0, 6, 0, 6, 0, 3)))
@@ -314,7 +331,7 @@ sim.add(Ramp(
 
 # Fire starts at t=0
 sim.add(Surface(id='FIRE', hrrpua=800.0))
-sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2.5, 3.5, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2.5, 3.5, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 # HVAC vent with schedule
 sim.add(Vent(
@@ -330,6 +347,10 @@ sim.write('hvac_schedule.fds')
 ### Multiple Fire Sources with Staggered Start
 
 ```python
+from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Ramp, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = Simulation(chid='staggered_fires')
 sim.add(Time(t_end=600.0))
 sim.add(Mesh(ijk=Grid3D.of(80, 60, 25), xb=Bounds3D.of(0, 8, 0, 6, 0, 2.5)))
@@ -337,12 +358,12 @@ sim.add(Mesh(ijk=Grid3D.of(80, 60, 25), xb=Bounds3D.of(0, 8, 0, 6, 0, 2.5)))
 # First fire: starts at t=0
 sim.add(Ramp(id='FIRE1', t=[0, 120], f=[0.0, 1.0]))
 sim.add(Surface(id='FIRE1', hrrpua=1000.0, ramp_q='FIRE1'))
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE1'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('FIRE1', 'INERT', 'INERT')))
 
 # Second fire: starts at t=180s
 sim.add(Ramp(id='FIRE2', t=[0, 180, 300], f=[0.0, 0.0, 1.0]))
 sim.add(Surface(id='FIRE2', hrrpua=1200.0, ramp_q='FIRE2'))
-sim.add(Obstruction(xb=Bounds3D.of(5, 6, 3, 4, 0, 0.1), surf_id='FIRE2'))
+sim.add(Obstruction(xb=Bounds3D.of(5, 6, 3, 4, 0, 0.1), surf_ids=('FIRE2', 'INERT', 'INERT')))
 
 sim.write('staggered_fires.fds')
 ```

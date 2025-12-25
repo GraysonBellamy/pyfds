@@ -8,8 +8,9 @@ PyFDS provides Pydantic model classes for all major FDS namelists. All namelist 
 from pyfds import (
     Simulation, Time, Mesh, Surface, Obstruction, Vent, Device,
     Ramp, Material, Reaction, Control, Property, Initialization,
-    Particle, Hole, Species, Combustion, Multiplier, Hvac
+    Particle, Hole, Species, Combustion, Multiplier, Hvac, Head, Misc
 )
+from pyfds.core.namelists import Geometry, Move  # Advanced geometry
 from pyfds.core.geometry import Bounds3D, Grid3D, Point3D
 
 sim = Simulation(chid='example')

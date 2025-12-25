@@ -7,7 +7,7 @@ Learn how to create and configure fire sources in FDS simulations.
 Fire sources in FDS are created by applying fire surfaces to obstructions or vents. The fire is defined by its **heat release rate per unit area (HRRPUA)**.
 
 ```python
-from pyfds import Surface, Obstruction
+from pyfds.core.namelists import Surface, Obstruction
 from pyfds.core.geometry import Bounds3D
 
 # Create fire surface
@@ -29,7 +29,7 @@ sim.add(Surface(
 )
 
 # Apply to 1m x 1m burner
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='BURNER'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('BURNER', 'INERT', 'INERT')))
 ```
 
 Total HRR = HRRPUA × Area = 1000 kW/m² × 1 m² = 1000 kW
@@ -69,7 +69,7 @@ See [RAMP Guide](ramps.md) for more time-varying options.
 
 ### Square Burner
 ```python
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 ```
 
 ### Circular Burner
@@ -84,14 +84,16 @@ sim.add(Vent(
 
 ### Multiple Fires
 ```python
-sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
-sim.add(Obstruction(xb=Bounds3D.of(3, 4, 3, 4, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
+sim.add(Obstruction(xb=Bounds3D.of(3, 4, 3, 4, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 ```
 
 ## Complete Example
 
 ```python
 from pyfds import Simulation
+from pyfds.core.namelists import Time, Mesh, Ramp, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='fire_demo')
 sim.add(Time(t_end=300.0))
@@ -100,7 +102,7 @@ sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 # Growing fire
 sim.add(Ramp(id='GROWTH', t=[0, 60, 180], f=[0, 0.3, 1.0]))
 sim.add(Surface(id='FIRE', hrrpua=1500.0, ramp_q='GROWTH', color='ORANGE'))
-sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_id='FIRE'))
+sim.add(Obstruction(xb=Bounds3D.of(2, 3, 2, 3, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
 
 sim.write('fire_demo.fds')
 ```

@@ -7,7 +7,7 @@ Learn how to create walls, obstructions, and solid objects in your FDS simulatio
 Geometry in FDS is created using **obstructions** - solid rectangular blocks that can represent walls, furniture, equipment, and other objects.
 
 ```python
-from pyfds import Obstruction
+from pyfds.core.namelists import Obstruction
 from pyfds.core.geometry import Bounds3D
 
 sim.add(Obstruction(
@@ -21,7 +21,8 @@ sim.add(Obstruction(
 ### Basic Obstruction
 
 ```python
-from pyfds import Simulation, Mesh, Obstruction
+from pyfds import Simulation
+from pyfds.core.namelists import Mesh, Obstruction
 from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='geometry_test')
@@ -30,7 +31,7 @@ sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 # Create a wall (0.2m thick)
 sim.add(Obstruction(
     xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5),
-    surf_id='CONCRETE_WALL'
+    surf_ids=('CONCRETE_WALL', 'INERT', 'INERT')
 )
 ```
 
@@ -58,16 +59,16 @@ sim.add(Obstruction(xb=Bounds3D.of(1.0, 2.0, 1.0, 2.0, 0.0, 0.5)))
 wall_thickness = 0.2
 
 # West wall (low X)
-sim.add(Obstruction(xb=Bounds3D.of(0, wall_thickness, 0, 5, 0, 2.5), surf_id='WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(0, wall_thickness, 0, 5, 0, 2.5), surf_ids=('WALL', 'INERT', 'INERT')))
 
 # East wall (high X)
-sim.add(Obstruction(xb=Bounds3D.of(5-wall_thickness, 5, 0, 5, 0, 2.5), surf_id='WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(5-wall_thickness, 5, 0, 5, 0, 2.5), surf_ids=('WALL', 'INERT', 'INERT')))
 
 # South wall (low Y)
-sim.add(Obstruction(xb=Bounds3D.of(0, 5, 0, wall_thickness, 0, 2.5), surf_id='WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 5, 0, wall_thickness, 0, 2.5), surf_ids=('WALL', 'INERT', 'INERT')))
 
 # North wall (high Y)
-sim.add(Obstruction(xb=Bounds3D.of(0, 5, 5-wall_thickness, 5, 0, 2.5), surf_id='WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 5, 5-wall_thickness, 5, 0, 2.5), surf_ids=('WALL', 'INERT', 'INERT')))
 ```
 
 #### Wall with Door Opening
@@ -82,19 +83,19 @@ door_center_y = 2.5
 # Left part of wall (below door center - half width)
 sim.add(Obstruction(
     xb=Bounds3D.of(5-wall_thickness, 5, 0, door_center_y - door_width/2, 0, 2.5),
-    surf_id='WALL'
+    surf_ids=('WALL', 'INERT', 'INERT')
 )
 
 # Right part of wall (above door center + half width)
 sim.add(Obstruction(
     xb=Bounds3D.of(5-wall_thickness, 5, door_center_y + door_width/2, 5, 0, 2.5),
-    surf_id='WALL'
+    surf_ids=('WALL', 'INERT', 'INERT')
 )
 
 # Top part of wall (above door)
 sim.add(Obstruction(
     xb=Bounds3D.of(5-wall_thickness, 5, door_center_y - door_width/2, door_center_y + door_width/2, door_height, 2.5),
-    surf_id='WALL'
+    surf_ids=('WALL', 'INERT', 'INERT')
 )
 ```
 
@@ -102,34 +103,34 @@ sim.add(Obstruction(
 
 ```python
 # Floor (thin obstruction at Z=0)
-sim.add(Obstruction(xb=Bounds3D.of(0, 5, 0, 5, 0, 0.01), surf_id='FLOOR'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 5, 0, 5, 0, 0.01), surf_ids=('FLOOR', 'INERT', 'INERT')))
 
 # Ceiling (at top of domain)
-sim.add(Obstruction(xb=Bounds3D.of(0, 5, 0, 5, 2.49, 2.5), surf_id='CEILING'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 5, 0, 5, 2.49, 2.5), surf_ids=('CEILING', 'INERT', 'INERT')))
 ```
 
 ### Furniture and Objects
 
 ```python
 # Table: 1.5m × 0.8m × 0.8m tall
-sim.add(Obstruction(xb=Bounds3D.of(2.0, 3.5, 1.5, 2.3, 0.0, 0.8), surf_id='WOOD'))
+sim.add(Obstruction(xb=Bounds3D.of(2.0, 3.5, 1.5, 2.3, 0.0, 0.8), surf_ids=('WOOD', 'INERT', 'INERT')))
 
 # Chair: 0.5m × 0.5m × 0.5m
-sim.add(Obstruction(xb=Bounds3D.of(1.5, 2.0, 1.5, 2.0, 0.0, 0.5), surf_id='PLASTIC'))
+sim.add(Obstruction(xb=Bounds3D.of(1.5, 2.0, 1.5, 2.0, 0.0, 0.5), surf_ids=('PLASTIC', 'INERT', 'INERT')))
 
 # Cabinet: 1m × 0.5m × 2m tall
-sim.add(Obstruction(xb=Bounds3D.of(0.2, 1.2, 4.5, 5.0, 0.0, 2.0), surf_id='METAL'))
+sim.add(Obstruction(xb=Bounds3D.of(0.2, 1.2, 4.5, 5.0, 0.0, 2.0), surf_ids=('METAL', 'INERT', 'INERT')))
 ```
 
 ### Columns
 
 ```python
 # Square column: 0.3m × 0.3m, full height
-sim.add(Obstruction(xb=Bounds3D.of(2.35, 2.65, 2.35, 2.65, 0.0, 2.5), surf_id='CONCRETE'))
+sim.add(Obstruction(xb=Bounds3D.of(2.35, 2.65, 2.35, 2.65, 0.0, 2.5), surf_ids=('CONCRETE', 'INERT', 'INERT')))
 
 # Multiple columns in a row
 for x in [1.0, 2.0, 3.0, 4.0]:
-    sim.add(Obstruction(xb=Bounds3D.of(x-0.15, x+0.15, 2.35, 2.65, 0.0, 2.5), surf_id='CONCRETE'))
+    sim.add(Obstruction(xb=Bounds3D.of(x-0.15, x+0.15, 2.35, 2.65, 0.0, 2.5), surf_ids=('CONCRETE', 'INERT', 'INERT')))
 ```
 
 ## Advanced Geometry
@@ -144,9 +145,9 @@ def create_bookshelf(sim, x, y, z, width, depth, height, shelves):
     shelf_thickness = 0.02
 
     # Back and sides
-    sim.add(Obstruction(xb=Bounds3D.of(x, x+width, y+depth-0.02, y+depth, z, z+height), surf_id='WOOD'))
-    sim.add(Obstruction(xb=Bounds3D.of(x, x+0.02, y, y+depth, z, z+height), surf_id='WOOD'))
-    sim.add(Obstruction(xb=Bounds3D.of(x+width-0.02, x+width, y, y+depth, z, z+height), surf_id='WOOD'))
+    sim.add(Obstruction(xb=Bounds3D.of(x, x+width, y+depth-0.02, y+depth, z, z+height), surf_ids=('WOOD', 'INERT', 'INERT')))
+    sim.add(Obstruction(xb=Bounds3D.of(x, x+0.02, y, y+depth, z, z+height), surf_ids=('WOOD', 'INERT', 'INERT')))
+    sim.add(Obstruction(xb=Bounds3D.of(x+width-0.02, x+width, y, y+depth, z, z+height), surf_ids=('WOOD', 'INERT', 'INERT')))
 
     # Shelves
     shelf_spacing = height / shelves
@@ -154,7 +155,7 @@ def create_bookshelf(sim, x, y, z, width, depth, height, shelves):
         shelf_z = z + i * shelf_spacing
         sim.add(Obstruction(
             xb=Bounds3D.of(x, x+width, y, y+depth, shelf_z, shelf_z+shelf_thickness),
-            surf_id='WOOD'
+            surf_ids=('WOOD', 'INERT', 'INERT')
         )
 
 # Create bookshelves
@@ -175,7 +176,7 @@ for i in range(5):
         y0 = 0.5 + j * spacing
         sim.add(Obstruction(
             xb=Bounds3D.of(x0, x0+cube_size, y0, y0+cube_size, 0, cube_size),
-            surf_id='BOX'
+            surf_ids=('BOX', 'INERT', 'INERT')
         )
 ```
 
@@ -191,7 +192,7 @@ for i in range(10):
     z0 = i * step_rise
     sim.add(Obstruction(
         xb=Bounds3D.of(x0, x0+step_width, 1.0, 2.0, 0, z0+step_rise),
-        surf_id='CONCRETE'
+        surf_ids=('CONCRETE', 'INERT', 'INERT')
     )
 ```
 
@@ -206,7 +207,7 @@ All obstructions have a surface. If not specified, FDS uses 'INERT':
 sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1)))
 
 # Explicit surface
-sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id='CONCRETE'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_ids=('CONCRETE', 'INERT', 'INERT')))
 ```
 
 ### Different Surfaces on Each Face
@@ -233,7 +234,7 @@ Use HOLE namelist (via obstruction with `hole=True`):
 
 ```python
 # Create wall
-sim.add(Obstruction(xb=Bounds3D.of(5, 5.2, 0, 5, 0, 3), surf_id='WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(5, 5.2, 0, 5, 0, 3), surf_ids=('WALL', 'INERT', 'INERT')))
 
 # Cut window in wall
 sim.add(Obstruction(xb=Bounds3D.of(5, 5.2, 1.5, 2.5, 1.5, 2.5), hole=True))
@@ -281,19 +282,19 @@ Group related geometry:
 # ============================================================
 # WALLS
 # ============================================================
-sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_id='WALL'))
-sim.add(Obstruction(xb=Bounds3D.of(4.8, 5, 0, 5, 0, 2.5), surf_id='WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_ids=('WALL', 'INERT', 'INERT')))
+sim.add(Obstruction(xb=Bounds3D.of(4.8, 5, 0, 5, 0, 2.5), surf_ids=('WALL', 'INERT', 'INERT')))
 
 # ============================================================
 # FURNITURE
 # ============================================================
-sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.8), surf_id='TABLE'))
-sim.add(Obstruction(xb=Bounds3D.of(1, 1.5, 1, 1.5, 0, 0.5), surf_id='CHAIR'))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.8), surf_ids=('TABLE', 'INERT', 'INERT')))
+sim.add(Obstruction(xb=Bounds3D.of(1, 1.5, 1, 1.5, 0, 0.5), surf_ids=('CHAIR', 'INERT', 'INERT')))
 
 # ============================================================
 # FIRE SOURCES
 # ============================================================
-sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2.5, 3.5, 0, 0.1), surf_id='BURNER'))
+sim.add(Obstruction(xb=Bounds3D.of(2.5, 3.5, 2.5, 3.5, 0, 0.1), surf_ids=('BURNER', 'INERT', 'INERT')))
 ```
 
 ### 4. Use Helper Functions
@@ -307,10 +308,10 @@ def add_rectangular_room(sim, xb, wall_thickness, surf_id='WALL'):
     t = wall_thickness
 
     # Four walls
-    sim.add(Obstruction(xb=Bounds3D.of(xmin, xmin+t, ymin, ymax, zmin, zmax), surf_id=surf_id))
-    sim.add(Obstruction(xb=Bounds3D.of(xmax-t, xmax, ymin, ymax, zmin, zmax), surf_id=surf_id))
-    sim.add(Obstruction(xb=Bounds3D.of(xmin, xmax, ymin, ymin+t, zmin, zmax), surf_id=surf_id))
-    sim.add(Obstruction(xb=Bounds3D.of(xmin, xmax, ymax-t, ymax, zmin, zmax), surf_id=surf_id))
+    sim.add(Obstruction(xb=Bounds3D.of(xmin, xmin+t, ymin, ymax, zmin, zmax), surf_ids=(surf_id, 'INERT', 'INERT')))
+    sim.add(Obstruction(xb=Bounds3D.of(xmax-t, xmax, ymin, ymax, zmin, zmax), surf_ids=(surf_id, 'INERT', 'INERT')))
+    sim.add(Obstruction(xb=Bounds3D.of(xmin, xmax, ymin, ymin+t, zmin, zmax), surf_ids=(surf_id, 'INERT', 'INERT')))
+    sim.add(Obstruction(xb=Bounds3D.of(xmin, xmax, ymax-t, ymax, zmin, zmax), surf_ids=(surf_id, 'INERT', 'INERT')))
 
 # Use it
 add_rectangular_room(sim, (0, 5, 0, 5, 0, 2.5), wall_thickness=0.2)
@@ -339,11 +340,11 @@ add_rectangular_room(sim, (0, 5, 0, 5, 0, 2.5), wall_thickness=0.2)
     **Solution**: Define surfaces before use
     ```python
     # Bad - surface not defined
-    sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id='WOOD'))
+    sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_ids=('WOOD', 'INERT', 'INERT')))
 
     # Good - define first
     sim.add(Surface(id='WOOD', matl_id='PINE'))
-    sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id='WOOD'))
+    sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_ids=('WOOD', 'INERT', 'INERT')))
     ```
 
 ??? question "Overlapping geometry"
@@ -361,6 +362,10 @@ add_rectangular_room(sim, (0, 5, 0, 5, 0, 2.5), wall_thickness=0.2)
 ### Simple Room
 
 ```python
+from pyfds import Simulation
+from pyfds.core.namelists import Mesh, Vent
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = Simulation(chid='simple_room')
 sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
 
@@ -374,6 +379,10 @@ sim.add(Vent(xb=Bounds3D.of(5, 5, 2, 3, 0, 2.1), surf_id='OPEN'))
 ### Office Space
 
 ```python
+from pyfds import Simulation
+from pyfds.core.namelists import Mesh, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = Simulation(chid='office')
 sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3)))
 
@@ -381,10 +390,10 @@ sim.add(Mesh(ijk=Grid3D.of(80, 60, 30), xb=Bounds3D.of(0, 8, 0, 6, 0, 3)))
 add_rectangular_room(sim, (0, 8, 0, 6, 0, 3), wall_thickness=0.2)
 
 # Desk
-sim.add(Obstruction(xb=Bounds3D.of(1, 2.5, 1, 2, 0, 0.75), surf_id='WOOD'))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2.5, 1, 2, 0, 0.75), surf_ids=('WOOD', 'INERT', 'INERT')))
 
 # Filing cabinet
-sim.add(Obstruction(xb=Bounds3D.of(0.5, 1, 5, 5.5, 0, 1.2), surf_id='METAL'))
+sim.add(Obstruction(xb=Bounds3D.of(0.5, 1, 5, 5.5, 0, 1.2), surf_ids=('METAL', 'INERT', 'INERT')))
 
 # Bookshelf
 create_bookshelf(sim, x=7, y=5.5, z=0, width=0.8, depth=0.3, height=2, shelves=5)

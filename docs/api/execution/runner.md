@@ -437,7 +437,7 @@ export OMP_NUM_THREADS=4
 - [Job](job.md) - Job management
 - [Monitor](monitor.md) - Progress monitoring
 - [Running Guide](../../execution/running.md) - Execution guide
-- [Exceptions](exceptions.md) - Error handling
+- [Exceptions](../exceptions.md) - Error handling
 
 ---
 

@@ -14,10 +14,21 @@ The API Reference provides detailed technical documentation auto-generated from 
 
     ---
 
-    Main simulation and validation classes
+    Main simulation classes and core components
 
     - [Simulation](core/simulation.md)
-    - [Validator](core/validator.md)
+    - [Registry](core/registry.md)
+    - [Models](core/models.md)
+    - [Enumerations](core/enums.md)
+
+-   :material-hammer-wrench: **Builders**
+
+    ---
+
+    Fluent APIs and pre-configured objects
+
+    - [Builders](builders/index.md)
+    - [Libraries](builders/libraries.md)
 
 -   :material-format-list-bulleted: **Namelists**
 
@@ -33,6 +44,22 @@ The API Reference provides detailed technical documentation auto-generated from 
     - [Devices](namelists/devices.md)
     - [Complex](namelists/complex.md)
 
+-   :material-shield-check: **Validation**
+
+    ---
+
+    Input validation and error checking
+
+    - [Validation](utils/validation.md)
+
+-   :material-alert-circle: **Exceptions**
+
+    ---
+
+    Error handling and exception types
+
+    - [Exceptions](exceptions.md)
+
 -   :material-play-circle-outline: **Execution**
 
     ---
@@ -42,7 +69,6 @@ The API Reference provides detailed technical documentation auto-generated from 
     - [Runner](execution/runner.md)
     - [Job](execution/job.md)
     - [Monitor](execution/monitor.md)
-    - [Exceptions](execution/exceptions.md)
 
 -   :material-chart-line-variant: **Analysis**
 
@@ -67,7 +93,6 @@ The API Reference provides detailed technical documentation auto-generated from 
     Helper functions and utilities
 
     - [Logging](utils/logging.md)
-    - [Validation](utils/validation.md)
 
 </div>
 
@@ -81,7 +106,7 @@ The API Reference provides detailed technical documentation auto-generated from 
 | [`Results`](analysis/results.md) | Container for simulation results |
 | [`FDSRunner`](execution/runner.md) | Execute FDS simulations |
 | [`Job`](execution/job.md) | Manage running simulations |
-| [`Validator`](core/validator.md) | Validate simulation configuration |
+| [`validate_simulation()`](utils/validation.md) | Validate simulation configuration |
 
 ### Namelist Classes
 
@@ -94,16 +119,20 @@ The API Reference provides detailed technical documentation auto-generated from 
 | OBST | [`Obstruction`](namelists/geometry.md) | Solid obstructions |
 | VENT | [`Vent`](namelists/geometry.md) | Boundaries and vents |
 | HOLE | [`Hole`](namelists/geometry.md) | Openings in obstructions |
-| MULT | [`Mult`](namelists/geometry.md) | Array replication |
-| GEOM | [`Geom`](namelists/geometry.md) | Unstructured geometry (beta) |
+| MULT | [`Multiplier`](namelists/geometry.md) | Array replication |
+| GEOM | [`Geometry`](namelists/geometry.md) | Unstructured geometry (beta) |
 | MOVE | [`Move`](namelists/geometry.md) | Geometry transformations |
 | DEVC | [`Device`](namelists/devices.md) | Measurement devices |
 | MATL | [`Material`](namelists/materials.md) | Material definitions |
 | RAMP | [`Ramp`](namelists/complex.md) | Time-varying properties |
 | REAC | [`Reaction`](namelists/complex.md) | Combustion reactions |
-| PROP | [`Prop`](namelists/devices.md) | Device properties |
-| CTRL | [`Ctrl`](namelists/complex.md) | Control logic |
-| INIT | [`Init`](namelists/complex.md) | Initial conditions |
+| PART | [`Particle`](namelists/complex.md) | Particle definitions |
+| PROP | [`Property`](namelists/devices.md) | Device properties |
+| CTRL | [`Control`](namelists/complex.md) | Control logic |
+| INIT | [`Initialization`](namelists/complex.md) | Initial conditions |
+| SPEC | [`Species`](namelists/species.md) | Chemical species |
+| COMB | [`Combustion`](namelists/complex.md) | Combustion parameters |
+| HVAC | [`Hvac`](namelists/complex.md) | HVAC systems |
 | MISC | [`Misc`](namelists/metadata.md) | Global settings |
 
 ## Usage Examples
@@ -115,13 +144,19 @@ The API Reference provides detailed technical documentation auto-generated from 
 from pyfds import Simulation
 
 # Import specific namelist classes
-from pyfds import Mesh, Surface, Device
+from pyfds import Mesh, Surface, Device, Time
 
 # Import execution classes
-from pyfds import FDSRunner, Job, Results
+from pyfds.execution import FDSRunner, Job
+from pyfds.analysis import Results
 
-# Import validators
-from pyfds import Validator, ValidationError
+# Import validation
+from pyfds.validation import validate_simulation, SimulationValidator
+from pyfds.exceptions import ValidationError, DuplicateIdError
+
+# Import builders
+from pyfds import RampBuilder, MaterialBuilder, SurfaceBuilder
+from pyfds.builders.libraries import CommonMaterials, CommonRamps
 ```
 
 ### Type Hints
@@ -215,7 +250,10 @@ surface : Create surface properties
 Browse by module organization:
 
 - **[Core](core/simulation.md)** - Main simulation building
+- **[Builders](builders/index.md)** - Fluent APIs and libraries
 - **[Namelists](namelists/index.md)** - All FDS namelist classes
+- **[Validation](utils/validation.md)** - Input validation
+- **[Exceptions](exceptions.md)** - Error handling
 - **[Execution](execution/runner.md)** - Running simulations
 - **[Analysis](analysis/results.md)** - Results and visualization
 - **[I/O](io/parsers.md)** - File operations
@@ -233,8 +271,10 @@ Find what you need based on what you want to do:
 | Add geometry | [`sim.add(Obstruction())`](core/simulation.md) |
 | Add vent | [`sim.add(Vent())`](core/simulation.md) |
 | Add device | [`sim.add(Device())`](core/simulation.md) |
-| Validate | [`Validator`](core/validator.md) |
-| Run simulation | [`Simulation.run()`](core/simulation.md) |
+| Build complex objects | [`MaterialBuilder`](builders/material.md), [`RampBuilder`](builders/ramp.md) |
+| Use pre-configured objects | [`CommonMaterials`](builders/libraries.md), [`CommonRamps`](builders/libraries.md) |
+| Validate | [`validate_simulation()`](utils/validation.md) |
+| Run simulation | [`run_fds()`](execution/runner.md) or [`sim.run()`](core/simulation.md) |
 | Load results | [`Results`](analysis/results.md) |
 | Plot data | [`Results.plot_hrr()`](analysis/results.md) |
 

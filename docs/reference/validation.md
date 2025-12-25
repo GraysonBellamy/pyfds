@@ -544,7 +544,7 @@ python -m pytest tests/test_validation.py
 
 - [User Guide](../guide/building-simulations.md) - Building valid simulations
 - [Troubleshooting](troubleshooting.md) - Fixing common issues
-- [API Reference](../api/core/validator.md) - Validator API
+- [API Reference](../api/utils/validation.md) - Validation API
 
 ---
 

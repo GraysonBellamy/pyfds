@@ -7,7 +7,7 @@ Define material properties and surface characteristics for your FDS simulations.
 Surfaces (SURF) define boundary conditions and material properties. Materials (MATL) define the physical properties of solids.
 
 ```python
-from pyfds import Surface, Material
+from pyfds.core.namelists import Surface, Material
 
 # Simple fire surface
 sim.add(Surface(id='FIRE', hrrpua=1000.0))
@@ -66,7 +66,7 @@ FDS includes predefined surfaces:
 
 ```python
 # Use predefined
-sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_id='INERT'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 1, 0, 1, 0, 1), surf_ids=('INERT', 'INERT', 'INERT')))
 ```
 
 ## Material Properties
@@ -227,6 +227,8 @@ sim.add(Surface(
 
 ```python
 from pyfds import Simulation
+from pyfds.core.namelists import Mesh, Material, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
 
 sim = Simulation(chid='wall_material')
 sim.add(Mesh(ijk=Grid3D.of(50, 50, 25), xb=Bounds3D.of(0, 5, 0, 5, 0, 2.5)))
@@ -248,7 +250,7 @@ sim.add(Surface(
 )
 
 # Apply to walls
-sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_id='GYPSUM_WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 5, 0, 2.5), surf_ids=('GYPSUM_WALL', 'INERT', 'INERT')))
 
 sim.write('wall_material.fds')
 ```
@@ -256,6 +258,10 @@ sim.write('wall_material.fds')
 ### Multi-Layer Wall
 
 ```python
+from pyfds import Simulation
+from pyfds.core.namelists import Mesh, Material, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = Simulation(chid='composite_wall')
 sim.add(Mesh(ijk=Grid3D.of(50, 40, 25), xb=Bounds3D.of(0, 5, 0, 4, 0, 2.5)))
 
@@ -273,7 +279,7 @@ sim.add(Surface(
 )
 
 # Apply to wall
-sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 2.5), surf_id='EXTERIOR_WALL'))
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.2, 0, 4, 0, 2.5), surf_ids=('EXTERIOR_WALL', 'INERT', 'INERT')))
 
 sim.write('composite_wall.fds')
 ```
@@ -281,6 +287,10 @@ sim.write('composite_wall.fds')
 ### Temperature-Dependent Material
 
 ```python
+from pyfds import Simulation
+from pyfds.core.namelists import Mesh, Ramp, Material, Surface, Obstruction
+from pyfds.core.geometry import Bounds3D, Grid3D
+
 sim = Simulation(chid='temp_dependent')
 sim.add(Mesh(ijk=Grid3D.of(30, 30, 15), xb=Bounds3D.of(0, 3, 0, 3, 0, 1.5)))
 
@@ -308,8 +318,8 @@ sim.add(Surface(
 
 # Fire and wall
 sim.add(Surface(id='FIRE', hrrpua=1000.0))
-sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_id='FIRE'))
-sim.add(Obstruction(xb=Bounds3D.of(0, 0.1, 0, 3, 0, 1.5), surf_id='TEMP_SURF'))
+sim.add(Obstruction(xb=Bounds3D.of(1, 2, 1, 2, 0, 0.1), surf_ids=('FIRE', 'INERT', 'INERT')))
+sim.add(Obstruction(xb=Bounds3D.of(0, 0.1, 0, 3, 0, 1.5), surf_ids=('TEMP_SURF', 'INERT', 'INERT')))
 
 sim.write('temp_dependent.fds')
 ```
