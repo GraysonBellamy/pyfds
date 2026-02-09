@@ -4,14 +4,14 @@ This module contains all enumeration types used across PyFDS,
 organized by their FDS namelist or functional area.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 # =============================================================================
 # Validation Enums
 # =============================================================================
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     """Validation issue severity levels."""
 
     ERROR = "error"
@@ -24,7 +24,7 @@ class Severity(str, Enum):
 # =============================================================================
 
 
-class SolidGeometry(str, Enum):
+class SolidGeometry(StrEnum):
     """Solid phase geometry types for SURF."""
 
     CARTESIAN = "CARTESIAN"
@@ -33,7 +33,7 @@ class SolidGeometry(str, Enum):
     INNER_CYLINDRICAL = "INNER CYLINDRICAL"
 
 
-class BackingCondition(str, Enum):
+class BackingCondition(StrEnum):
     """Backing conditions for SURF."""
 
     VOID = "VOID"
@@ -41,14 +41,14 @@ class BackingCondition(str, Enum):
     EXPOSED = "EXPOSED"
 
 
-class HeatTransferModel(str, Enum):
+class HeatTransferModel(StrEnum):
     """Heat transfer models for SURF."""
 
     LOGLAW = "LOGLAW"
     IMPINGING_JET = "IMPINGING JET"
 
 
-class SprayPattern(str, Enum):
+class SprayPattern(StrEnum):
     """Spray patterns for particle generation."""
 
     UNIFORM = "UNIFORM"
@@ -60,7 +60,7 @@ class SprayPattern(str, Enum):
 # =============================================================================
 
 
-class TurbulenceModel(str, Enum):
+class TurbulenceModel(StrEnum):
     """LES turbulence models for MISC namelist."""
 
     DEARDORFF = "DEARDORFF"
@@ -69,7 +69,7 @@ class TurbulenceModel(str, Enum):
     WALE = "WALE"
 
 
-class SimulationMode(str, Enum):
+class SimulationMode(StrEnum):
     """Simulation mode for MISC namelist."""
 
     VLES = "VLES"
@@ -78,7 +78,7 @@ class SimulationMode(str, Enum):
     SVLES = "SVLES"
 
 
-class LESFilterType(str, Enum):
+class LESFilterType(StrEnum):
     """LES filter type for MISC namelist."""
 
     MEAN = "MEAN"
@@ -90,7 +90,7 @@ class LESFilterType(str, Enum):
 # =============================================================================
 
 
-class VentType(str, Enum):
+class VentType(StrEnum):
     """Types of vents in FDS."""
 
     OPEN = "OPEN"
@@ -100,7 +100,7 @@ class VentType(str, Enum):
     PERIODIC = "PERIODIC"
 
 
-class VentShape(str, Enum):
+class VentShape(StrEnum):
     """Vent geometry types."""
 
     RECTANGULAR = "RECTANGULAR"
@@ -112,7 +112,7 @@ class VentShape(str, Enum):
 # =============================================================================
 
 
-class ControlFunction(str, Enum):
+class ControlFunction(StrEnum):
     """Control function types for CTRL namelist."""
 
     ANY = "ANY"
@@ -129,7 +129,7 @@ class ControlFunction(str, Enum):
 # =============================================================================
 
 
-class ObstShape(str, Enum):
+class ObstShape(StrEnum):
     """Geometric shape types for OBST."""
 
     SPHERE = "SPHERE"
@@ -143,14 +143,14 @@ class ObstShape(str, Enum):
 # =============================================================================
 
 
-class TextureMapping(str, Enum):
+class TextureMapping(StrEnum):
     """Texture mapping types for GEOM."""
 
     RECTANGULAR = "RECTANGULAR"
     SPHERICAL = "SPHERICAL"
 
 
-class CoordinateSystem(str, Enum):
+class CoordinateSystem(StrEnum):
     """Coordinate system types."""
 
     RECTANGULAR = "RECTANGULAR"
@@ -163,7 +163,7 @@ class CoordinateSystem(str, Enum):
 # =============================================================================
 
 
-class ExtinctionModel(str, Enum):
+class ExtinctionModel(StrEnum):
     """Combustion extinction models."""
 
     EXTINCTION_1 = "EXTINCTION 1"
@@ -175,7 +175,7 @@ class ExtinctionModel(str, Enum):
 # =============================================================================
 
 
-class StatisticsType(str, Enum):
+class StatisticsType(StrEnum):
     """Device statistics types."""
 
     MIN = "MIN"
@@ -195,7 +195,7 @@ class StatisticsType(str, Enum):
 # =============================================================================
 
 
-class RampInterpolation(str, Enum):
+class RampInterpolation(StrEnum):
     """RAMP interpolation types."""
 
     LINEAR = "LINEAR"
@@ -207,7 +207,7 @@ class RampInterpolation(str, Enum):
 # =============================================================================
 
 
-class DragLaw(str, Enum):
+class DragLaw(StrEnum):
     """Drag law for particles."""
 
     SPHERE = "SPHERE"
@@ -220,7 +220,7 @@ class DragLaw(str, Enum):
 # =============================================================================
 
 
-class MeshBoundary(str, Enum):
+class MeshBoundary(StrEnum):
     """Mesh boundary locations."""
 
     XMIN = "XMIN"
@@ -236,7 +236,7 @@ class MeshBoundary(str, Enum):
 # =============================================================================
 
 
-class BuiltinSurface(str, Enum):
+class BuiltinSurface(StrEnum):
     """Built-in FDS surfaces that don't require explicit definition.
 
     These surface IDs are predefined by FDS and can be referenced
@@ -259,7 +259,7 @@ class BuiltinSurface(str, Enum):
         return frozenset(member.value for member in cls)
 
 
-class BuiltinSpecies(str, Enum):
+class BuiltinSpecies(StrEnum):
     """Built-in FDS species that don't require explicit definition.
 
     These species IDs are predefined by FDS and can be referenced
