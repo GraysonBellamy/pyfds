@@ -42,7 +42,7 @@ docs = [
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.5.0",
     "mkdocstrings[python]>=1.0.4",
-    "mkdocs-git-revision-date-localized-plugin>=1.3.0",
+    "mkdocs-git-revision-date-localized-plugin>=1.5.2",
 ]
 
 [project.scripts]
@@ -159,7 +159,7 @@ ignore_missing_imports = true
 dev = [
     "mkdocs>=1.6.1",
     "mkdocs-autorefs>=1.4.3",
-    "mkdocs-git-revision-date-localized-plugin>=1.5.0",
+    "mkdocs-git-revision-date-localized-plugin>=1.5.2",
     "mkdocs-material>=9.7.0",
     "mkdocstrings[python]>=1.0.4",
     "pytest>=9.0.3",
