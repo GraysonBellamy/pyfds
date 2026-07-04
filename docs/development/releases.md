@@ -173,7 +173,7 @@ Create release on GitHub:
 Documentation is automatically deployed via GitHub Actions when pushing to main.
 
 Verify deployment:
-- https://graysonbellamy.github.io/pyfds
+- https://pyfds.graysonbellamy.dev/
 
 ## Release Checklist
 
@@ -511,7 +511,7 @@ We're excited to announce PyFDS v0.2.0!
 
 ## 🔗 Links
 
-- [Documentation](https://graysonbellamy.github.io/pyfds)
+- [Documentation](https://pyfds.graysonbellamy.dev/)
 - [Changelog](https://github.com/GraysonBellamy/pyfds/blob/main/CHANGELOG.md)
 - [PyPI](https://pypi.org/project/pyfds/)
 

@@ -1,0 +1,303 @@
+[project]
+site_name = "PyFDS Documentation"
+site_description = "Python Interface to NIST Fire Dynamics Simulator"
+site_author = "Grayson Bellamy"
+site_url = "https://pyfds.graysonbellamy.dev/"
+repo_url = "https://github.com/GraysonBellamy/pyfds"
+repo_name = "GraysonBellamy/pyfds"
+edit_uri = "edit/main/docs/"
+copyright = "Copyright &copy; 2025 Grayson Bellamy"
+
+docs_dir = "docs"
+site_dir = "site"
+
+extra_css = ["stylesheets/extra.css"]
+extra_javascript = [
+  "javascripts/mathjax.js",
+  "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js",
+]
+
+nav = [
+  { "Home" = "index.md" },
+
+  { "Getting Started" = [
+    "getting-started/index.md",
+    { "Installation" = "getting-started/installation.md" },
+    { "Quick Start" = "getting-started/quickstart.md" },
+    { "Key Concepts" = "getting-started/concepts.md" },
+  ] },
+
+  { "User Guide" = [
+    "guide/index.md",
+    { "Building Simulations" = "guide/building-simulations.md" },
+    { "Builder Pattern API" = "guide/builders.md" },
+    { "Computational Domain" = "guide/domain.md" },
+    { "Geometry" = "guide/geometry.md" },
+    { "Boundary Conditions" = "guide/boundaries.md" },
+    { "Materials & Surfaces" = "guide/materials-surfaces.md" },
+    { "Fire Sources" = "guide/fire-sources.md" },
+    { "Particles" = "guide/particles.md" },
+    { "Devices & Measurement" = "guide/devices.md" },
+    { "Suppression Systems" = "guide/suppression-systems.md" },
+    { "Time-Varying Properties" = "guide/ramps.md" },
+    { "Control Logic" = "guide/controls.md" },
+    { "Initial Conditions" = "guide/initial-conditions.md" },
+    { "Combustion" = "guide/combustion.md" },
+    { "Chemical Species" = "guide/species.md" },
+    { "Pyrolysis Modeling" = "guide/pyrolysis.md" },
+    { "Liquid Fuels" = "guide/liquid_fuels.md" },
+    { "Burn-Away Modeling" = "guide/burn_away.md" },
+    { "Advanced Chemistry" = "guide/combustion_chemistry.md" },
+    { "Global Settings" = "guide/global-settings.md" },
+  ] },
+
+  { "Execution & Analysis" = [
+    "execution/index.md",
+    { "Running Simulations" = "execution/running.md" },
+    { "Job Management" = "execution/jobs.md" },
+    { "Results Analysis" = "execution/analysis.md" },
+    { "Visualization" = "execution/visualization.md" },
+  ] },
+
+  { "Examples" = [
+    "examples/index.md",
+    { "Basic Examples" = "examples/basic.md" },
+    { "Chemical Species" = "examples/species.md" },
+    { "Advanced Examples" = "examples/advanced.md" },
+    { "Special Applications" = "examples/special.md" },
+    { "Parametric Studies" = "examples/parametric.md" },
+    { "Complete Workflows" = "examples/workflows.md" },
+  ] },
+
+  { "API Reference" = [
+    "api/index.md",
+    { "Core" = [
+      { "Simulation" = "api/core/simulation.md" },
+      { "Registry" = "api/core/registry.md" },
+      { "Models" = "api/core/models.md" },
+      { "Enumerations" = "api/core/enums.md" },
+    ] },
+    { "Builders" = [
+      "api/builders/index.md",
+      { "RampBuilder" = "api/builders/ramp.md" },
+      { "MaterialBuilder" = "api/builders/material.md" },
+      { "ReactionBuilder" = "api/builders/reaction.md" },
+      { "ControlBuilder" = "api/builders/control.md" },
+      { "GeomBuilder" = "api/builders/geom.md" },
+      { "PartBuilder" = "api/builders/part.md" },
+      { "SurfaceBuilder" = "api/builders/surface.md" },
+      { "Libraries" = "api/builders/libraries.md" },
+    ] },
+    { "Namelists" = [
+      "api/namelists/index.md",
+      { "Base Classes" = "api/namelists/base.md" },
+      { "Species" = "api/namelists/species.md" },
+      { "Metadata" = "api/namelists/metadata.md" },
+      { "Domain" = "api/namelists/domain.md" },
+      { "Geometry" = "api/namelists/geometry.md" },
+      { "Materials" = "api/namelists/materials.md" },
+      { "Devices" = "api/namelists/devices.md" },
+      { "Complex" = "api/namelists/complex.md" },
+    ] },
+    { "Validation" = [
+      { "Validation" = "api/utils/validation.md" },
+    ] },
+    { "Exceptions" = [
+      { "Exceptions" = "api/exceptions.md" },
+    ] },
+    { "Execution" = [
+      { "Runner" = "api/execution/runner.md" },
+      { "Job" = "api/execution/job.md" },
+      { "Monitor" = "api/execution/monitor.md" },
+    ] },
+    { "Analysis" = [
+      { "Results" = "api/analysis/results.md" },
+    ] },
+    { "I/O" = [
+      { "Parsers" = "api/io/parsers.md" },
+    ] },
+    { "Utilities" = [
+      { "Logging" = "api/utils/logging.md" },
+    ] },
+  ] },
+
+  { "Developer Guide" = [
+    "development/index.md",
+    { "Contributing" = "development/contributing.md" },
+    { "Architecture" = "development/architecture.md" },
+    { "Manager System" = "development/managers.md" },
+    { "Testing" = "development/testing.md" },
+    { "Release Process" = "development/releases.md" },
+  ] },
+
+  { "Reference" = [
+    "reference/index.md",
+    { "FDS Background" = "reference/fds-background.md" },
+    { "Namelist Reference" = "reference/namelist-reference.md" },
+    { "Validation Rules" = "reference/validation.md" },
+    { "Troubleshooting" = "reference/troubleshooting.md" },
+    { "FAQ" = "reference/faq.md" },
+    { "Glossary" = "reference/glossary.md" },
+  ] },
+
+  { "About" = [
+    "about/index.md",
+    { "Changelog" = "about/changelog.md" },
+    { "License" = "about/license.md" },
+    { "Citation" = "about/citation.md" },
+    { "Acknowledgments" = "about/acknowledgments.md" },
+  ] },
+]
+
+# ----------------------------------------------------------------------------
+# Theme
+# ----------------------------------------------------------------------------
+[project.theme]
+name = "material"
+language = "en"
+features = [
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.tracking",
+  "navigation.tabs",
+  "navigation.tabs.sticky",
+  "navigation.sections",
+  "navigation.expand",
+  "navigation.indexes",
+  "navigation.top",
+  "navigation.footer",
+  "search.suggest",
+  "search.highlight",
+  "search.share",
+  "content.code.copy",
+  "content.code.annotate",
+  "content.tabs.link",
+  "content.tooltips",
+  "toc.follow",
+  "toc.integrate",
+]
+
+[project.theme.font]
+text = "Roboto"
+code = "Roboto Mono"
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+logo = "material/fire"
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "deep orange"
+accent = "orange"
+toggle.icon = "material/brightness-7"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "deep orange"
+accent = "orange"
+toggle.icon = "material/brightness-4"
+toggle.name = "Switch to light mode"
+
+# ----------------------------------------------------------------------------
+# Plugins
+# ----------------------------------------------------------------------------
+[project.plugins.search]
+
+[project.plugins.autorefs]
+
+[project.plugins.git-revision-date-localized]
+enable_creation_date = true
+type = "timeago"
+
+[project.plugins.mkdocstrings]
+default_handler = "python"
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["src"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "numpy"
+docstring_section_style = "spacy"
+show_source = true
+show_root_heading = true
+show_root_full_path = false
+show_symbol_type_heading = true
+show_symbol_type_toc = true
+signature_crossrefs = true
+separate_signature = true
+merge_init_into_class = true
+show_if_no_docstring = false
+inherited_members = false
+members_order = "source"
+group_by_category = true
+show_category_heading = true
+show_bases = true
+show_submodules = false
+
+# ----------------------------------------------------------------------------
+# Markdown extensions
+# ----------------------------------------------------------------------------
+[project.markdown_extensions.abbr]
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.def_list]
+[project.markdown_extensions.footnotes]
+[project.markdown_extensions.md_in_html]
+[project.markdown_extensions.tables]
+
+[project.markdown_extensions.toc]
+permalink = true
+toc_depth = 3
+
+[project.markdown_extensions.pymdownx.arithmatex]
+generic = true
+
+[project.markdown_extensions.pymdownx.betterem]
+smart_enable = "all"
+
+[project.markdown_extensions.pymdownx.caret]
+[project.markdown_extensions.pymdownx.details]
+
+[project.markdown_extensions.pymdownx.emoji]
+emoji_index = "zensical.extensions.emoji.twemoji"
+emoji_generator = "zensical.extensions.emoji.to_svg"
+
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.keys]
+[project.markdown_extensions.pymdownx.mark]
+[project.markdown_extensions.pymdownx.smartsymbols]
+
+[project.markdown_extensions.pymdownx.snippets]
+auto_append = ["includes/abbreviations.md"]
+
+[project.markdown_extensions.pymdownx.superfences]
+custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+[project.markdown_extensions.pymdownx.tasklist]
+custom_checkbox = true
+
+[project.markdown_extensions.pymdownx.tilde]
+
+# ----------------------------------------------------------------------------
+# Social links
+# ----------------------------------------------------------------------------
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/GraysonBellamy/pyfds"
+name = "PyFDS on GitHub"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/python"
+link = "https://pypi.org/project/pyfds/"
+name = "PyFDS on PyPI"

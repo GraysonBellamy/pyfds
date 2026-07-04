@@ -44,7 +44,7 @@ Learn more about the PyFDS project.
 
 - :fontawesome-brands-github: [GitHub Repository](https://github.com/GraysonBellamy/pyfds)
 - :fontawesome-brands-python: [PyPI Package](https://pypi.org/project/pyfds/)
-- :material-file-document: [Documentation](https://graysonbellamy.github.io/pyfds)
+- :material-file-document: [Documentation](https://pyfds.graysonbellamy.dev/)
 - :material-bug: [Issue Tracker](https://github.com/GraysonBellamy/pyfds/issues)
 - :material-forum: [Discussions](https://github.com/GraysonBellamy/pyfds/discussions)
 
