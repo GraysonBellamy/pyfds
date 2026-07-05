@@ -293,6 +293,11 @@ custom_checkbox = true
 # Social links
 # ----------------------------------------------------------------------------
 [[project.extra.social]]
+icon = "fontawesome/solid/house"
+link = "https://graysonbellamy.dev"
+name = "graysonbellamy.dev"
+
+[[project.extra.social]]
 icon = "fontawesome/brands/github"
 link = "https://github.com/GraysonBellamy/pyfds"
 name = "PyFDS on GitHub"
