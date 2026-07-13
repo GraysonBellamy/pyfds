@@ -15,7 +15,7 @@ dependencies = [
     "xarray>=2026.4.0",
     "pydantic>=2.13.4",
     "click>=8.4.2",
-    "tqdm>=4.68.3",
+    "tqdm>=4.68.4",
 ]
 keywords = ["fds", "fire-dynamics-simulator", "cfd", "fire-modeling", "simulation"]
 classifiers = [
