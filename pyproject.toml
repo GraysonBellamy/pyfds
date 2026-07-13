@@ -39,7 +39,7 @@ dev = [
     "pre-commit>=4.6.0",
 ]
 docs = [
-    "zensical>=0.0.47",
+    "zensical>=0.0.50",
     "mkdocstrings[python]>=1.0.6",
 ]
 
@@ -155,7 +155,7 @@ ignore_missing_imports = true
 
 [dependency-groups]
 dev = [
-    "zensical>=0.0.47",
+    "zensical>=0.0.50",
     "mkdocstrings[python]>=1.0.6",
     "pytest>=9.1.1",
     "pytest-cov>=7.0.0",
