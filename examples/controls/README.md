@@ -38,8 +38,8 @@ Device(
     id="TEMP_SENSOR",
     xyz=Point3D(1.0, 1.0, 1.5),
     quantity="TEMPERATURE",
-    setpoint=100.0,      # Trigger at 100°C
-    trip_direction=1,    # Trigger when rising above
+    setpoint=100.0,  # Trigger at 100°C
+    trip_direction=1,  # Trigger when rising above
 )
 ```
 

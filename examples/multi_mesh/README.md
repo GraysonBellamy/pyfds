@@ -37,17 +37,24 @@ sim.add(Mesh(id="MESH_1", ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(0, 2, 0, 2, 
 sim.add(Mesh(id="MESH_2", ijk=Grid3D.of(20, 20, 20), xb=Bounds3D.of(2, 4, 0, 2, 0, 2)))
 
 # MULT for arrays
-sim.add(Multiplier(
-    id="COLUMN_ARRAY",
-    dx=2.0, dy=2.0,
-    i_lower=0, i_upper=3,
-    j_lower=0, j_upper=2,
-))
-sim.add(Obstruction(
-    id="COLUMN",
-    xb=Bounds3D.of(0.9, 1.1, 0.9, 1.1, 0.0, 3.0),
-    mult_id="COLUMN_ARRAY",  # Creates 4x3 = 12 columns
-))
+sim.add(
+    Multiplier(
+        id="COLUMN_ARRAY",
+        dx=2.0,
+        dy=2.0,
+        i_lower=0,
+        i_upper=3,
+        j_lower=0,
+        j_upper=2,
+    )
+)
+sim.add(
+    Obstruction(
+        id="COLUMN",
+        xb=Bounds3D.of(0.9, 1.1, 0.9, 1.1, 0.0, 3.0),
+        mult_id="COLUMN_ARRAY",  # Creates 4x3 = 12 columns
+    )
+)
 
 # Different resolution meshes
 sim.add(Mesh(id="FINE", ijk=Grid3D.of(40, 40, 40), xb=...))  # 0.05m
